@@ -1,8 +1,8 @@
 # Kryvex — Development Guide
 
-Status: Phase 0 draft; commands below become real once Phase 1 scaffolding
-lands. This is the reference for "how do I run/test this" once code exists —
-kept in sync as tooling is added.
+Status: Phase 1 (Foundation) complete — the commands below are real and
+verified. This is the reference for "how do I run/test this" — kept in sync
+as tooling is added.
 
 ## 1. Confirmed local tooling (this environment)
 
@@ -26,46 +26,96 @@ Mobile: Expo is used via the local per-project `expo` package and
 - Enable pnpm via Corepack: `corepack enable` (already available in this
   environment).
 
-## 3. Planned root scripts (Phase 1)
+## 3. Root scripts
 
 ```bash
-pnpm install          # install all workspace dependencies
-pnpm dev               # run web + mobile dev servers via turbo
-pnpm build             # build all apps/packages
-pnpm lint              # lint all workspaces
-pnpm typecheck         # tsc --noEmit across workspaces
-pnpm test              # unit + integration tests (Vitest/Jest)
-pnpm test:security     # Firestore/Storage rules tests against the emulator
-pnpm test:e2e          # Playwright (web) end-to-end tests
+pnpm install           # install all workspace dependencies
+pnpm dev                # run web + mobile dev servers via turbo
+pnpm build              # build all apps/packages
+pnpm lint                # lint all workspaces, then `prettier --check .`
+pnpm format             # `prettier --write .`
+pnpm typecheck          # tsc --noEmit across workspaces (apps/web also runs `next typegen` first)
+pnpm test               # unit tests (Vitest for packages/apps/web, Jest for apps/mobile)
+pnpm test:security      # Firestore/Storage rules tests, run only via `firebase emulators:exec`
+pnpm test:e2e           # reserved — no-op until Phase 8 (no Playwright wired yet)
 ```
+
+Known TypeScript-6.0.3-under-pnpm quirks worked around in the shared config
+(`packages/tsconfig/base.json`, `apps/mobile/tsconfig.json`) rather than left
+as recurring friction:
+- `@types/node`/`@types/jest` aren't reliably auto-discovered per-package, so
+  every package explicitly lists `"types": [...]` instead of relying on
+  automatic `@types/*` scanning.
+- TS project references/`composite` mode were dropped — they required a
+  referenced package's `dist/*.d.ts` to already exist for plain
+  `tsc --noEmit`, which conflicted with Turborepo owning build order.
+  Cross-package types resolve fine via `package.json`'s `types` field
+  pointing straight at `src/index.ts`.
+- `firebase/functions/tsconfig.json` uses `"ignoreDeprecations": "6.0"`
+  (inherited from the shared base) because tsup's `--dts` step internally
+  injects a deprecated `baseUrl` when bundling declarations — not something
+  this repo's own config sets.
+- `apps/web`'s ESLint config does **not** reuse `@kryvex/eslint-config/react`
+  — layering it with `eslint-config-next` throws ("Cannot redefine plugin"),
+  since both register their own typescript-eslint/plugin instances under
+  flat config. `apps/web/eslint.config.mjs` composes `eslint-config-next`
+  directly instead.
+- `eslint-plugin-react`'s `settings.react.version` is pinned (e.g. `"19.2"`)
+  rather than `"detect"` everywhere: its auto-detection path calls an API
+  ESLint 10 removed. `eslint-plugin-react-native` is not wired in yet for
+  the same reason (not ESLint 10 compatible as of this writing).
+- `apps/mobile` depends on `test-renderer` (not the deprecated
+  `react-test-renderer`) to match `@testing-library/react-native@14`'s peer
+  dependency, and its `render()` call must be awaited (async as of v14).
 
 ## 4. Firebase Emulator Suite
 
 Development and rule tests run against the local emulator, never production
-Firebase, per build spec §44:
+Firebase, per build spec §44. The project is configured for the `demo-kryvex`
+project ID (`.firebaserc`) — a `demo-*` ID the emulator suite treats as fully
+offline, so no real GCP project or credentials are needed for any of this:
 
 ```bash
-firebase emulators:start --only auth,firestore,storage,functions
+firebase emulators:start --only auth,firestore,storage,functions   # interactive, for manual testing
+pnpm test:security                                                  # `firebase emulators:exec` + the rules test suite (tests/security)
 ```
 
-`apps/web`/`apps/mobile` point at the emulator via environment variables in
-development (see §5); `packages/firebase`'s client wrapper picks the emulator
-host automatically when `NODE_ENV !== "production"` and an emulator env var is
-set, so no code path accidentally targets production during local dev.
+`firebase.json` declares emulator ports (auth 9099, firestore 8080, storage
+9199, functions 5001, ui 4000); `firebase/firestore.rules` and
+`firebase/storage.rules` are the real, deployable rules (transcribed from
+`docs/FIREBASE_SECURITY.md` §2–3).
+
+`packages/firebase`'s `resolveFirebaseEmulatorConfig()` is a pure function
+that decides *whether/where* a client should point at the emulator, given
+already-resolved env values — it does not itself call `initializeApp`/
+`connectFirestoreEmulator`. Those calls (and picking the host automatically
+based on environment) are Phase 2 work, once there's an actual Firebase app
+config to initialize.
 
 ## 5. Environment variables
 
 `.env.example` (committed) documents required variables, split explicitly per
-build spec §45:
+build spec §45. Both apps need the same values under their own bundler's
+public-env prefix — Next.js only inlines `NEXT_PUBLIC_*`, Expo only inlines
+`EXPO_PUBLIC_*`:
 
 ```
 # PUBLIC CONFIG (safe in the client bundle — Firebase web config is not a secret)
 NEXT_PUBLIC_FIREBASE_API_KEY=
 NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=
-NEXT_PUBLIC_FIREBASE_PROJECT_ID=
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=demo-kryvex
 NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=
 NEXT_PUBLIC_FIREBASE_APP_ID=
 NEXT_PUBLIC_USE_FIREBASE_EMULATOR=true
+NEXT_PUBLIC_FIREBASE_EMULATOR_HOST=localhost
+
+EXPO_PUBLIC_FIREBASE_API_KEY=
+EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN=
+EXPO_PUBLIC_FIREBASE_PROJECT_ID=demo-kryvex
+EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET=
+EXPO_PUBLIC_FIREBASE_APP_ID=
+EXPO_PUBLIC_USE_FIREBASE_EMULATOR=true
+EXPO_PUBLIC_FIREBASE_EMULATOR_HOST=localhost
 
 # SECRET CONFIG (server-only; never referenced from client bundles)
 FIREBASE_SERVICE_ACCOUNT_JSON=   # used only by Cloud Functions / CI, never shipped to apps/web or apps/mobile
