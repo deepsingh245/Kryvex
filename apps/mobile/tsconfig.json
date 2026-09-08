@@ -6,6 +6,10 @@
     "exactOptionalPropertyTypes": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
+    // Explicit, not relying on automatic @types discovery — same issue as
+    // @kryvex/tsconfig/base.json: under pnpm + typescript@6.0.3 it isn't
+    // reliably picked up even as a direct devDependency.
+    "types": ["jest"],
     "paths": {
       "@/*": ["./src/*"],
       "@/assets/*": ["./assets/*"]
