@@ -1,6 +1,11 @@
 # Kryvex — Build Plan
 
-Status: **Phase 0 — Architecture complete, awaiting sign-off** (no application code yet)
+Status: **Phase 1 (Foundation) complete.** Phase 0 architecture docs are done
+and signed off; the monorepo scaffold (apps/web, apps/mobile, 10 shared
+packages, Firebase emulator + rules, CI config) exists, is fully wired, and
+passes `pnpm lint/typecheck/test/build` plus `pnpm test:security` against the
+real emulator. See "Current status" in `KRYVEX_SOURCE_OF_TRUTH.md` for detail
+and open follow-ups. Phase 2 (Authentication) is next.
 Owner: lead architect/engineer (Claude), directed by project owner
 Last updated: 2026-09-07
 
@@ -134,7 +139,7 @@ screens / phases / risks) for explicit sign-off before Phase 1 begins.
 
 | Phase | Focus                                                                                                                                      |
 | ----- | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| 1     | Foundation — monorepo, web+mobile scaffolds, shared packages, lint/test/CI, Firebase emulator                                              |
+| 1     | **Done.** Foundation — monorepo, web+mobile scaffolds, shared packages, lint/test/CI, Firebase emulator                                              |
 | 2     | Authentication — Firebase Auth, registration/login/logout, `AUTHENTICATED_LOCKED` state                                                    |
 | 3     | Cryptographic core — KDF, keygen, encrypt/decrypt, serialization, tamper detection, key wrapping (heavily tested, reviewed before Phase 4) |
 | 4     | Vault — Login/Secure Note items, custom fields, generator, favorites, tags, search                                                         |
@@ -164,7 +169,12 @@ and a short "Changed / Tests / Security considerations / Files / Next step" repo
 
 ## 6. Immediate next steps
 
-1. Confirm dev tooling available in this environment (Node/pnpm/Expo/Firebase CLI).
-2. Write the Phase 0 documents listed in §3.
-3. Present the `ARCHITECTURE READY` checkpoint for sign-off.
-4. Only then begin Phase 1 scaffolding.
+1. ~~Confirm dev tooling available in this environment (Node/pnpm/Expo/Firebase CLI).~~ Done.
+2. ~~Write the Phase 0 documents listed in §3.~~ Done.
+3. ~~Present the `ARCHITECTURE READY` checkpoint for sign-off.~~ Done.
+4. ~~Begin Phase 1 scaffolding.~~ Done — see "Current status" in
+   `KRYVEX_SOURCE_OF_TRUTH.md`.
+5. **Next up:** decide whether to push the local `main` branch (currently 1
+   commit ahead of `origin/main`) before starting Phase 2, then begin Phase 2
+   (Authentication — Firebase Auth, registration/login/logout,
+   `AUTHENTICATED_LOCKED` state).

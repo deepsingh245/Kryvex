@@ -1,10 +1,9 @@
 # Kryvex — Source of Truth
 
-Status: **Phase 0 — Architecture complete, no application code written yet.**
-This is the primary project reference. Read this before any other file when
-picking up work on Kryvex. Detailed reasoning for each section lives in the
-linked `docs/*.md` file — this document summarizes and cross-references rather
-than duplicating.
+Status: **Phase 1 (Foundation) complete.** This is the primary project
+reference. Read this before any other file when picking up work on Kryvex.
+Detailed reasoning for each section lives in the linked `docs/*.md` file —
+this document summarizes and cross-references rather than duplicating.
 
 ---
 
@@ -124,8 +123,11 @@ No marketing or UI copy may claim "unhackable"/"military-grade"/similar.
 
 ## 14. Development commands
 
-Not yet real — Phase 1 scaffolding pending. Planned command surface and
-confirmed local tooling versions: [docs/DEVELOPMENT.md](./docs/DEVELOPMENT.md).
+Real and verified: `pnpm install/dev/build/lint/typecheck/test` and
+`pnpm test:security` (Firestore/Storage rules against the real emulator, via
+`firebase emulators:exec`). Full command surface, confirmed tooling versions,
+and TypeScript-6.0.3-under-pnpm workarounds:
+[docs/DEVELOPMENT.md](./docs/DEVELOPMENT.md).
 
 ## 15. Deployment process
 
@@ -164,7 +166,31 @@ Phase 0 (Architecture) documents are complete:
 `docs/DEVELOPMENT.md`, `docs/DEPLOYMENT.md`, `docs/RECOVERY.md`, this file,
 and `CLAUDE.md`.
 
-No application code, monorepo scaffolding, or Firebase project exists yet.
-Phase 1 (Foundation — monorepo, web/mobile scaffolds, shared packages,
-lint/test/CI, Firebase emulator) is the next step, pending sign-off on this
-architecture.
+Phase 1 (Foundation) is complete: a pnpm/Turborepo monorepo exists with
+`apps/web` (Next.js 16, placeholder page rendering `@kryvex/ui`), `apps/mobile`
+(Expo SDK 57, placeholder screen), all 10 `packages/*` scaffolded (each with a
+placeholder export + passing test — no real crypto/vault/sync/etc. logic
+yet, per phase boundaries), `firebase/firestore.rules` and
+`firebase/storage.rules` transcribed from `docs/FIREBASE_SECURITY.md` as real
+deployable rules, a `firebase/functions` scaffold with one trivial health-check
+function, a `tests/security` Firestore-rules test suite (9 passing tests
+against the real emulator), and a GitHub Actions CI workflow. **No feature
+code exists yet** — key derivation, encryption, auth, and vault CRUD are
+Phases 2-4.
+
+Verified: `pnpm lint`, `pnpm typecheck`, `pnpm test`, and `pnpm build` all
+pass cleanly across all 16 workspaces; `pnpm test:security` passes against
+the real Firestore/Storage emulator; `apps/web`'s dev server serves the
+placeholder page correctly. Several TypeScript-6.0.3/ESLint-10/pnpm ecosystem
+quirks were worked around along the way — documented in
+[docs/DEVELOPMENT.md](./docs/DEVELOPMENT.md) §3 rather than left as silent
+fixes.
+
+Git: the working tree has a real local repository with a GitHub remote
+(`origin` → `deepsingh245/Kryvex`) already configured — an existing commit
+and push predates this session's own actions (observed, not created by this
+session). This session's Phase 1 work is committed locally on `main`
+(currently ahead of `origin/main`) but has **not** been pushed — that's an
+open decision for the next session/user, not assumed.
+
+Phase 2 (Authentication) is next.
