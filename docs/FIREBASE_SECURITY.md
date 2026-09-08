@@ -129,6 +129,13 @@ Kept minimal, per the build spec (§46). Anticipated uses only:
   decryption capability is added.
 - **Tombstone garbage collection**: a scheduled function that purges
   `deleted: true` item/attachment documents past a retention window.
+- **`getKdfParams`** (added Phase 2, implemented): a deliberately
+  unauthenticated callable resolving the sign-in "prelogin" problem — see
+  `docs/CRYPTOGRAPHIC_ARCHITECTURE.md` §4.1. Uses the Admin SDK (bypasses
+  Firestore rules, so no rules change) to return only
+  `{ kdfSalt, kdfParams }` for a given email, `null` for a non-existent or
+  incomplete account. Never touches ciphertext, a password, or a derived
+  key — the narrowest surface that solves the problem.
 - Cloud Functions never receive a master password, a derived key, or plaintext
   vault content, and no function is ever added whose purpose is to decrypt
   user data server-side (see build spec §69 — no admin decrypt endpoint, ever).

@@ -215,14 +215,14 @@ and content are not.
 interface UserProfileDocument {
   uid: string;
   email: string; // from Firebase Auth
-  kdfSalt: string; // base64, Argon2id salt
+  kdfSalt: string; // hex-encoded, Argon2id salt
   kdfParams: {
     memoryKiB: number;
     iterations: number;
     parallelism: number;
     version: number;
   };
-  protectedVaultKey: EncryptedEnvelope; // Vault Encryption Key wrapped by Stretched Master Key
+  protectedVaultKey?: EncryptedEnvelope; // Vault Encryption Key wrapped by Stretched Master Key
   protectedVaultKeyByRecovery?: EncryptedEnvelope; // wrapped by Recovery Key, if set up
   createdAt: Timestamp;
   settings: {
@@ -232,6 +232,16 @@ interface UserProfileDocument {
   };
 }
 ```
+
+**`protectedVaultKey` is optional** (added Phase 2, implementing this
+document for the first time): the profile document is created at signup
+(Phase 2) with `uid`/`email`/`kdfSalt`/`kdfParams`/`createdAt`/`settings`
+only — there's no Vault Encryption Key to wrap yet, since AES-256-GCM/key
+wrapping don't exist until Phase 3. The document is **updated, not
+recreated**, once Phase 3 adds `protectedVaultKey`. This is already legal
+against the deployed `firebase/firestore.rules` — the `users/{uid}` rule has
+no `hasAll` field-completeness check (unlike the `items` subcollection's
+`isValidItem()`), so no rules change was needed.
 
 ## 5. Field-level rationale summary
 

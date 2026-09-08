@@ -1,10 +1,16 @@
+import "@/polyfills";
 import { Stack } from "expo-router";
+import { VaultProvider } from "@/providers/VaultProvider";
 
 /**
- * Phase 1 scaffold only — a single unnamed route (src/app/index.tsx). Real
- * navigation (Onboarding -> Vault Home -> Item Detail -> ...; see
- * docs/ARCHITECTURE.md §5) lands starting Phase 2.
+ * Screens: sign-up, sign-in, unlock, index (gated home) — see
+ * docs/ARCHITECTURE.md §5 for the full future screen map. Recovery kit /
+ * biometric opt-in (Phase 3/7) aren't built yet.
  */
 export default function RootLayout() {
-  return <Stack screenOptions={{ headerShown: false }} />;
+  return (
+    <VaultProvider>
+      <Stack screenOptions={{ headerShown: false }} />
+    </VaultProvider>
+  );
 }

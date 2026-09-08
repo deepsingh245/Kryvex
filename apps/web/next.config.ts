@@ -11,6 +11,8 @@ const nextConfig: NextConfig = {
     "@kryvex/firebase",
     "@kryvex/validation",
     "@kryvex/security",
+    "@kryvex/crypto",
+    "@kryvex/vault",
   ],
 };
 

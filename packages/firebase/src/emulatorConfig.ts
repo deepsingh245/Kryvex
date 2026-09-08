@@ -34,8 +34,11 @@ const DEFAULT_PORTS: FirebaseEmulatorPorts = {
 };
 
 export interface ResolveFirebaseEmulatorConfigInput {
-  useEmulator?: string;
-  host?: string;
+  // `| undefined` explicitly, not just `?:` — under exactOptionalPropertyTypes
+  // that distinction matters, and callers pass `process.env.SOME_VAR`
+  // (always `string | undefined`) directly rather than pre-filtering it.
+  useEmulator?: string | undefined;
+  host?: string | undefined;
 }
 
 export function resolveFirebaseEmulatorConfig(

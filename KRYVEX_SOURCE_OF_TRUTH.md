@@ -1,6 +1,6 @@
 # Kryvex — Source of Truth
 
-Status: **Phase 1 (Foundation) complete.** This is the primary project
+Status: **Phase 2 (Authentication) complete.** This is the primary project
 reference. Read this before any other file when picking up work on Kryvex.
 Detailed reasoning for each section lives in the linked `docs/*.md` file —
 this document summarizes and cross-references rather than duplicating.
@@ -90,8 +90,13 @@ blob sync: [docs/SYNC_ENGINE.md](./docs/SYNC_ENGINE.md).
 ## 10. Authentication
 
 Firebase Authentication for identity only; structurally separate from vault
-decryption (`AUTHENTICATED_LOCKED` is a valid, expected state). Detail:
-[docs/CRYPTOGRAPHIC_ARCHITECTURE.md](./docs/CRYPTOGRAPHIC_ARCHITECTURE.md) §4.
+decryption (`AUTHENTICATED_LOCKED` is a valid, expected state). Implemented
+(Phase 2): email/password sign-up/sign-in/sign-out, the prelogin flow
+(`getKdfParams`), and the `packages/vault` lock state machine
+(`SIGNED_OUT → AUTHENTICATED_LOCKED → UNLOCKING → UNLOCKED → LOCKING`) wired
+through each app's own `VaultProvider`. Detail:
+[docs/CRYPTOGRAPHIC_ARCHITECTURE.md](./docs/CRYPTOGRAPHIC_ARCHITECTURE.md) §4,
+§4.1, [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) §2.
 
 ## 11. Device unlock
 
@@ -102,15 +107,18 @@ build spec §18.
 
 ## 12. Security decisions log
 
-| Decision                                                                        | Rationale                                                                   | Reference                        |
-| ------------------------------------------------------------------------------- | --------------------------------------------------------------------------- | -------------------------------- |
-| Envelope encryption (per-item/attachment DEKs, not direct Vault-Key encryption) | Cheap key rotation; future sharing without re-encrypting content            | CRYPTOGRAPHIC_ARCHITECTURE.md §2 |
-| Titles/tags encrypted, not left plaintext                                       | Metadata itself can be sensitive                                            | CRYPTOGRAPHIC_ARCHITECTURE.md §5 |
-| `favorite` flag left plaintext                                                  | Low-sensitivity sorting convenience; explicitly flagged exception           | DATA_MODEL.md §5                 |
-| Attachment `mimeType`/`sizeBytes` left plaintext                                | Needed for non-decrypting UI/quota; low sensitivity                         | DATA_MODEL.md §5                 |
-| Hard deletes disallowed client-side; tombstones only                            | Enables correct offline conflict/delete semantics                           | SYNC_ENGINE.md §5                |
-| Recovery via user-held Recovery Key, no server escrow                           | Preserves zero-knowledge guarantee; explicit unrecoverable-if-lost tradeoff | RECOVERY.md §1                   |
-| Firebase Auth value ≠ master password (HKDF-derived)                            | Compromised Firebase credential must not reveal master password             | CRYPTOGRAPHIC_ARCHITECTURE.md §4 |
+| Decision                                                                                                                                              | Rationale                                                                                                                                                                                                | Reference                                 |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------- |
+| Envelope encryption (per-item/attachment DEKs, not direct Vault-Key encryption)                                                                       | Cheap key rotation; future sharing without re-encrypting content                                                                                                                                         | CRYPTOGRAPHIC_ARCHITECTURE.md §2          |
+| Titles/tags encrypted, not left plaintext                                                                                                             | Metadata itself can be sensitive                                                                                                                                                                         | CRYPTOGRAPHIC_ARCHITECTURE.md §5          |
+| `favorite` flag left plaintext                                                                                                                        | Low-sensitivity sorting convenience; explicitly flagged exception                                                                                                                                        | DATA_MODEL.md §5                          |
+| Attachment `mimeType`/`sizeBytes` left plaintext                                                                                                      | Needed for non-decrypting UI/quota; low sensitivity                                                                                                                                                      | DATA_MODEL.md §5                          |
+| Hard deletes disallowed client-side; tombstones only                                                                                                  | Enables correct offline conflict/delete semantics                                                                                                                                                        | SYNC_ENGINE.md §5                         |
+| Recovery via user-held Recovery Key, no server escrow                                                                                                 | Preserves zero-knowledge guarantee; explicit unrecoverable-if-lost tradeoff                                                                                                                              | RECOVERY.md §1                            |
+| Firebase Auth value ≠ master password (HKDF-derived)                                                                                                  | Compromised Firebase credential must not reveal master password                                                                                                                                          | CRYPTOGRAPHIC_ARCHITECTURE.md §4          |
+| Prelogin via a narrow unauthenticated Cloud Function (`getKdfParams`), not a deterministic/email-derived salt or a public Firestore lookup collection | Deterministic salt lets an attacker precompute it fully offline; a public collection needs a second copy of the salt kept in sync on every param rotation                                                | CRYPTOGRAPHIC_ARCHITECTURE.md §4.1        |
+| Argon2id/HKDF pulled into Phase 2 (not deferred to Phase 3 as originally planned)                                                                     | The Firebase Auth credential is itself HKDF-derived from the master password — Phase 2 auth can't be correct without it; Phase 3 now covers only AES-256-GCM item/attachment encryption and key wrapping | PLAN.md, CRYPTOGRAPHIC_ARCHITECTURE.md §4 |
+| Pure-JS Argon2id (`@noble/hashes`) on mobile, not WASM/native                                                                                         | Plain Expo Go (no `expo prebuild`) can't run WASM in Hermes or link native modules; revisit once native tooling lands (Phase 7/10)                                                                       | DEVELOPMENT.md                            |
 
 ## 13. Known limitations
 
@@ -123,10 +131,11 @@ No marketing or UI copy may claim "unhackable"/"military-grade"/similar.
 
 ## 14. Development commands
 
-Real and verified: `pnpm install/dev/build/lint/typecheck/test` and
-`pnpm test:security` (Firestore/Storage rules against the real emulator, via
-`firebase emulators:exec`). Full command surface, confirmed tooling versions,
-and TypeScript-6.0.3-under-pnpm workarounds:
+Real and verified: `pnpm install/dev/build/lint/typecheck/test`,
+`pnpm test:security` (Firestore/Storage rules against the real emulator), and
+`pnpm test:auth` (Firebase Auth + prelogin flow against the real emulator) —
+all via `firebase emulators:exec`. Full command surface, confirmed tooling
+versions, and TypeScript-6.0.3-under-pnpm workarounds:
 [docs/DEVELOPMENT.md](./docs/DEVELOPMENT.md).
 
 ## 15. Deployment process
@@ -178,19 +187,41 @@ against the real emulator), and a GitHub Actions CI workflow. **No feature
 code exists yet** — key derivation, encryption, auth, and vault CRUD are
 Phases 2-4.
 
-Verified: `pnpm lint`, `pnpm typecheck`, `pnpm test`, and `pnpm build` all
-pass cleanly across all 16 workspaces; `pnpm test:security` passes against
-the real Firestore/Storage emulator; `apps/web`'s dev server serves the
-placeholder page correctly. Several TypeScript-6.0.3/ESLint-10/pnpm ecosystem
-quirks were worked around along the way — documented in
-[docs/DEVELOPMENT.md](./docs/DEVELOPMENT.md) §3 rather than left as silent
-fixes.
+Phase 2 (Authentication) is complete: `packages/crypto` has real Argon2id/
+HKDF (`@noble/hashes`, pure JS — no WASM/native module, so it runs on plain
+Expo Go); `packages/firebase` has real `initializeApp`/Auth/Firestore/
+Functions wiring (web and React-Native-persistence variants) plus thin
+sign-up/sign-in/sign-out/profile-doc/prelogin wrappers; `packages/vault` has
+the real lock state machine (reducer, table-tested); `firebase/functions`
+adds the `getKdfParams` prelogin Cloud Function; both apps have real
+Sign Up / Sign In / Unlock screens and a gated home screen wired through a
+`VaultProvider`; a new `tests/auth` workspace exercises the real flow against
+the Auth/Firestore/Functions emulators. See §12's decisions log for the two
+scope changes made along the way (pulling KDF into Phase 2; the prelogin
+mechanism) and `docs/DEVELOPMENT.md` §3 for new TypeScript/ESLint/Metro/RN
+ecosystem workarounds.
+
+Verified: `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build`,
+`pnpm test:security`, and `pnpm test:auth` all pass — the last of these
+exercises the real sign-up → `getKdfParams` prelogin → sign-in flow (correct
+and wrong master password, existing and non-existent accounts) against the
+live Auth/Firestore/Functions emulators, not mocks. `apps/web`'s dev server
+was confirmed serving all four routes (`/`, `/sign-up`, `/sign-in`,
+`/unlock`) correctly against the running emulator with no server-side
+errors. **Not yet done, flagged rather than assumed:** an actual
+click-through of the web UI in a browser (no browser-automation tool was
+available this session) and running `apps/mobile` in a real Expo Go session
+to confirm `@noble/hashes`' Argon2id/HKDF and `polyfillWebCrypto` genuinely
+work under Hermes — the plan's own verification steps 6-7. Both are
+recommended next steps before considering Phase 2 fully signed off, not
+optional polish: the mobile KDF path in particular has never executed
+outside Node/Vitest.
 
 Git: the working tree has a real local repository with a GitHub remote
-(`origin` → `deepsingh245/Kryvex`) already configured — an existing commit
-and push predates this session's own actions (observed, not created by this
-session). This session's Phase 1 work is committed locally on `main`
-(currently ahead of `origin/main`) but has **not** been pushed — that's an
-open decision for the next session/user, not assumed.
+(`origin` → `deepsingh245/Kryvex`) the user manages themselves — this session
+commits locally with plain, non-AI-attributed commit messages and never runs
+`git push` (see `CLAUDE.md`).
 
-Phase 2 (Authentication) is next.
+Phase 3 (Cryptographic core — AES-256-GCM item/attachment encryption, key
+wrapping, tamper detection; the KDF/HKDF half already landed in Phase 2) is
+next.

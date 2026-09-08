@@ -1,9 +1,17 @@
 /**
- * Phase 1 scaffold. Real domain types (VaultItemDocument, ItemContent variants,
- * AttachmentDocument, UserProfileDocument — see docs/DATA_MODEL.md) land in
- * Phase 4. This package exists now so other packages can prove they resolve a
- * workspace dependency correctly before any real domain modeling happens.
+ * Domain types shared across the monorepo. Vault item types
+ * (VaultItemDocument, ItemContent variants, AttachmentDocument — see
+ * docs/DATA_MODEL.md) land in Phase 4; auth/profile types (below) exist as
+ * of Phase 2.
  */
+
+export type { AuthenticatedUser } from "./auth";
+export type {
+  EncryptedEnvelope,
+  KdfParams,
+  UserProfileDocument,
+  UserProfileSettings,
+} from "./userProfile";
 
 export interface KryvexPhaseMarker {
   readonly phase: number;

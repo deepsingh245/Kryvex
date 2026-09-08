@@ -19,3 +19,4 @@ pubsub-debug.log
 !.vscode/extensions.json
 android/
 ios/
+graphify-out/

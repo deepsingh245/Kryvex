@@ -4,7 +4,8 @@
       "Bash(pnpm lint *)",
       "Bash(pnpm install *)",
       "Bash(pnpm --filter @kryvex/web lint)",
-      "Bash(pnpm format *)"
+      "Bash(pnpm format *)",
+      "Bash(node_modules/.bin/tsc --noEmit --traceResolution)"
     ]
   }
 }
