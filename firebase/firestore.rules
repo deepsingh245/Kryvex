@@ -1,0 +1,43 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isOwner(uid) {
+      return request.auth != null && request.auth.uid == uid;
+    }
+
+    function isValidItem(data) {
+      return data.keys().hasAll(['id','ownerId','type','revision','updatedAt','createdAt','deleted','wrappedItemKey','encryptedData'])
+        && data.ownerId == request.auth.uid
+        && data.revision is int
+        && data.revision >= 0;
+    }
+
+    match /users/{uid} {
+      allow read: if isOwner(uid);
+      // profile is created once at signup, updated only for settings/key-rotation fields
+      allow create: if isOwner(uid);
+      allow update: if isOwner(uid) && request.resource.data.uid == uid;
+      allow delete: if false; // account deletion goes through the deletion flow (Cloud Function), not a direct client delete
+
+      match /items/{itemId} {
+        allow read: if isOwner(uid);
+        allow create: if isOwner(uid) && isValidItem(request.resource.data);
+        // updates must be a strictly increasing revision (compare-and-swap; see docs/SYNC_ENGINE.md)
+        allow update: if isOwner(uid)
+                      && isValidItem(request.resource.data)
+                      && request.resource.data.revision == resource.data.revision + 1;
+        allow delete: if false; // deletes are tombstones (update deleted=true), not hard deletes
+      }
+
+      match /attachments/{attachmentId} {
+        allow read: if isOwner(uid);
+        allow create: if isOwner(uid) && request.resource.data.ownerId == uid;
+        allow update: if isOwner(uid)
+                      && request.resource.data.ownerId == uid
+                      && request.resource.data.revision == resource.data.revision + 1;
+        allow delete: if false;
+      }
+    }
+  }
+}

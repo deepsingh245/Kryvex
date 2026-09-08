@@ -1,0 +1,23 @@
+{
+  "name": "kryvex",
+  "private": true,
+  "packageManager": "pnpm@12.3.4",
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "lint": "turbo run lint && prettier --check .",
+    "format": "prettier --write .",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "test:security": "firebase emulators:exec --project=demo-kryvex --only firestore,storage \"pnpm --filter @kryvex/security-tests test:security\"",
+    "test:e2e": "turbo run test:e2e"
+  },
+  "devDependencies": {
+    "prettier": "catalog:",
+    "turbo": "^2.10.12",
+    "typescript": "catalog:"
+  }
+}

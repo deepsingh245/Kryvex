@@ -1,0 +1,33 @@
+packages:
+  - "apps/*"
+  - "packages/*"
+  - "firebase/functions"
+  - "tests/*"
+
+# Sharp/unrs-resolver ship native postinstall build scripts; pnpm requires
+# explicit approval to run them. Left disabled for Phase 1 (no image
+# optimization/native resolution in use yet) — revisit if apps/web's `next
+# build` or attachment previews (Phase 6) actually need sharp.
+allowBuilds:
+  # Native/build-time postinstall scripts genuinely needed by tools we use
+  # (esbuild binary, Turborepo's file watcher, protobufjs codegen used by
+  # the Firebase SDK, @firebase/util's own build step).
+  "@firebase/util": true
+  "@parcel/watcher": true
+  esbuild: true
+  protobufjs: true
+  sharp: false
+  unrs-resolver: false
+
+catalog:
+  # Pinned to 6.0.x (not `^`, since 6.1.0+ isn't out of range yet) — NOT the
+  # newer 7.0 (the Go-rewrite release, already GA on npm as of this writing):
+  # typescript-eslint@8.x still requires "typescript >=4.8.4 <6.1.0", so 7.0
+  # would break linting across the whole monorepo. 6.0.3 is also what Expo's
+  # own template (apps/mobile) ships with. Revisit once typescript-eslint
+  # supports newer TypeScript.
+  typescript: ~6.0.3
+  zod: ^4.5.4
+  vitest: ^5.0.0
+  eslint: ^10.10.0
+  prettier: ^3.9.6

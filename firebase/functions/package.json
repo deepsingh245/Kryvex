@@ -1,0 +1,26 @@
+{
+  "name": "@kryvex/functions",
+  "version": "0.0.0",
+  "private": true,
+  "engines": {
+    "node": "22"
+  },
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "firebase-admin": "^14.3.0",
+    "firebase-functions": "^7.3.2"
+  },
+  "devDependencies": {
+    "@kryvex/eslint-config": "workspace:*",
+    "@kryvex/tsconfig": "workspace:*",
+    "eslint": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "name": "@kryvex/web",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@kryvex/firebase": "workspace:*",
+    "@kryvex/security": "workspace:*",
+    "@kryvex/types": "workspace:*",
+    "@kryvex/ui": "workspace:*",
+    "@kryvex/validation": "workspace:*",
+    "next": "16.3.4",
+    "react": "19.2.8",
+    "react-dom": "19.2.8"
+  },
+  "devDependencies": {
+    "@kryvex/eslint-config": "workspace:*",
+    "@kryvex/tsconfig": "workspace:*",
+    "@tailwindcss/postcss": "^4",
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/react": "16.3.3",
+    "@types/node": "^22",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "catalog:",
+    "eslint-config-next": "16.3.4",
+    "eslint-config-prettier": "10.1.8",
+    "jsdom": "30.0.1",
+    "tailwindcss": "^4",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

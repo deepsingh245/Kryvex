@@ -1,0 +1,25 @@
+{
+  "name": "@kryvex/sync",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "scripts": {
+    "build": "tsup src/index.ts --format esm --dts",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@kryvex/types": "workspace:*"
+  },
+  "devDependencies": {
+    "@kryvex/eslint-config": "workspace:*",
+    "@kryvex/tsconfig": "workspace:*",
+    "eslint": "catalog:",
+    "tsup": "^8.5.1",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}
