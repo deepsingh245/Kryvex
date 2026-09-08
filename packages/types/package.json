@@ -15,6 +15,7 @@
   "devDependencies": {
     "@kryvex/eslint-config": "workspace:*",
     "@kryvex/tsconfig": "workspace:*",
+    "@types/node": "^22",
     "eslint": "catalog:",
     "tsup": "^8.5.1",
     "typescript": "catalog:",

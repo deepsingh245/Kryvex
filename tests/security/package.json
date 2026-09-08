@@ -12,6 +12,7 @@
     "@firebase/rules-unit-testing": "5.0.2",
     "@kryvex/eslint-config": "workspace:*",
     "@kryvex/tsconfig": "workspace:*",
+    "@types/node": "^22",
     "eslint": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"
