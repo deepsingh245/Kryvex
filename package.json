@@ -13,6 +13,7 @@
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
     "test:security": "firebase emulators:exec --project=demo-kryvex --only firestore,storage \"pnpm --filter @kryvex/security-tests test:security\"",
+    "test:auth": "pnpm --filter @kryvex/functions build && firebase emulators:exec --project=demo-kryvex --only auth,firestore,functions \"pnpm --filter @kryvex/auth-tests test:auth\"",
     "test:e2e": "turbo run test:e2e"
   },
   "devDependencies": {

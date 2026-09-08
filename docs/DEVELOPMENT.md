@@ -1,6 +1,6 @@
 # Kryvex — Development Guide
 
-Status: Phase 1 (Foundation) complete — the commands below are real and
+Status: Phase 2 (Authentication) complete — the commands below are real and
 verified. This is the reference for "how do I run/test this" — kept in sync
 as tooling is added.
 
@@ -37,12 +37,14 @@ pnpm format             # `prettier --write .`
 pnpm typecheck          # tsc --noEmit across workspaces (apps/web also runs `next typegen` first)
 pnpm test               # unit tests (Vitest for packages/apps/web, Jest for apps/mobile)
 pnpm test:security      # Firestore/Storage rules tests, run only via `firebase emulators:exec`
+pnpm test:auth          # Auth/prelogin flow tests, run only via `firebase emulators:exec` (rebuilds firebase/functions first)
 pnpm test:e2e           # reserved — no-op until Phase 8 (no Playwright wired yet)
 ```
 
 Known TypeScript-6.0.3-under-pnpm quirks worked around in the shared config
 (`packages/tsconfig/base.json`, `apps/mobile/tsconfig.json`) rather than left
 as recurring friction:
+
 - `@types/node`/`@types/jest` aren't reliably auto-discovered per-package, so
   every package explicitly lists `"types": [...]` instead of relying on
   automatic `@types/*` scanning.
@@ -68,6 +70,59 @@ as recurring friction:
   `react-test-renderer`) to match `@testing-library/react-native@14`'s peer
   dependency, and its `render()` call must be awaited (async as of v14).
 
+Phase 2 additions and gotchas:
+
+- `pnpm test:auth` runs `firebase emulators:exec --only auth,firestore,functions`
+  against the new `tests/auth` workspace — real sign-up/sign-in/prelogin
+  flow, not mocks. It explicitly rebuilds `firebase/functions` first
+  (`pnpm --filter @kryvex/functions build && ...`): the emulator serves
+  whatever's already in `dist/`, and neither `firebase emulators:exec` nor
+  `emulators:start` rebuilds it for you — editing `firebase/functions/src/*`
+  and re-running the emulator without rebuilding silently runs stale code.
+  Learned the hard way: a missing `admin.initializeApp()` call (now in
+  `firebase/functions/src/index.ts`) manifested as every Admin-SDK-using
+  callable returning a raw HTTP 401 `UNAUTHENTICATED` — a very misleading
+  symptom for "the Admin SDK was never initialized," discovered only by
+  bypassing the Functions SDK and hitting the emulator's raw HTTP endpoint
+  directly to see the actual response body.
+- `firebase/functions/tsconfig.build.json` (extends the main tsconfig,
+  excludes `**/*.test.ts`) is what `pnpm build` actually uses
+  (`tsc -p tsconfig.build.json`) — the plain `tsconfig.json` still includes
+  test files for `tsc --noEmit`/typecheck. Without this split, `tsc` compiles
+  `*.test.ts` into `dist/`, and Vitest picks up the compiled CommonJS
+  `dist/*.test.js` alongside the real `src/*.test.ts`, failing immediately
+  ("Vitest cannot be imported in a CommonJS module using require()").
+- `tests/auth`'s `vitest.config.ts` loads `fake-indexeddb/auto` as a setup
+  file: Firebase's Installations SDK (used internally by
+  `httpsCallable`/Functions) needs IndexedDB, which only exists in real
+  browser/React-Native environments, not plain Node — without the polyfill,
+  every callable request from a Vitest/Node test fails. It also sets
+  `testTimeout: 20000`: the *first* callable request to a freshly-started
+  Functions emulator has observed cold-start latency occasionally exceeding
+  Vitest's 5s default even though the function itself finishes in the
+  emulator's own logs in well under 50ms — a real Cloud Functions
+  characteristic, not a hang.
+- `apps/web/vitest.config.mts` (note the `.mts`, not `.ts` — same
+  CJS-loader-warning fix as `eslint.config.mjs`) sets `resolve.alias` for
+  `@` → `./src`: Vitest/Vite don't read `tsconfig.json`'s `"paths"` on their
+  own, unlike Next.js itself.
+- `apps/mobile/src/types/firebase-auth-rn.d.ts` is a small, deliberate
+  ambient module augmentation for `getReactNativePersistence`. Confirmed by
+  isolated `tsc` reproduction: `@firebase/auth`'s (and the `firebase`
+  wrapper's) `"exports"` map hoists its `"types"` condition outside the
+  `node`/`browser`/`react-native` branches, so bundler-mode TypeScript always
+  types against the generic build and never sees RN-only exports —
+  regardless of `customConditions: ["react-native"]` (already set by
+  `expo/tsconfig.base`). Metro resolves the real react-native build
+  correctly at runtime either way; this is a types-only gap, patched
+  narrowly rather than worked around with a blanket `any`.
+- `packages/firebase/src/appNative.ts` exists as a separate entrypoint from
+  `app.ts` specifically because calling plain `getAuth(app)` (what `app.ts`
+  does) implicitly creates a non-persistent Auth instance — and Firebase
+  throws if `initializeAuth()` is called afterward on the same app. React
+  Native's persistence-aware setup must run *first*, before anything else
+  touches Auth on that app instance.
+
 ## 4. Firebase Emulator Suite
 
 Development and rule tests run against the local emulator, never production
@@ -86,7 +141,7 @@ pnpm test:security                                                  # `firebase 
 `docs/FIREBASE_SECURITY.md` §2–3).
 
 `packages/firebase`'s `resolveFirebaseEmulatorConfig()` is a pure function
-that decides *whether/where* a client should point at the emulator, given
+that decides _whether/where_ a client should point at the emulator, given
 already-resolved env values — it does not itself call `initializeApp`/
 `connectFirestoreEmulator`. Those calls (and picking the host automatically
 based on environment) are Phase 2 work, once there's an actual Firebase app

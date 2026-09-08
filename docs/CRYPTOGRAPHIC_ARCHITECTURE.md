@@ -115,6 +115,50 @@ from the vault:
   a separate master password to protect the vault, and onboarding explains this
   clearly before setup completes.
 
+### 4.1 Prelogin
+
+Deriving the Firebase Auth value requires the account's `kdfSalt`/`kdfParams`
+— but those live in the `users/{uid}` Firestore profile document, and its
+security rule requires `request.auth.uid == uid` to read it (see
+`docs/FIREBASE_SECURITY.md` §2). A client doesn't have a `uid` yet at
+sign-in time, only an email — the standard "prelogin" problem every
+zero-knowledge password manager (Bitwarden included) has to solve.
+
+Resolved via a narrow, unauthenticated Cloud Function rather than a
+deterministic (email-derived) salt: a deterministic salt would let an
+attacker precompute a target's salt fully offline with zero contact with
+Kryvex infrastructure, strictly weaker than a genuinely random per-account
+salt. `getKdfParams(email)` (`firebase/functions/src/getKdfParams.ts`) uses
+the Admin SDK — which bypasses Firestore rules entirely, so no rules change
+was needed — to look up `uid` from `email` and return only
+`{ kdfSalt, kdfParams }`, nothing else. It returns `null` uniformly for
+"no such account" and "account exists but profile incomplete," matching how
+established products avoid trivially distinguishing the two (see
+`docs/SECURITY_THREAT_MODEL.md` §4 for the residual email-enumeration
+discussion).
+
+Full sign-in ordering:
+
+```text
+1. User enters email + master password
+2. Client calls getKdfParams(email)              — unauthenticated
+     -> null: show a generic "invalid email or password"
+     -> { kdfSalt, kdfParams }: continue
+3. Client derives Argon2id(masterPassword, kdfSalt, kdfParams) -> Master Key
+4. Client derives HKDF(Master Key) -> { authSecret, Stretched Master Key }
+5. Client calls signInWithEmailAndPassword(email, authSecret)
+     -> wrong password: Firebase's own auth/invalid-credential,
+        same generic UI message as step 2's null case
+     -> success: AUTHENTICATED_LOCKED, then UNLOCKED using the
+        already-derived Stretched Master Key (no extra round-trip)
+```
+
+Once authenticated, subsequent unlocks (e.g. after an app relaunch where the
+Firebase session persisted but the in-memory key was lost) read
+`kdfSalt`/`kdfParams` via the normal authenticated `users/{uid}` read
+instead of calling `getKdfParams` again — there's no reason to hit the
+unauthenticated endpoint once already signed in.
+
 ## 5. What the server can and cannot see
 
 | Data                                                | Server sees                                        |

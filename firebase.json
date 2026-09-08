@@ -10,7 +10,8 @@
     {
       "source": "firebase/functions",
       "codebase": "default",
-      "runtime": "nodejs22"
+      "runtime": "nodejs22",
+      "predeploy": ["pnpm --dir \"$RESOURCE_DIR\" build"]
     }
   ],
   "emulators": {

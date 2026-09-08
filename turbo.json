@@ -19,6 +19,9 @@
     "test:security": {
       "cache": false
     },
+    "test:auth": {
+      "cache": false
+    },
     "test:e2e": {
       "cache": false,
       "dependsOn": ["build"]

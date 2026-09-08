@@ -11,6 +11,10 @@
     "lint": "eslint .",
     "test": "vitest run"
   },
+  "dependencies": {
+    "@kryvex/types": "workspace:*",
+    "firebase": "^12.18.0"
+  },
   "devDependencies": {
     "@kryvex/eslint-config": "workspace:*",
     "@kryvex/tsconfig": "workspace:*",

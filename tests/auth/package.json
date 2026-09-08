@@ -1,0 +1,23 @@
+{
+  "name": "@kryvex/auth-tests",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "test:auth": "vitest run"
+  },
+  "devDependencies": {
+    "@kryvex/crypto": "workspace:*",
+    "@kryvex/eslint-config": "workspace:*",
+    "@kryvex/firebase": "workspace:*",
+    "@kryvex/tsconfig": "workspace:*",
+    "@types/node": "^22",
+    "eslint": "catalog:",
+    "fake-indexeddb": "^6.2.5",
+    "firebase": "^12.18.0",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}
