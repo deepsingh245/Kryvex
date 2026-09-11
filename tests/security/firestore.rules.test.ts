@@ -78,8 +78,10 @@ describe("firestore.rules — users/{uid}/items/{itemId}", () => {
         updatedAt: new Date(),
         createdAt: new Date(),
         deleted: false,
+        favorite: false,
         wrappedItemKey: {},
         encryptedData: {},
+        attachmentRefs: [],
       }),
     );
   });
@@ -95,10 +97,88 @@ describe("firestore.rules — users/{uid}/items/{itemId}", () => {
         updatedAt: new Date(),
         createdAt: new Date(),
         deleted: false,
+        favorite: false,
+        wrappedItemKey: {},
+        encryptedData: {},
+        attachmentRefs: [],
+      }),
+    );
+  });
+
+  it("denies creating an item missing the favorite field", async () => {
+    const aliceDb = testEnv.authenticatedContext("alice").firestore();
+    await assertFails(
+      aliceDb.doc("users/alice/items/item1").set({
+        id: "item1",
+        ownerId: "alice",
+        type: "login",
+        revision: 0,
+        updatedAt: new Date(),
+        createdAt: new Date(),
+        deleted: false,
+        wrappedItemKey: {},
+        encryptedData: {},
+        attachmentRefs: [],
+      }),
+    );
+  });
+
+  it("denies creating an item missing the attachmentRefs field", async () => {
+    const aliceDb = testEnv.authenticatedContext("alice").firestore();
+    await assertFails(
+      aliceDb.doc("users/alice/items/item1").set({
+        id: "item1",
+        ownerId: "alice",
+        type: "login",
+        revision: 0,
+        updatedAt: new Date(),
+        createdAt: new Date(),
+        deleted: false,
+        favorite: false,
         wrappedItemKey: {},
         encryptedData: {},
       }),
     );
+  });
+
+  it("denies creating an item with an unrecognized type", async () => {
+    const aliceDb = testEnv.authenticatedContext("alice").firestore();
+    await assertFails(
+      aliceDb.doc("users/alice/items/item1").set({
+        id: "item1",
+        ownerId: "alice",
+        type: "notAType",
+        revision: 0,
+        updatedAt: new Date(),
+        createdAt: new Date(),
+        deleted: false,
+        favorite: false,
+        wrappedItemKey: {},
+        encryptedData: {},
+        attachmentRefs: [],
+      }),
+    );
+  });
+
+  it("allows creating items of other recognized types (not just login)", async () => {
+    const aliceDb = testEnv.authenticatedContext("alice").firestore();
+    for (const type of ["secureNote", "custom"]) {
+      await assertSucceeds(
+        aliceDb.doc(`users/alice/items/${type}-item`).set({
+          id: `${type}-item`,
+          ownerId: "alice",
+          type,
+          revision: 0,
+          updatedAt: new Date(),
+          createdAt: new Date(),
+          deleted: false,
+          favorite: false,
+          wrappedItemKey: {},
+          encryptedData: {},
+          attachmentRefs: [],
+        }),
+      );
+    }
   });
 
   it("denies a hard delete of an item", async () => {
@@ -111,8 +191,10 @@ describe("firestore.rules — users/{uid}/items/{itemId}", () => {
         updatedAt: new Date(),
         createdAt: new Date(),
         deleted: false,
+        favorite: false,
         wrappedItemKey: {},
         encryptedData: {},
+        attachmentRefs: [],
       });
     });
     const aliceDb = testEnv.authenticatedContext("alice").firestore();
@@ -129,8 +211,10 @@ describe("firestore.rules — users/{uid}/items/{itemId}", () => {
         updatedAt: new Date(),
         createdAt: new Date(),
         deleted: false,
+        favorite: false,
         wrappedItemKey: {},
         encryptedData: {},
+        attachmentRefs: [],
       });
     });
     const aliceDb = testEnv.authenticatedContext("alice").firestore();
@@ -144,6 +228,7 @@ describe("firestore.rules — users/{uid}/items/{itemId}", () => {
           updatedAt: new Date(),
           createdAt: new Date(),
           deleted: false,
+          favorite: false,
           wrappedItemKey: {},
           encryptedData: {
             v: 1,
@@ -151,9 +236,78 @@ describe("firestore.rules — users/{uid}/items/{itemId}", () => {
             nonce: "x",
             ciphertext: "y",
           },
+          attachmentRefs: [],
         },
         { merge: true },
       ),
+    );
+  });
+
+  it("allows a favorite-toggle update with the revision correctly incremented", async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await context.firestore().doc("users/alice/items/item1").set({
+        id: "item1",
+        ownerId: "alice",
+        type: "login",
+        revision: 0,
+        updatedAt: new Date(),
+        createdAt: new Date(),
+        deleted: false,
+        favorite: false,
+        wrappedItemKey: {},
+        encryptedData: {},
+        attachmentRefs: [],
+      });
+    });
+    const aliceDb = testEnv.authenticatedContext("alice").firestore();
+    await assertSucceeds(
+      aliceDb.doc("users/alice/items/item1").set({
+        id: "item1",
+        ownerId: "alice",
+        type: "login",
+        revision: 1,
+        updatedAt: new Date(),
+        createdAt: new Date(),
+        deleted: false,
+        favorite: true,
+        wrappedItemKey: {},
+        encryptedData: {},
+        attachmentRefs: [],
+      }),
+    );
+  });
+
+  it("denies an update that changes ownerId on an existing item", async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await context.firestore().doc("users/alice/items/item1").set({
+        id: "item1",
+        ownerId: "alice",
+        type: "login",
+        revision: 0,
+        updatedAt: new Date(),
+        createdAt: new Date(),
+        deleted: false,
+        favorite: false,
+        wrappedItemKey: {},
+        encryptedData: {},
+        attachmentRefs: [],
+      });
+    });
+    const aliceDb = testEnv.authenticatedContext("alice").firestore();
+    await assertFails(
+      aliceDb.doc("users/alice/items/item1").set({
+        id: "item1",
+        ownerId: "bob",
+        type: "login",
+        revision: 1,
+        updatedAt: new Date(),
+        createdAt: new Date(),
+        deleted: false,
+        favorite: false,
+        wrappedItemKey: {},
+        encryptedData: {},
+        attachmentRefs: [],
+      }),
     );
   });
 });

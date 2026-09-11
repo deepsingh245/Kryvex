@@ -11,6 +11,9 @@
     "lint": "eslint .",
     "test": "vitest run"
   },
+  "dependencies": {
+    "@noble/hashes": "^2.4.0"
+  },
   "devDependencies": {
     "@kryvex/eslint-config": "workspace:*",
     "@kryvex/tsconfig": "workspace:*",

@@ -1,8 +1,12 @@
 # Kryvex — Data Model
 
-Status: Phase 3 — `UserProfileDocument`'s `protectedVaultKey` (§4) is now
-populated at signup. `VaultItemDocument`/attachment CRUD described below is
-still design-only until Phase 4. See also:
+Status: Phase 4 — `VaultItemDocument`/`ItemContent` below are implemented in
+`packages/types`, `packages/validation`, and `packages/vault`'s
+`itemCrypto.ts` (wrap/encrypt/decrypt), with direct Firestore CRUD via
+`packages/firebase/src/vaultItems.ts` and a real UI in `apps/web`.
+`AttachmentDocument` (§3) remains design-only until Phase 6 — item types
+`image`/`pdf`/`file` are modeled in the type system but excluded from the
+Add-item flow until then. See also:
 [CRYPTOGRAPHIC_ARCHITECTURE.md](./CRYPTOGRAPHIC_ARCHITECTURE.md),
 [FIREBASE_SECURITY.md](./FIREBASE_SECURITY.md), [SYNC_ENGINE.md](./SYNC_ENGINE.md).
 
@@ -122,7 +126,22 @@ interface IdentityContent extends ItemContentBase {
   address?: Address;
   idNumbers?: CustomField[]; // passport/SSN/etc modeled as typed custom fields
 }
+
+// Added Phase 4 — referenced above but not originally defined in this doc.
+interface Address {
+  line1: string;
+  line2?: string;
+  city?: string;
+  state?: string;
+  postalCode?: string;
+  country?: string;
+}
 ```
+
+Phase 4's Add/Edit UI does not yet expose `address`/`idNumbers` editing (kept
+out of the generic `ItemForm`'s MVP scope — both are optional, and
+title/tags/notes/customFields already give a way to capture equivalent
+information without a bespoke nested editor); revisit if needed.
 
 ### Card
 
@@ -256,3 +275,16 @@ no `hasAll` field-completeness check (unlike the `items` subcollection's
 | attachment mimeType/sizeBytes                        | No                                               | Needed for non-decrypting UI/quota logic; low sensitivity.               |
 | attachment filename, file content                    | Yes                                              | May disclose sensitive information (e.g. "passport_scan.pdf").           |
 | kdfSalt, kdfParams, wrapped keys                     | No (but meaningless without the master password) | Required for the client to re-derive/unwrap keys on any device.          |
+
+## 6. Search (Phase 4 decision)
+
+`PLAN.md` §5 previously flagged "local search index approach for large
+vaults without server-side plaintext" as an open Phase 0 risk. Resolved for
+Phase 4: `@kryvex/vault`'s `selectVisibleItems` does an in-memory,
+case-insensitive substring match over already-decrypted `title`/`tags`/
+`notes` — no persisted index. This is sufficient because Phase 4 has no
+offline persistence yet (Phase 5), and the full item set must already be
+decrypted into memory to render the vault list at all, so a substring scan
+over data already resident in memory is free. Revisit only if real usage at
+scale shows this too slow/imprecise once Phase 5's offline cache exists to
+host a real index.

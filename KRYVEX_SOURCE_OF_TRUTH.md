@@ -1,6 +1,6 @@
 # Kryvex — Source of Truth
 
-Status: **Phase 3 (Cryptographic Core) complete.** This is the primary project
+Status: **Phase 4 (Vault) complete for web.** This is the primary project
 reference. Read this before any other file when picking up work on Kryvex.
 Detailed reasoning for each section lives in the linked `docs/*.md` file —
 this document summarizes and cross-references rather than duplicating.
@@ -107,21 +107,26 @@ build spec §18.
 
 ## 12. Security decisions log
 
-| Decision                                                                                                                                              | Rationale                                                                                                                                                                                                | Reference                                 |
-| ----------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------- |
-| Envelope encryption (per-item/attachment DEKs, not direct Vault-Key encryption)                                                                       | Cheap key rotation; future sharing without re-encrypting content                                                                                                                                         | CRYPTOGRAPHIC_ARCHITECTURE.md §2          |
-| Titles/tags encrypted, not left plaintext                                                                                                             | Metadata itself can be sensitive                                                                                                                                                                         | CRYPTOGRAPHIC_ARCHITECTURE.md §5          |
-| `favorite` flag left plaintext                                                                                                                        | Low-sensitivity sorting convenience; explicitly flagged exception                                                                                                                                        | DATA_MODEL.md §5                          |
-| Attachment `mimeType`/`sizeBytes` left plaintext                                                                                                      | Needed for non-decrypting UI/quota; low sensitivity                                                                                                                                                      | DATA_MODEL.md §5                          |
-| Hard deletes disallowed client-side; tombstones only                                                                                                  | Enables correct offline conflict/delete semantics                                                                                                                                                        | SYNC_ENGINE.md §5                         |
-| Recovery via user-held Recovery Key, no server escrow                                                                                                 | Preserves zero-knowledge guarantee; explicit unrecoverable-if-lost tradeoff                                                                                                                              | RECOVERY.md §1                            |
-| Firebase Auth value ≠ master password (HKDF-derived)                                                                                                  | Compromised Firebase credential must not reveal master password                                                                                                                                          | CRYPTOGRAPHIC_ARCHITECTURE.md §4          |
-| Prelogin via a narrow unauthenticated Cloud Function (`getKdfParams`), not a deterministic/email-derived salt or a public Firestore lookup collection | Deterministic salt lets an attacker precompute it fully offline; a public collection needs a second copy of the salt kept in sync on every param rotation                                                | CRYPTOGRAPHIC_ARCHITECTURE.md §4.1        |
-| Argon2id/HKDF pulled into Phase 2 (not deferred to Phase 3 as originally planned)                                                                     | The Firebase Auth credential is itself HKDF-derived from the master password — Phase 2 auth can't be correct without it; Phase 3 now covers only AES-256-GCM item/attachment encryption and key wrapping | PLAN.md, CRYPTOGRAPHIC_ARCHITECTURE.md §4 |
-| Pure-JS Argon2id (`@noble/hashes`) on mobile, not WASM/native                                                                                         | Plain Expo Go (no `expo prebuild`) can't run WASM in Hermes or link native modules; revisit once native tooling lands (Phase 7/10)                                                                       | DEVELOPMENT.md                            |
-| Pure-JS AES-256-GCM (`@noble/ciphers`) for Phase 3, not WASM/native                                                                                   | Same plain-Expo-Go constraint as Argon2id above; same profile/dependency family as `@noble/hashes`, already proven                                                                                       | DEVELOPMENT.md                            |
-| Hand-rolled `btoa`/`atob` base64 wrapper in `packages/crypto`, not a new dependency                                                                   | Neither `@noble/hashes` nor `@noble/ciphers` exports base64; native Hermes/browser `btoa`/`atob` support confirmed for this repo's Expo SDK (57, past the SDK-51 baseline)                               | CRYPTOGRAPHIC_ARCHITECTURE.md §3          |
-| `unlock()`'s Phase 2 `signInWithAuthSecret` re-verification call dropped, replaced with local AEAD unwrap                                             | Phase 3's `protectedVaultKey` unwrap-and-fail-closed is now the real local correctness signal Phase 2 lacked; re-authenticating an already-signed-in user on every unlock was redundant once it existed  | CRYPTOGRAPHIC_ARCHITECTURE.md §11         |
+| Decision                                                                                                                                              | Rationale                                                                                                                                                                                                                      | Reference                                  |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------ |
+| Envelope encryption (per-item/attachment DEKs, not direct Vault-Key encryption)                                                                       | Cheap key rotation; future sharing without re-encrypting content                                                                                                                                                               | CRYPTOGRAPHIC_ARCHITECTURE.md §2           |
+| Titles/tags encrypted, not left plaintext                                                                                                             | Metadata itself can be sensitive                                                                                                                                                                                               | CRYPTOGRAPHIC_ARCHITECTURE.md §5           |
+| `favorite` flag left plaintext                                                                                                                        | Low-sensitivity sorting convenience; explicitly flagged exception                                                                                                                                                              | DATA_MODEL.md §5                           |
+| Attachment `mimeType`/`sizeBytes` left plaintext                                                                                                      | Needed for non-decrypting UI/quota; low sensitivity                                                                                                                                                                            | DATA_MODEL.md §5                           |
+| Hard deletes disallowed client-side; tombstones only                                                                                                  | Enables correct offline conflict/delete semantics                                                                                                                                                                              | SYNC_ENGINE.md §5                          |
+| Recovery via user-held Recovery Key, no server escrow                                                                                                 | Preserves zero-knowledge guarantee; explicit unrecoverable-if-lost tradeoff                                                                                                                                                    | RECOVERY.md §1                             |
+| Firebase Auth value ≠ master password (HKDF-derived)                                                                                                  | Compromised Firebase credential must not reveal master password                                                                                                                                                                | CRYPTOGRAPHIC_ARCHITECTURE.md §4           |
+| Prelogin via a narrow unauthenticated Cloud Function (`getKdfParams`), not a deterministic/email-derived salt or a public Firestore lookup collection | Deterministic salt lets an attacker precompute it fully offline; a public collection needs a second copy of the salt kept in sync on every param rotation                                                                      | CRYPTOGRAPHIC_ARCHITECTURE.md §4.1         |
+| Argon2id/HKDF pulled into Phase 2 (not deferred to Phase 3 as originally planned)                                                                     | The Firebase Auth credential is itself HKDF-derived from the master password — Phase 2 auth can't be correct without it; Phase 3 now covers only AES-256-GCM item/attachment encryption and key wrapping                       | PLAN.md, CRYPTOGRAPHIC_ARCHITECTURE.md §4  |
+| Pure-JS Argon2id (`@noble/hashes`) on mobile, not WASM/native                                                                                         | Plain Expo Go (no `expo prebuild`) can't run WASM in Hermes or link native modules; revisit once native tooling lands (Phase 7/10)                                                                                             | DEVELOPMENT.md                             |
+| Pure-JS AES-256-GCM (`@noble/ciphers`) for Phase 3, not WASM/native                                                                                   | Same plain-Expo-Go constraint as Argon2id above; same profile/dependency family as `@noble/hashes`, already proven                                                                                                             | DEVELOPMENT.md                             |
+| Hand-rolled `btoa`/`atob` base64 wrapper in `packages/crypto`, not a new dependency                                                                   | Neither `@noble/hashes` nor `@noble/ciphers` exports base64; native Hermes/browser `btoa`/`atob` support confirmed for this repo's Expo SDK (57, past the SDK-51 baseline)                                                     | CRYPTOGRAPHIC_ARCHITECTURE.md §3           |
+| `unlock()`'s Phase 2 `signInWithAuthSecret` re-verification call dropped, replaced with local AEAD unwrap                                             | Phase 3's `protectedVaultKey` unwrap-and-fail-closed is now the real local correctness signal Phase 2 lacked; re-authenticating an already-signed-in user on every unlock was redundant once it existed                        | CRYPTOGRAPHIC_ARCHITECTURE.md §11          |
+| In-memory substring search over decrypted content, no persisted index (Phase 4)                                                                       | No offline persistence exists yet to index against (Phase 5); the full item set is already decrypted into memory to render the list, so a substring scan is free. Resolves PLAN.md's previously-open "local search index" risk | DATA_MODEL.md §6                           |
+| Per-item DEK reused across edits (`reencryptItemContent` unwraps and re-encrypts under the _same_ key rather than rotating per save)                  | Keeps `wrappedItemKey` stable/unchanged on every edit, minimizing update diffs; explicit per-edit DEK rotation would need its own future flow if ever required                                                                 | packages/vault/src/itemCrypto.ts           |
+| One generic, data-driven `ItemForm` (per-`ItemType` field-config array) instead of 11 hand-built forms                                                | `ItemContentBase` is genuinely shared and per-type deltas are small; extends the `CustomField` type-discrimination pattern DATA_MODEL.md already establishes to all fields, not just custom ones                               | packages/ui/src/fieldConfig.ts             |
+| `image`/`pdf`/`file` item types modeled in the type system but excluded from the Add-item flow                                                        | Attachment upload/storage is Phase 6; avoids building UI that would need reworking once real attachment storage lands                                                                                                          | DATA_MODEL.md §1, §6 (Phase 4 status note) |
+| No clipboard auto-clear on `SecretField`'s copy button in Phase 4                                                                                     | Deferred to Phase 7's `packages/security/src/clipboard.ts` (currently a stub); documented limitation, not silently shipped as if handled                                                                                       | packages/ui/src/components/SecretField.tsx |
 
 ## 13. Known limitations
 
@@ -257,6 +262,45 @@ Git: the working tree has a real local repository with a GitHub remote
 commits locally with plain, non-AI-attributed commit messages and never runs
 `git push` (see `CLAUDE.md`).
 
-Phase 3 (Cryptographic core — AES-256-GCM item/attachment encryption, key
-wrapping, tamper detection; the KDF/HKDF half already landed in Phase 2) is
-next.
+Phase 4 (Vault — item CRUD) is complete for `apps/web`: `packages/types`
+gains the full `VaultItemDocument`/`ItemContent` schema (all 11 `ItemType`s,
+`CustomField`, the new `Address` type — see DATA_MODEL.md §2);
+`packages/validation` gains matching Zod schemas (`itemContentSchema` as a
+discriminated union, `vaultItemDocumentSchema` for the Firestore envelope);
+`packages/password-generator` is now a real CSPRNG-based generator
+(`@noble/hashes`'s `randomBytes`, unbiased rejection-sampled character
+selection — no `Math.random()`); `packages/firebase` gains
+`createVaultItem`/`fetchVaultItems`/`updateVaultItem`/`softDeleteVaultItem`
+against `users/{uid}/items`; `packages/vault` gains `itemCrypto.ts`
+(wrap/encrypt on create, unwrap-and-reencrypt on edit, unwrap-decrypt-parse-
+validate on read, all fail-closed) and `itemCacheReducer.ts` (in-memory
+decrypted item cache plus `selectVisibleItems`, Phase 4's search/tag/
+favorites filter — see the decisions log above and DATA_MODEL.md §6);
+`packages/ui` goes from a placeholder to real react-dom form primitives
+(`TextField`, `SecretField`, `TagsInput`, `CustomFieldsEditor`,
+`PasswordGeneratorPanel`, etc.) plus the generic `ItemForm` driven by
+`fieldConfig.ts`; `apps/web` replaces the Phase 2/3 "your vault is empty"
+stub with a real Vault Home (search/tags/favorites), Item Detail, Add/Edit
+Item, and standalone Password Generator screens, wired through a new
+`useVaultItems` hook that glues `packages/firebase`'s I/O to
+`packages/vault`'s pure crypto/cache layers (mirroring how `VaultProvider`
+already wires auth). `firebase/firestore.rules`' `isValidItem()` gained the
+`favorite`/`attachmentRefs` fields it was missing (found while implementing
+this phase) plus a `type` enum constraint; `tests/security` was extended to
+cover both, plus other-than-`login` types and an `ownerId`-change-on-update
+denial.
+
+**Not yet done, flagged rather than assumed:** a manual click-through of the
+web UI against the real Firebase emulator (carried-over gap from Phases 2-3
+— no browser-automation tool available in this session either), and the
+`CLAUDE.md` §4 step 6 security review pass over the call-outs listed in
+this phase's plan (`itemCrypto.ts`'s key-wrap/DEK-reuse logic,
+`useVaultItems.ts`'s cache-clear-on-lock behavior, the Firestore write path
+against the rules' compare-and-swap boundary, the password generator's RNG).
+
+Phase 4b (porting the same screens to `apps/mobile` via Expo Router,
+consuming the same platform-agnostic `packages/types`/`validation`/
+`password-generator`/`firebase`/`vault` layers built this phase, plus new
+React Native counterparts of `packages/ui`'s DOM-based components) is the
+immediate next step, scheduled explicitly rather than left to slip — see
+`PLAN.md`.

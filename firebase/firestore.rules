@@ -6,11 +6,16 @@ service cloud.firestore {
       return request.auth != null && request.auth.uid == uid;
     }
 
+    // Keep this type list in sync by hand with packages/types/src/vaultItem.ts's
+    // ITEM_TYPES — rules can't import a TS const, so this is an accepted,
+    // manually-synced duplicate (see docs/DATA_MODEL.md §1).
     function isValidItem(data) {
-      return data.keys().hasAll(['id','ownerId','type','revision','updatedAt','createdAt','deleted','wrappedItemKey','encryptedData'])
+      return data.keys().hasAll(['id','ownerId','type','revision','updatedAt','createdAt','deleted','favorite','wrappedItemKey','encryptedData','attachmentRefs'])
         && data.ownerId == request.auth.uid
+        && data.type in ['login','secureNote','identity','card','pin','apiKey','recoveryCodes','image','pdf','file','custom']
         && data.revision is int
-        && data.revision >= 0;
+        && data.revision >= 0
+        && data.favorite is bool;
     }
 
     match /users/{uid} {

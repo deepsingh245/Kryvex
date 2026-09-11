@@ -11,11 +11,26 @@
     "lint": "eslint .",
     "test": "vitest run"
   },
+  "dependencies": {
+    "@kryvex/password-generator": "workspace:*",
+    "@kryvex/types": "workspace:*",
+    "@kryvex/validation": "workspace:*"
+  },
+  "peerDependencies": {
+    "react": "^19"
+  },
   "devDependencies": {
     "@kryvex/eslint-config": "workspace:*",
     "@kryvex/tsconfig": "workspace:*",
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/react": "16.3.3",
     "@types/node": "^22",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
     "eslint": "catalog:",
+    "jsdom": "30.0.1",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
     "tsup": "^8.5.1",
     "typescript": "catalog:",
     "vitest": "catalog:"
