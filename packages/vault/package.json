@@ -12,7 +12,9 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@kryvex/types": "workspace:*"
+    "@kryvex/crypto": "workspace:*",
+    "@kryvex/types": "workspace:*",
+    "@kryvex/validation": "workspace:*"
   },
   "devDependencies": {
     "@kryvex/eslint-config": "workspace:*",

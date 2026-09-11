@@ -1,8 +1,7 @@
 /**
- * Domain types shared across the monorepo. Vault item types
- * (VaultItemDocument, ItemContent variants, AttachmentDocument — see
- * docs/DATA_MODEL.md) land in Phase 4; auth/profile types (below) exist as
- * of Phase 2.
+ * Domain types shared across the monorepo. Auth/profile types exist as of
+ * Phase 2; vault item types (VaultItemDocument, ItemContent variants — see
+ * docs/DATA_MODEL.md) as of Phase 4. AttachmentDocument is still Phase 6.
  */
 
 export type { AuthenticatedUser } from "./auth";
@@ -12,6 +11,25 @@ export type {
   UserProfileDocument,
   UserProfileSettings,
 } from "./userProfile";
+export {
+  ITEM_TYPES,
+  type Address,
+  type ApiKeyContent,
+  type AttachmentItemContent,
+  type CardContent,
+  type CustomField,
+  type CustomFieldType,
+  type CustomItemContent,
+  type IdentityContent,
+  type ItemContent,
+  type ItemContentBase,
+  type ItemType,
+  type LoginContent,
+  type PinContent,
+  type RecoveryCodesContent,
+  type SecureNoteContent,
+  type VaultItemDocument,
+} from "./vaultItem";
 
 export interface KryvexPhaseMarker {
   readonly phase: number;

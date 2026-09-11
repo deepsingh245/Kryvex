@@ -30,3 +30,10 @@ export {
 } from "./userProfile";
 
 export { resolveKdfParamsForEmail } from "./prelogin";
+
+export {
+  createVaultItem,
+  fetchVaultItems,
+  softDeleteVaultItem,
+  updateVaultItem,
+} from "./vaultItems";

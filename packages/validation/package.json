@@ -12,6 +12,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@kryvex/types": "workspace:*",
     "zod": "catalog:"
   },
   "devDependencies": {

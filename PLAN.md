@@ -1,16 +1,14 @@
 # Kryvex — Build Plan
 
-Status: **Phase 3 (Cryptographic Core) complete.** Phases 0-2 are done.
-Phase 3 implemented AES-256-GCM content encryption and key wrapping
-(`@noble/ciphers`) in `packages/crypto`, made the Vault Encryption Key real
-(generated at signup, wrapped as `protectedVaultKey`, fetched+unwrapped on
-sign-in), and replaced `unlock()`'s Phase 2 Firebase-reauthentication
-stand-in with a real local AEAD unwrap-and-fail-closed check. Shipped without
-new automated tests per explicit direction for this phase — flagged as the
-first recommended follow-up. See "Current status" in
-`KRYVEX_SOURCE_OF_TRUTH.md` for full detail and open follow-ups. Phase 4
-(vault items — `VaultItemDocument` CRUD, item encryption/decryption using
-the primitives this phase shipped) is next.
+Status: **Phase 4 (Vault) complete for web.** Phases 0-3 are done. Phase 4
+implemented real vault item CRUD for `apps/web`: all 11 `ItemType`s, custom
+fields, a real CSPRNG password generator, favorites, tags, and in-memory
+substring search — direct Firestore reads/writes, without Phase 5's
+offline/conflict machinery. See "Current status" in
+`KRYVEX_SOURCE_OF_TRUTH.md` for full detail, the new decisions log rows, and
+open follow-ups (a manual browser click-through and the CLAUDE.md §4 step 6
+security review are flagged, not yet done). Phase 4b (porting these screens
+to `apps/mobile`) is next, followed by Phase 5 (Sync).
 Owner: lead architect/engineer (Claude), directed by project owner
 Last updated: 2026-09-11
 
@@ -147,7 +145,7 @@ screens / phases / risks) for explicit sign-off before Phase 1 begins.
 | 1     | **Done.** Foundation — monorepo, web+mobile scaffolds, shared packages, lint/test/CI, Firebase emulator                                                                                                                                                                                                         |
 | 2     | **Done.** Authentication — Firebase Auth, registration/login/logout, `AUTHENTICATED_LOCKED` state (also pulled in Argon2id/HKDF, originally planned for Phase 3)                                                                                                                                                |
 | 3     | **Done.** Cryptographic core — encrypt/decrypt (AES-256-GCM via `@noble/ciphers`), envelope serialization, tamper detection (fail-closed AEAD unwrap), Vault Encryption Key generation/wrapping. KDF/HKDF already landed in Phase 2. Shipped without new tests per explicit direction — flagged as a follow-up. |
-| 4     | Vault — Login/Secure Note items, custom fields, generator, favorites, tags, search. Can now consume Phase 3's `generateKey`/`encryptBytes`/`decryptBytes` primitives directly for item/DEK encryption.                                                                                                          |
+| 4     | **Done (web).** Vault — all 11 item types, custom fields, generator, favorites, tags, search. Phase 4b (the same screens on `apps/mobile`) is scheduled as the immediate next step, not folded into Phase 5.                                                                                                    |
 | 5     | Sync — encrypted Firestore records, offline, versioning, conflicts, tombstones                                                                                                                                                                                                                                  |
 | 6     | Attachments — encrypted image/PDF/file, Storage, secure previews                                                                                                                                                                                                                                                |
 | 7     | Mobile security — biometric unlock, secure storage, auto-lock, clipboard, screenshot strategy                                                                                                                                                                                                                   |
@@ -166,7 +164,10 @@ and a short "Changed / Tests / Security considerations / Files / Next step" repo
 - Whether tags/titles need client-side encryption too (metadata leakage) — current
   lean: yes, encrypt titles/tags, keep only IDs/timestamps/versions in the clear.
 - Recovery UX: printable kit vs. downloadable file vs. both.
-- Local search index approach for large vaults without server-side plaintext.
+- ~~Local search index approach for large vaults without server-side plaintext.~~
+  Resolved Phase 4: in-memory substring scan over already-decrypted content,
+  no persisted index (see DATA_MODEL.md §6) — revisit once Phase 5's offline
+  cache exists to host a real index, if usage at scale shows it's needed.
 - Screenshot/screen-recording protection scope on mobile (which screens, which OS
   differences).
 
@@ -179,7 +180,11 @@ and a short "Changed / Tests / Security considerations / Files / Next step" repo
 3. ~~Present the `ARCHITECTURE READY` checkpoint for sign-off.~~ Done.
 4. ~~Begin Phase 1 scaffolding.~~ Done — see "Current status" in
    `KRYVEX_SOURCE_OF_TRUTH.md`.
-5. **Next up:** decide whether to push the local `main` branch (currently 1
-   commit ahead of `origin/main`) before starting Phase 2, then begin Phase 2
-   (Authentication — Firebase Auth, registration/login/logout,
-   `AUTHENTICATED_LOCKED` state).
+5. ~~Phase 2 (Authentication).~~ Done.
+6. ~~Phase 3 (Cryptographic core).~~ Done.
+7. ~~Phase 4 (Vault item CRUD) for `apps/web`.~~ Done — see "Current status"
+   in `KRYVEX_SOURCE_OF_TRUTH.md` for the two flagged follow-ups (manual
+   browser click-through, CLAUDE.md §4 step 6 security review).
+8. **Next up:** Phase 4b — port the Phase 4 screens to `apps/mobile` via
+   Expo Router, reusing the platform-agnostic packages built this phase;
+   then Phase 5 (Sync).
