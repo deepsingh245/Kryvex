@@ -97,7 +97,7 @@ Phase 2 additions and gotchas:
   `httpsCallable`/Functions) needs IndexedDB, which only exists in real
   browser/React-Native environments, not plain Node — without the polyfill,
   every callable request from a Vitest/Node test fails. It also sets
-  `testTimeout: 20000`: the *first* callable request to a freshly-started
+  `testTimeout: 20000`: the _first_ callable request to a freshly-started
   Functions emulator has observed cold-start latency occasionally exceeding
   Vitest's 5s default even though the function itself finishes in the
   emulator's own logs in well under 50ms — a real Cloud Functions
@@ -120,7 +120,7 @@ Phase 2 additions and gotchas:
   `app.ts` specifically because calling plain `getAuth(app)` (what `app.ts`
   does) implicitly creates a non-persistent Auth instance — and Firebase
   throws if `initializeAuth()` is called afterward on the same app. React
-  Native's persistence-aware setup must run *first*, before anything else
+  Native's persistence-aware setup must run _first_, before anything else
   touches Auth on that app instance.
 
 ## 4. Firebase Emulator Suite

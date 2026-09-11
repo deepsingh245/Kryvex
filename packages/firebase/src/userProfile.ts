@@ -32,3 +32,20 @@ export async function fetchUserProfileDocument(
   const snap = await getDoc(doc(firestore, "users", uid));
   return snap.exists() ? snap.data() : undefined;
 }
+
+/**
+ * Merge-write onto an *existing* profile doc — unlike
+ * createUserProfileDocument's plain (overwriting) setDoc, this never
+ * clobbers fields it doesn't touch. Needed for future writes to an
+ * already-created profile (e.g. key rotation re-wrapping protectedVaultKey
+ * — see docs/CRYPTOGRAPHIC_ARCHITECTURE.md §8); not yet called by any flow
+ * as of Phase 3, since signup writes protectedVaultKey in its initial
+ * payload and unlock only reads.
+ */
+export async function updateUserProfileDocument(
+  firestore: Firestore,
+  uid: string,
+  data: Record<string, unknown>,
+): Promise<void> {
+  await setDoc(doc(firestore, "users", uid), data, { merge: true });
+}

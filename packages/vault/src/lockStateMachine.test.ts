@@ -9,6 +9,7 @@ import {
 
 const user = { uid: "alice", email: "alice@example.com" };
 const key = new Uint8Array([1, 2, 3]);
+const vaultKey = new Uint8Array([4, 5, 6]);
 
 const SIGNED_OUT: LockState = { status: "SIGNED_OUT" };
 const AUTHENTICATED_LOCKED: LockState = {
@@ -20,6 +21,7 @@ const UNLOCKED: LockState = {
   status: "UNLOCKED",
   user,
   stretchedMasterKey: key,
+  vaultEncryptionKey: vaultKey,
 };
 const LOCKING: LockState = { status: "LOCKING", user };
 
@@ -41,6 +43,7 @@ describe("lockStateReducer — valid transitions", () => {
       lockStateReducer(UNLOCKING, {
         type: "UNLOCK_SUCCEEDED",
         stretchedMasterKey: key,
+        vaultEncryptionKey: vaultKey,
       }),
     ).toEqual(UNLOCKED);
   });
@@ -101,6 +104,7 @@ describe("lockStateReducer — invalid transitions return the state unchanged", 
         lockStateReducer(state, {
           type: "UNLOCK_SUCCEEDED",
           stretchedMasterKey: key,
+          vaultEncryptionKey: vaultKey,
         }),
       ).toEqual(state);
     }

@@ -26,6 +26,7 @@ export {
 export {
   createUserProfileDocument,
   fetchUserProfileDocument,
+  updateUserProfileDocument,
 } from "./userProfile";
 
 export { resolveKdfParamsForEmail } from "./prelogin";

@@ -11,9 +11,12 @@ import {
 import {
   DEFAULT_KDF_PARAMS,
   bytesToHex,
+  decryptBytes,
   deriveAuthAndStretchedKey,
   deriveKdfMaterial,
+  encryptBytes,
   generateKdfSalt,
+  generateKey,
   hexToBytes,
   type KdfParams,
 } from "@kryvex/crypto";
@@ -28,6 +31,7 @@ import {
   signUpWithAuthSecret,
   type KryvexFirebaseServices,
 } from "@kryvex/firebase";
+import type { EncryptedEnvelope } from "@kryvex/types";
 import {
   initialLockState,
   lockStateReducer,
@@ -50,6 +54,7 @@ function getServices(): KryvexFirebaseServices {
 interface KdfParamsRecord {
   kdfSalt: string;
   kdfParams: KdfParams;
+  protectedVaultKey?: EncryptedEnvelope;
 }
 
 interface VaultContextValue {
@@ -71,7 +76,13 @@ export function VaultProvider({ children }: { children: ReactNode }) {
   // update and our own awaited call resolving. Lets a fresh sign-up/sign-in
   // skip straight to UNLOCKED using the key already in hand, instead of
   // making the user type their master password a second time.
-  const pendingUnlockKey = useRef<Uint8Array | null>(null);
+  // resolveVaultKey unifies signUp (already has the VEK, nothing to fetch)
+  // and signIn (must fetch+unwrap protectedVaultKey, which requires the
+  // authenticated uid the listener callback receives) behind one shape.
+  const pendingUnlock = useRef<{
+    stretchedMasterKey: Uint8Array;
+    resolveVaultKey: (uid: string) => Promise<Uint8Array>;
+  } | null>(null);
 
   useEffect(() => {
     const services = getServices();
@@ -81,11 +92,22 @@ export function VaultProvider({ children }: { children: ReactNode }) {
         return;
       }
       dispatch({ type: "FIREBASE_SIGNED_IN", user });
-      const key = pendingUnlockKey.current;
-      if (key) {
-        pendingUnlockKey.current = null;
+      const pending = pendingUnlock.current;
+      if (pending) {
+        pendingUnlock.current = null;
         dispatch({ type: "UNLOCK_REQUESTED" });
-        dispatch({ type: "UNLOCK_SUCCEEDED", stretchedMasterKey: key });
+        pending
+          .resolveVaultKey(user.uid)
+          .then((vaultEncryptionKey) => {
+            dispatch({
+              type: "UNLOCK_SUCCEEDED",
+              stretchedMasterKey: pending.stretchedMasterKey,
+              vaultEncryptionKey,
+            });
+          })
+          .catch(() => {
+            dispatch({ type: "UNLOCK_FAILED" });
+          });
       }
     });
   }, []);
@@ -103,13 +125,22 @@ export function VaultProvider({ children }: { children: ReactNode }) {
       );
       const { authSecret, stretchedMasterKey } =
         deriveAuthAndStretchedKey(masterKey);
-      pendingUnlockKey.current = stretchedMasterKey;
+      const vaultEncryptionKey = generateKey();
+      const protectedVaultKey = encryptBytes(
+        stretchedMasterKey,
+        vaultEncryptionKey,
+      );
+      pendingUnlock.current = {
+        stretchedMasterKey,
+        resolveVaultKey: async () => vaultEncryptionKey,
+      };
 
       const user = await signUpWithAuthSecret(services.auth, email, authSecret);
       await createUserProfileDocument(services.firestore, user.uid, {
         email,
         kdfSalt: bytesToHex(salt),
         kdfParams: DEFAULT_KDF_PARAMS,
+        protectedVaultKey,
         settings: {
           autoLockMinutes: 5,
           clipboardClearSeconds: 30,
@@ -136,7 +167,19 @@ export function VaultProvider({ children }: { children: ReactNode }) {
       );
       const { authSecret, stretchedMasterKey } =
         deriveAuthAndStretchedKey(masterKey);
-      pendingUnlockKey.current = stretchedMasterKey;
+      pendingUnlock.current = {
+        stretchedMasterKey,
+        resolveVaultKey: async (uid) => {
+          const profile = (await fetchUserProfileDocument(
+            services.firestore,
+            uid,
+          )) as KdfParamsRecord | undefined;
+          if (!profile?.protectedVaultKey) {
+            throw new Error("Unable to decrypt vault item.");
+          }
+          return decryptBytes(stretchedMasterKey, profile.protectedVaultKey);
+        },
+      };
       await signInWithAuthSecret(services.auth, email, authSecret);
     },
 
@@ -150,21 +193,26 @@ export function VaultProvider({ children }: { children: ReactNode }) {
           services.firestore,
           user.uid,
         )) as KdfParamsRecord | undefined;
-        if (!profile) throw new Error("Profile not found.");
+        if (!profile?.protectedVaultKey) throw new Error("Profile not found.");
         const { masterKey } = await deriveKdfMaterial(
           masterPassword,
           hexToBytes(profile.kdfSalt),
           profile.kdfParams,
         );
-        const { authSecret, stretchedMasterKey } =
-          deriveAuthAndStretchedKey(masterKey);
-        // Phase 2 has no local unwrap-and-fail-closed check yet (that's
-        // Phase 3's protectedVaultKey mechanism) — re-verifying against
-        // Firebase is the only available correctness signal. The server
-        // still only ever sees the derived authSecret, never the master
-        // password, so this doesn't weaken zero-knowledge.
-        await signInWithAuthSecret(services.auth, user.email, authSecret);
-        dispatch({ type: "UNLOCK_SUCCEEDED", stretchedMasterKey });
+        const { stretchedMasterKey } = deriveAuthAndStretchedKey(masterKey);
+        // Local AEAD unwrap is the authoritative "wrong password" signal —
+        // a tag mismatch throws and is caught below. No need to
+        // re-authenticate against Firebase on every unlock; the user is
+        // already signed in (AUTHENTICATED_LOCKED implies that).
+        const vaultEncryptionKey = decryptBytes(
+          stretchedMasterKey,
+          profile.protectedVaultKey,
+        );
+        dispatch({
+          type: "UNLOCK_SUCCEEDED",
+          stretchedMasterKey,
+          vaultEncryptionKey,
+        });
       } catch (err) {
         dispatch({ type: "UNLOCK_FAILED" });
         throw err;

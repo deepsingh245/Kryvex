@@ -20,6 +20,7 @@ describe("HomeScreen", () => {
         status: "UNLOCKED",
         user: { uid: "1", email: "a@b.com" },
         stretchedMasterKey: new Uint8Array(),
+        vaultEncryptionKey: new Uint8Array(),
       },
       signUp: jest.fn(),
       signIn: jest.fn(),
