@@ -13,6 +13,7 @@
     "@kryvex/eslint-config": "workspace:*",
     "@kryvex/firebase": "workspace:*",
     "@kryvex/tsconfig": "workspace:*",
+    "@kryvex/types": "workspace:*",
     "@types/node": "^22",
     "eslint": "catalog:",
     "fake-indexeddb": "^6.2.5",

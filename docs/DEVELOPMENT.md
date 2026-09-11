@@ -145,11 +145,21 @@ Phase 3 additions and gotchas:
   Uses a byte-at-a-time loop, not `String.fromCharCode(...bytes)`, which
   risks a stack overflow on large inputs (relevant once attachments land in
   a later phase).
-- This phase's crypto code (`aead.ts`, the `VaultProvider` VEK wiring, the
-  lock-state-machine extension) shipped **without new automated tests**, per
-  explicit direction for this phase. This is a real gap flagged
-  deliberately, not silently dropped — recommended as the first follow-up
-  before Phase 4 builds further on these primitives.
+- This phase's crypto code initially shipped without new automated tests,
+  per explicit direction for the initial Phase 3 landing — flagged
+  deliberately as a gap, then closed as the immediate follow-up:
+  `packages/crypto/src/aead.test.ts` covers round-trips and every
+  fail-closed tamper path from `CRYPTOGRAPHIC_ARCHITECTURE.md` §11 (wrong
+  key, modified tag/ciphertext, modified/short nonce, unknown version/alg,
+  malformed base64, no partial-plaintext leakage on failure). The
+  `VaultProvider` VEK wiring itself is covered indirectly but realistically:
+  `tests/auth/authFlow.test.ts` exercises the same generate/wrap/fetch/
+  unwrap sequence against the real Auth/Firestore/Functions emulators
+  (including the wrong-password-fails-to-unwrap case), rather than
+  mocking Firebase to render the React provider directly — consistent with
+  this repo's existing pattern of testing business logic at the
+  package/flow level, not through component rendering against a live
+  backend.
 
 ## 4. Firebase Emulator Suite
 
