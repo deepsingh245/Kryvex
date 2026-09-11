@@ -1,6 +1,6 @@
 # Kryvex — Source of Truth
 
-Status: **Phase 2 (Authentication) complete.** This is the primary project
+Status: **Phase 3 (Cryptographic Core) complete.** This is the primary project
 reference. Read this before any other file when picking up work on Kryvex.
 Detailed reasoning for each section lives in the linked `docs/*.md` file —
 this document summarizes and cross-references rather than duplicating.
@@ -119,6 +119,9 @@ build spec §18.
 | Prelogin via a narrow unauthenticated Cloud Function (`getKdfParams`), not a deterministic/email-derived salt or a public Firestore lookup collection | Deterministic salt lets an attacker precompute it fully offline; a public collection needs a second copy of the salt kept in sync on every param rotation                                                | CRYPTOGRAPHIC_ARCHITECTURE.md §4.1        |
 | Argon2id/HKDF pulled into Phase 2 (not deferred to Phase 3 as originally planned)                                                                     | The Firebase Auth credential is itself HKDF-derived from the master password — Phase 2 auth can't be correct without it; Phase 3 now covers only AES-256-GCM item/attachment encryption and key wrapping | PLAN.md, CRYPTOGRAPHIC_ARCHITECTURE.md §4 |
 | Pure-JS Argon2id (`@noble/hashes`) on mobile, not WASM/native                                                                                         | Plain Expo Go (no `expo prebuild`) can't run WASM in Hermes or link native modules; revisit once native tooling lands (Phase 7/10)                                                                       | DEVELOPMENT.md                            |
+| Pure-JS AES-256-GCM (`@noble/ciphers`) for Phase 3, not WASM/native                                                                                   | Same plain-Expo-Go constraint as Argon2id above; same profile/dependency family as `@noble/hashes`, already proven                                                                                       | DEVELOPMENT.md                            |
+| Hand-rolled `btoa`/`atob` base64 wrapper in `packages/crypto`, not a new dependency                                                                   | Neither `@noble/hashes` nor `@noble/ciphers` exports base64; native Hermes/browser `btoa`/`atob` support confirmed for this repo's Expo SDK (57, past the SDK-51 baseline)                               | CRYPTOGRAPHIC_ARCHITECTURE.md §3          |
+| `unlock()`'s Phase 2 `signInWithAuthSecret` re-verification call dropped, replaced with local AEAD unwrap                                             | Phase 3's `protectedVaultKey` unwrap-and-fail-closed is now the real local correctness signal Phase 2 lacked; re-authenticating an already-signed-in user on every unlock was redundant once it existed  | CRYPTOGRAPHIC_ARCHITECTURE.md §11         |
 
 ## 13. Known limitations
 
@@ -201,21 +204,50 @@ scope changes made along the way (pulling KDF into Phase 2; the prelogin
 mechanism) and `docs/DEVELOPMENT.md` §3 for new TypeScript/ESLint/Metro/RN
 ecosystem workarounds.
 
-Verified: `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build`,
-`pnpm test:security`, and `pnpm test:auth` all pass — the last of these
-exercises the real sign-up → `getKdfParams` prelogin → sign-in flow (correct
-and wrong master password, existing and non-existent accounts) against the
-live Auth/Firestore/Functions emulators, not mocks. `apps/web`'s dev server
-was confirmed serving all four routes (`/`, `/sign-up`, `/sign-in`,
-`/unlock`) correctly against the running emulator with no server-side
-errors. **Not yet done, flagged rather than assumed:** an actual
-click-through of the web UI in a browser (no browser-automation tool was
-available this session) and running `apps/mobile` in a real Expo Go session
-to confirm `@noble/hashes`' Argon2id/HKDF and `polyfillWebCrypto` genuinely
-work under Hermes — the plan's own verification steps 6-7. Both are
-recommended next steps before considering Phase 2 fully signed off, not
-optional polish: the mobile KDF path in particular has never executed
-outside Node/Vitest.
+Phase 3 (Cryptographic Core) is complete: `packages/crypto` adds real
+AES-256-GCM content encryption and key wrapping (`@noble/ciphers`, same
+pure-JS/no-WASM/no-native-module profile as Argon2id) via
+`generateKey`/`encryptBytes`/`decryptBytes` in the new `aead.ts`; `signUp` on
+both apps now generates a random Vault Encryption Key and wraps it under the
+Stretched Master Key as `protectedVaultKey` on the profile document; `signIn`
+fetches and unwraps it after authentication (via the `pendingUnlock`/
+`resolveVaultKey` mechanism in `VaultProvider`, unifying signup's
+already-in-hand key with signin's fetch-then-unwrap); `unlock()`'s Phase 2
+stand-in (re-authenticating against Firebase as the only correctness check)
+is replaced with the real local AEAD unwrap-and-fail-closed check, so a wrong
+master password now fails locally via a GCM tag mismatch, not just via a
+Firebase rejection; `packages/vault`'s lock state machine carries the
+unwrapped Vault Encryption Key in its `UNLOCKED` state. See §12's decisions
+log for the new rows and `docs/DEVELOPMENT.md`'s new "Phase 3 additions and
+gotchas" section for implementation-level detail.
+
+**Per explicit direction, this phase's code shipped without new automated
+tests** — flagged deliberately, not silently dropped. The only test-file
+edits were fixture updates to keep the _existing_ suite (16
+`lockStateMachine` assertions, the web/mobile home-screen tests) compiling
+against the extended `UNLOCKED`/`UNLOCK_SUCCEEDED` shape. A manual,
+line-by-line security self-review of `aead.ts` against
+`docs/CRYPTOGRAPHIC_ARCHITECTURE.md` §3/§11 (nonce freshness, fail-closed
+tamper handling on every error path, no partial-plaintext return, no
+internals-leaking error messages) was performed as the substitute check
+required by `CLAUDE.md` §4 step 6. Recommended first follow-up before Phase
+4 builds further on these primitives: add real coverage for `aead.ts`
+(round-trip, tamper/tag-mismatch, wrong-length-nonce, unknown-version
+rejection) and the `VaultProvider` VEK wiring.
+
+Verified: `pnpm install`, `pnpm lint`, `pnpm typecheck`, `pnpm test`,
+`pnpm build`, `pnpm test:security`, and `pnpm test:auth` all pass against the
+Phase 3 changes — the last of these is a regression check confirming
+`signUp` writing the new `protectedVaultKey` field doesn't break the
+existing sign-up/sign-in/prelogin emulator flow (it doesn't assert anything
+about the VEK itself, consistent with this phase's no-new-tests scope).
+**Not yet done, flagged rather than assumed (carried over from Phase 2, plus
+new for Phase 3):** an actual click-through of the web UI in a browser and
+running `apps/mobile` in a real Expo Go session to confirm the crypto paths
+genuinely work under Hermes — no browser-automation tool was available this
+session either time. Recommended before considering Phase 3 fully signed
+off, not optional polish, especially the incorrect-password unlock path
+this phase newly makes local.
 
 Git: the working tree has a real local repository with a GitHub remote
 (`origin` → `deepsingh245/Kryvex`) the user manages themselves — this session
