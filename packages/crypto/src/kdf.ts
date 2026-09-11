@@ -14,13 +14,9 @@ import { argon2idAsync } from "@noble/hashes/argon2.js";
 import { hkdf } from "@noble/hashes/hkdf.js";
 import { sha256 } from "@noble/hashes/sha2.js";
 import { bytesToHex, randomBytes } from "@noble/hashes/utils.js";
+import type { KdfParams } from "@kryvex/types";
 
-export interface KdfParams {
-  memoryKiB: number;
-  iterations: number;
-  parallelism: number;
-  version: number;
-}
+export type { KdfParams };
 
 /**
  * Phase 2 default policy — not yet per-platform-tuned (mobile's pure-JS

@@ -14,14 +14,16 @@ export type LockState =
   | { status: "SIGNED_OUT" }
   | { status: "AUTHENTICATED_LOCKED"; user: AuthenticatedUser }
   | { status: "UNLOCKING"; user: AuthenticatedUser }
-  // Phase 2 stub: stretchedMasterKey is all this state holds for now.
-  // Phase 3 adds the unwrapped Vault Encryption Key; Phase 4 adds decrypted
-  // item cache handles. Extend only when the corresponding phase actually
-  // produces the value — don't add fields speculatively.
+  // stretchedMasterKey: kept for future re-wrapping operations (key
+  // rotation, master password change), not just the initial unwrap.
+  // vaultEncryptionKey: the unwrapped VEK, added Phase 3. Phase 4 adds
+  // decrypted item cache handles. Extend only when the corresponding phase
+  // actually produces the value — don't add fields speculatively.
   | {
       status: "UNLOCKED";
       user: AuthenticatedUser;
       stretchedMasterKey: Uint8Array;
+      vaultEncryptionKey: Uint8Array;
     }
   | { status: "LOCKING"; user: AuthenticatedUser };
 
@@ -29,7 +31,11 @@ export type LockAction =
   | { type: "FIREBASE_SIGNED_IN"; user: AuthenticatedUser }
   | { type: "FIREBASE_SIGNED_OUT" }
   | { type: "UNLOCK_REQUESTED" }
-  | { type: "UNLOCK_SUCCEEDED"; stretchedMasterKey: Uint8Array }
+  | {
+      type: "UNLOCK_SUCCEEDED";
+      stretchedMasterKey: Uint8Array;
+      vaultEncryptionKey: Uint8Array;
+    }
   | { type: "UNLOCK_FAILED" }
   | { type: "LOCK_REQUESTED"; reason?: "manual" | "timeout" | "background" }
   | { type: "LOCK_COMPLETED" };
@@ -68,6 +74,7 @@ export function lockStateReducer(
             status: "UNLOCKED",
             user: state.user,
             stretchedMasterKey: action.stretchedMasterKey,
+            vaultEncryptionKey: action.vaultEncryptionKey,
           }
         : state;
 
