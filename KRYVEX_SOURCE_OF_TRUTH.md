@@ -221,19 +221,22 @@ unwrapped Vault Encryption Key in its `UNLOCKED` state. See §12's decisions
 log for the new rows and `docs/DEVELOPMENT.md`'s new "Phase 3 additions and
 gotchas" section for implementation-level detail.
 
-**Per explicit direction, this phase's code shipped without new automated
-tests** — flagged deliberately, not silently dropped. The only test-file
-edits were fixture updates to keep the _existing_ suite (16
-`lockStateMachine` assertions, the web/mobile home-screen tests) compiling
-against the extended `UNLOCKED`/`UNLOCK_SUCCEEDED` shape. A manual,
-line-by-line security self-review of `aead.ts` against
-`docs/CRYPTOGRAPHIC_ARCHITECTURE.md` §3/§11 (nonce freshness, fail-closed
-tamper handling on every error path, no partial-plaintext return, no
-internals-leaking error messages) was performed as the substitute check
-required by `CLAUDE.md` §4 step 6. Recommended first follow-up before Phase
-4 builds further on these primitives: add real coverage for `aead.ts`
-(round-trip, tamper/tag-mismatch, wrong-length-nonce, unknown-version
-rejection) and the `VaultProvider` VEK wiring.
+**Per explicit direction, this phase's code initially shipped without new
+automated tests** — flagged deliberately, not silently dropped, and closed
+as the immediate follow-up. `packages/crypto/src/aead.test.ts` (19 tests)
+covers round-trips and every fail-closed tamper path from
+`docs/CRYPTOGRAPHIC_ARCHITECTURE.md` §11: wrong key, modified auth tag/
+ciphertext, modified/short nonce, unknown version/algorithm, malformed
+base64, and confirms no partial plaintext is ever returned on a failed
+decrypt. `tests/auth/authFlow.test.ts` gained three new cases exercising the
+`VaultProvider` VEK generate/wrap/fetch/unwrap sequence against the real
+Auth/Firestore/Functions emulators — including a wrong-master-password case
+confirming the local AEAD unwrap fails closed independently of Firebase
+rejecting the credential — rather than mocking Firebase to render the React
+provider directly, consistent with this repo's existing pattern of testing
+business logic at the package/flow level. A manual, line-by-line security
+self-review of `aead.ts` against `docs/CRYPTOGRAPHIC_ARCHITECTURE.md` §3/§11
+was additionally performed per `CLAUDE.md` §4 step 6.
 
 Verified: `pnpm install`, `pnpm lint`, `pnpm typecheck`, `pnpm test`,
 `pnpm build`, `pnpm test:security`, and `pnpm test:auth` all pass against the
