@@ -1,7 +1,11 @@
 # Kryvex — Cryptographic Architecture
 
-Status: Phase 0 draft. See also: [SECURITY_THREAT_MODEL.md](./SECURITY_THREAT_MODEL.md),
-[DATA_MODEL.md](./DATA_MODEL.md), [RECOVERY.md](./RECOVERY.md).
+Status: Phase 3 implemented (AES-256-GCM content/key-wrapping encryption and
+Argon2id/HKDF key derivation are real, in `packages/crypto`). Recovery-Key
+wrapping (§8/§10's Recovery Key references) remains design-only until the
+Recovery Key onboarding flow ships — see [RECOVERY.md](./RECOVERY.md). See
+also: [SECURITY_THREAT_MODEL.md](./SECURITY_THREAT_MODEL.md),
+[DATA_MODEL.md](./DATA_MODEL.md).
 
 ## 1. Primitives
 
@@ -83,10 +87,14 @@ versioned envelope so that algorithm/parameter changes are forward-compatible:
   "v": 1,
   "alg": "AES-256-GCM",
   "nonce": "<base64, 12 bytes>",
-  "ciphertext": "<base64>",
-  "tag": "<base64, included or appended per library convention>"
+  "ciphertext": "<base64, GCM auth tag appended by the cipher library>"
 }
 ```
+
+There is no separate `tag` field: `@noble/ciphers`' `gcm()` appends the
+16-byte authentication tag to its `encrypt()` output, and `decrypt()` expects
+it appended the same way — this is the actual, implemented convention (see
+`packages/crypto/src/aead.ts`), not a placeholder for a future field.
 
 Decryption always verifies the GCM authentication tag before any plaintext is
 returned to calling code. A tag mismatch, corrupt nonce, or unknown `v`/`alg`

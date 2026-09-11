@@ -1,15 +1,18 @@
 # Kryvex — Build Plan
 
-Status: **Phase 2 (Authentication) complete.** Phase 1 (Foundation) and
-Phase 0 (architecture) are done. Phase 2 pulled the Argon2id/HKDF KDF branch
-forward from Phase 3 (needed for a correct signup/login — see
-`KRYVEX_SOURCE_OF_TRUTH.md` §12's decisions log) alongside real Firebase Auth
-wiring, the lock state machine, and sign-up/sign-in/unlock screens on both
-apps. See "Current status" in `KRYVEX_SOURCE_OF_TRUTH.md` for detail and open
-follow-ups. Phase 3 (remaining crypto core — AES-256-GCM, key wrapping) is
-next.
+Status: **Phase 3 (Cryptographic Core) complete.** Phases 0-2 are done.
+Phase 3 implemented AES-256-GCM content encryption and key wrapping
+(`@noble/ciphers`) in `packages/crypto`, made the Vault Encryption Key real
+(generated at signup, wrapped as `protectedVaultKey`, fetched+unwrapped on
+sign-in), and replaced `unlock()`'s Phase 2 Firebase-reauthentication
+stand-in with a real local AEAD unwrap-and-fail-closed check. Shipped without
+new automated tests per explicit direction for this phase — flagged as the
+first recommended follow-up. See "Current status" in
+`KRYVEX_SOURCE_OF_TRUTH.md` for full detail and open follow-ups. Phase 4
+(vault items — `VaultItemDocument` CRUD, item encryption/decryption using
+the primitives this phase shipped) is next.
 Owner: lead architect/engineer (Claude), directed by project owner
-Last updated: 2026-09-08
+Last updated: 2026-09-11
 
 This document is the working plan for building Kryvex, a zero-knowledge encrypted
 personal vault. It sequences the work into checkpoints so that no security-sensitive
@@ -139,18 +142,18 @@ screens / phases / risks) for explicit sign-off before Phase 1 begins.
 
 ## 4. Phase roadmap (post-architecture)
 
-| Phase | Focus                                                                                                                                                                            |
-| ----- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1     | **Done.** Foundation — monorepo, web+mobile scaffolds, shared packages, lint/test/CI, Firebase emulator                                                                          |
-| 2     | **Done.** Authentication — Firebase Auth, registration/login/logout, `AUTHENTICATED_LOCKED` state (also pulled in Argon2id/HKDF, originally planned for Phase 3)                 |
-| 3     | Cryptographic core — encrypt/decrypt (AES-256-GCM), serialization, tamper detection, key wrapping (heavily tested, reviewed before Phase 4). KDF/HKDF already landed in Phase 2. |
-| 4     | Vault — Login/Secure Note items, custom fields, generator, favorites, tags, search                                                                                               |
-| 5     | Sync — encrypted Firestore records, offline, versioning, conflicts, tombstones                                                                                                   |
-| 6     | Attachments — encrypted image/PDF/file, Storage, secure previews                                                                                                                 |
-| 7     | Mobile security — biometric unlock, secure storage, auto-lock, clipboard, screenshot strategy                                                                                    |
-| 8     | UX polish — responsive UI, accessibility, onboarding, empty/error/loading states                                                                                                 |
-| 9     | Security hardening — dedicated review pass across XSS/CSRF/rules/crypto/logging/deps                                                                                             |
-| 10    | Release — production Firebase, web deploy, Android/iOS builds, release checklist                                                                                                 |
+| Phase | Focus                                                                                                                                                                                                                                                                                                           |
+| ----- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1     | **Done.** Foundation — monorepo, web+mobile scaffolds, shared packages, lint/test/CI, Firebase emulator                                                                                                                                                                                                         |
+| 2     | **Done.** Authentication — Firebase Auth, registration/login/logout, `AUTHENTICATED_LOCKED` state (also pulled in Argon2id/HKDF, originally planned for Phase 3)                                                                                                                                                |
+| 3     | **Done.** Cryptographic core — encrypt/decrypt (AES-256-GCM via `@noble/ciphers`), envelope serialization, tamper detection (fail-closed AEAD unwrap), Vault Encryption Key generation/wrapping. KDF/HKDF already landed in Phase 2. Shipped without new tests per explicit direction — flagged as a follow-up. |
+| 4     | Vault — Login/Secure Note items, custom fields, generator, favorites, tags, search. Can now consume Phase 3's `generateKey`/`encryptBytes`/`decryptBytes` primitives directly for item/DEK encryption.                                                                                                          |
+| 5     | Sync — encrypted Firestore records, offline, versioning, conflicts, tombstones                                                                                                                                                                                                                                  |
+| 6     | Attachments — encrypted image/PDF/file, Storage, secure previews                                                                                                                                                                                                                                                |
+| 7     | Mobile security — biometric unlock, secure storage, auto-lock, clipboard, screenshot strategy                                                                                                                                                                                                                   |
+| 8     | UX polish — responsive UI, accessibility, onboarding, empty/error/loading states                                                                                                                                                                                                                                |
+| 9     | Security hardening — dedicated review pass across XSS/CSRF/rules/crypto/logging/deps                                                                                                                                                                                                                            |
+| 10    | Release — production Firebase, web deploy, Android/iOS builds, release checklist                                                                                                                                                                                                                                |
 
 Each phase ends with: tests run, security implications reviewed, docs updated,
 and a short "Changed / Tests / Security considerations / Files / Next step" report.

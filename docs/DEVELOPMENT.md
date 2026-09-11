@@ -123,6 +123,34 @@ Phase 2 additions and gotchas:
   Native's persistence-aware setup must run _first_, before anything else
   touches Auth on that app instance.
 
+Phase 3 additions and gotchas:
+
+- `packages/crypto/src/aead.ts` uses `@noble/ciphers` (`gcm()` from
+  `@noble/ciphers/aes.js`) for AES-256-GCM — same pure-JS, zero-WASM,
+  zero-native-module profile as `@noble/hashes`'s Argon2id, required because
+  `apps/mobile` is plain Expo Go with no `expo prebuild`. Verified against
+  the actual library source: `gcm(key, nonce).encrypt()` appends the auth tag
+  to its output rather than returning it separately, matching
+  `EncryptedEnvelope`'s real (tag-less) shape — see
+  `docs/CRYPTOGRAPHIC_ARCHITECTURE.md` §3.
+- The library only rejects nonces shorter than 8 bytes; it does **not**
+  enforce our spec's exact 96-bit (12-byte) requirement. `aead.ts` checks
+  `nonce.length === 12` explicitly on both the encrypt and decrypt paths —
+  decrypt especially, since a tampered/malformed envelope could otherwise
+  carry a wrong-length nonce through to the cipher.
+- Base64 encode/decode (`bytesToBase64`/`base64ToBytes` in `aead.ts`) is a
+  hand-rolled `btoa`/`atob` byte-loop wrapper, not a new dependency — neither
+  `@noble/hashes` nor `@noble/ciphers` exports base64 (only hex). Confirmed
+  Hermes has native `btoa`/`atob` since Expo SDK 51 (`apps/mobile` is on 57).
+  Uses a byte-at-a-time loop, not `String.fromCharCode(...bytes)`, which
+  risks a stack overflow on large inputs (relevant once attachments land in
+  a later phase).
+- This phase's crypto code (`aead.ts`, the `VaultProvider` VEK wiring, the
+  lock-state-machine extension) shipped **without new automated tests**, per
+  explicit direction for this phase. This is a real gap flagged
+  deliberately, not silently dropped — recommended as the first follow-up
+  before Phase 4 builds further on these primitives.
+
 ## 4. Firebase Emulator Suite
 
 Development and rule tests run against the local emulator, never production

@@ -1,8 +1,8 @@
 # Kryvex — Firebase Security
 
-Status: Phase 0 draft (rules below are the Phase 0 design; must be validated by
-emulator-based tests in Phase 1/2 before any production deploy). See also:
-[DATA_MODEL.md](./DATA_MODEL.md), [SECURITY_THREAT_MODEL.md](./SECURITY_THREAT_MODEL.md).
+Status: Rules validated by emulator-based tests (`tests/security`,
+`tests/auth`) through Phase 3. See also: [DATA_MODEL.md](./DATA_MODEL.md),
+[SECURITY_THREAT_MODEL.md](./SECURITY_THREAT_MODEL.md).
 
 ## 1. Firestore layout
 

@@ -1,6 +1,9 @@
 # Kryvex — Data Model
 
-Status: Phase 0 draft. See also: [CRYPTOGRAPHIC_ARCHITECTURE.md](./CRYPTOGRAPHIC_ARCHITECTURE.md),
+Status: Phase 3 — `UserProfileDocument`'s `protectedVaultKey` (§4) is now
+populated at signup. `VaultItemDocument`/attachment CRUD described below is
+still design-only until Phase 4. See also:
+[CRYPTOGRAPHIC_ARCHITECTURE.md](./CRYPTOGRAPHIC_ARCHITECTURE.md),
 [FIREBASE_SECURITY.md](./FIREBASE_SECURITY.md), [SYNC_ENGINE.md](./SYNC_ENGINE.md).
 
 ## 1. Envelope: what actually lives in Firestore
