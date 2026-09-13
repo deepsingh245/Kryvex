@@ -34,6 +34,7 @@ export { resolveKdfParamsForEmail } from "./prelogin";
 export {
   createVaultItem,
   fetchVaultItem,
+  fetchVaultItems,
   softDeleteVaultItem,
   subscribeToVaultItems,
   updateVaultItem,

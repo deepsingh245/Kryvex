@@ -16,6 +16,7 @@ import {
   doc,
   collection,
   getDoc,
+  getDocs,
   onSnapshot,
   serverTimestamp,
   setDoc,
@@ -62,6 +63,19 @@ export async function createVaultItem(
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   });
+}
+
+/**
+ * One-shot bulk fetch — kept for `apps/mobile`, which hasn't migrated to
+ * `subscribeToVaultItems` yet (Phase 5b, not this pass — see PLAN.md).
+ * `apps/web`'s hook uses the real-time subscription above instead.
+ */
+export async function fetchVaultItems(
+  firestore: Firestore,
+  uid: string,
+): Promise<Record<string, unknown>[]> {
+  const snap = await getDocs(itemsCollection(firestore, uid));
+  return snap.docs.map((d) => d.data());
 }
 
 /**

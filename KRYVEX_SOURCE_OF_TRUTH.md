@@ -1,6 +1,6 @@
 # Kryvex — Source of Truth
 
-Status: **Phase 4 (Vault) complete for web and mobile.** This is the primary project
+Status: **Phase 5 (Sync) complete for web.** This is the primary project
 reference. Read this before any other file when picking up work on Kryvex.
 Detailed reasoning for each section lives in the linked `docs/*.md` file —
 this document summarizes and cross-references rather than duplicating.
@@ -122,12 +122,16 @@ build spec §18.
 | Pure-JS AES-256-GCM (`@noble/ciphers`) for Phase 3, not WASM/native                                                                                   | Same plain-Expo-Go constraint as Argon2id above; same profile/dependency family as `@noble/hashes`, already proven                                                                                                             | DEVELOPMENT.md                             |
 | Hand-rolled `btoa`/`atob` base64 wrapper in `packages/crypto`, not a new dependency                                                                   | Neither `@noble/hashes` nor `@noble/ciphers` exports base64; native Hermes/browser `btoa`/`atob` support confirmed for this repo's Expo SDK (57, past the SDK-51 baseline)                                                     | CRYPTOGRAPHIC_ARCHITECTURE.md §3           |
 | `unlock()`'s Phase 2 `signInWithAuthSecret` re-verification call dropped, replaced with local AEAD unwrap                                             | Phase 3's `protectedVaultKey` unwrap-and-fail-closed is now the real local correctness signal Phase 2 lacked; re-authenticating an already-signed-in user on every unlock was redundant once it existed                        | CRYPTOGRAPHIC_ARCHITECTURE.md §11          |
-| In-memory substring search over decrypted content, no persisted index (Phase 4)                                                                       | No offline persistence exists yet to index against (Phase 5); the full item set is already decrypted into memory to render the list, so a substring scan is free. Resolves PLAN.md's previously-open "local search index" risk | DATA_MODEL.md §6                           |
+| In-memory substring search over decrypted content, no persisted index (Phase 4, reconfirmed Phase 5)                                                  | The full item set is already decrypted into memory to render the list, so a substring scan is free; Phase 5's offline cache stores encrypted envelopes only, so it doesn't change this — a plaintext search index still isn't worth building. Resolves PLAN.md's previously-open "local search index" risk | DATA_MODEL.md §6                           |
 | Per-item DEK reused across edits (`reencryptItemContent` unwraps and re-encrypts under the _same_ key rather than rotating per save)                  | Keeps `wrappedItemKey` stable/unchanged on every edit, minimizing update diffs; explicit per-edit DEK rotation would need its own future flow if ever required                                                                 | packages/vault/src/itemCrypto.ts           |
 | One generic, data-driven `ItemForm` (per-`ItemType` field-config array) instead of 11 hand-built forms                                                | `ItemContentBase` is genuinely shared and per-type deltas are small; extends the `CustomField` type-discrimination pattern DATA_MODEL.md already establishes to all fields, not just custom ones                               | packages/ui/src/fieldConfig.ts             |
 | `image`/`pdf`/`file` item types modeled in the type system but excluded from the Add-item flow                                                        | Attachment upload/storage is Phase 6; avoids building UI that would need reworking once real attachment storage lands                                                                                                          | DATA_MODEL.md §1, §6 (Phase 4 status note) |
 | No clipboard auto-clear on `SecretField`'s copy button in Phase 4                                                                                     | Deferred to Phase 7's `packages/security/src/clipboard.ts` (currently a stub); documented limitation, not silently shipped as if handled                                                                                       | packages/ui/src/components/SecretField.tsx |
-| Phase 4b's React Native vault UI components live in `apps/mobile/src/components/`, not a new `packages/ui/native` subpath                             | Avoids adding a second (Jest-based) test runner inside `packages/ui`'s existing Vitest-only setup; only one mobile app exists today, so a shared package isn't yet justified — `fieldConfig.ts`/validation schemas stay shared    | apps/mobile/src/components/                |
+| Phase 4b's React Native vault UI components live in `apps/mobile/src/components/`, not a new `packages/ui/native` subpath                             | Avoids adding a second (Jest-based) test runner inside `packages/ui`'s existing Vitest-only setup; only one mobile app exists today, so a shared package isn't yet justified — `fieldConfig.ts`/validation schemas stay shared | apps/mobile/src/components/                |
+| Real-time sync via `onSnapshot`'s own initial-snapshot-then-live-updates, no separate `updatedAt > lastSyncedAt` bootstrap query (Phase 5)             | Simpler; `onSnapshot` already handles the offline-cache-then-server transition correctly. Revisit only if a real vault size makes the initial full listener too slow                                                          | SYNC_ENGINE.md, packages/firebase/src/vaultItems.ts |
+| Conflict UI always offers keep-mine/keep-server's/keep-both, never auto-detects "unambiguous" structured-item merges (Phase 5)                        | SYNC_ENGINE.md never defined that detection; always-offer-all-three never silently loses data                                                                                                                                  | apps/web/src/app/conflicts/page.tsx        |
+| Offline vault-item cache implementation (IndexedDB via `idb` on web) lives in `apps/web/src/lib/localItemStore.ts`, not `packages/storage` itself      | Same precedent as the Phase 4b UI-components decision above — one platform implementation today, avoids forcing a DOM-only dependency into a shared package                                                                    | packages/storage/src/vaultItemStore.ts     |
+| Tombstone GC as a daily scheduled Cloud Function, Admin SDK, 30-day retention (Phase 5)                                                                | Matches SYNC_ENGINE.md §5's documented design exactly; least-privilege (touches only `deleted`/`updatedAt`/doc refs, never ciphertext fields)                                                                                  | firebase/functions/src/tombstoneGc.ts       |
 
 ## 13. Known limitations
 
@@ -322,4 +326,46 @@ to web since it's the same shared `@kryvex/vault` code) found no issues.
 **Not yet done:** a manual click-through in Expo Go (same no-automation
 caveat as web).
 
-Phase 5 (Sync) is next — see `PLAN.md`.
+Phase 5 (Sync) is complete for `apps/web`: `packages/sync` goes from a
+placeholder to a real, platform-agnostic sync/conflict engine
+(`syncState.ts` — `beginLocalWrite`/`confirmLocalWrite`/`rejectLocalWrite`/
+`applyRemoteDoc`/`dismissConflict`, tracking per-item
+synced/pending/conflict status and the two envelopes behind an unresolved
+conflict; zero Firebase/React/crypto dependency, same principle
+`@kryvex/vault`'s reducers already follow — the consuming hook owns all
+encryption, reusing Phase 4's `itemCrypto` primitives unchanged, including
+for "keep both" which goes through the normal create path so the new item
+gets its own fresh DEK); `packages/storage` gains the `VaultItemLocalStore`
+interface (concrete IndexedDB implementation lives in
+`apps/web/src/lib/localItemStore.ts` via the `idb` library — see §12's
+decisions log for why it's app-local, not shared); `packages/firebase`
+replaces the one-shot `fetchVaultItems` read (kept only for `apps/mobile`,
+not yet migrated) with `subscribeToVaultItems` (real-time `onSnapshot`) and
+adds `fetchVaultItem` (single-doc re-fetch for the conflict path);
+`apps/web/src/hooks/useVaultItems.ts` is rewritten offline-first: hydrates
+from IndexedDB immediately, then reconciles against the live listener,
+tracks pending writes with enough state (`baseRevision`, `writeKind`) to
+retry them via a new `apps/web/src/hooks/useOnlineStatus.ts` connectivity
+hook when the network returns, and classifies a rejected write's Firestore
+error code to distinguish a real conflict from an offline/network failure;
+Vault Home gets a conflicts banner and a new `/conflicts` page lists every
+unresolved conflict with all three resolutions always offered (see §12's
+decisions log for both scope decisions this phase made against
+`docs/SYNC_ENGINE.md`'s design). `firebase/functions` gains `tombstoneGc`
+(daily scheduled function, 30-day retention, Admin SDK, envelope-metadata-
+only), and `firebase/firestore.indexes.json` gains the composite index its
+collection-group query needs.
+
+The `CLAUDE.md` §4 step 6 security review pass (local IndexedDB cache
+confirmed ciphertext-only, conflict resolution confirmed never persisting
+the "losing" side's plaintext, "keep both" confirmed to mint a fresh DEK,
+`tombstoneGc` confirmed to touch only envelope metadata, listener lifecycle
+confirmed to unsubscribe on unmount/lock) was performed this session — no
+issues found. **Not yet done:** a manual click-through against the real
+Firebase emulator exercising the offline/reconnect/conflict flows (same
+no-automation caveat as every prior phase).
+
+Phase 5b (porting Phase 5's sync engine to `apps/mobile` — AsyncStorage-
+backed local store, `@react-native-community/netinfo` for connectivity)
+is the immediate next step, scheduled explicitly rather than left to slip —
+see `PLAN.md`.

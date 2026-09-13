@@ -73,6 +73,9 @@ describe("EditItemPage", () => {
       updateItem,
       toggleFavorite: vi.fn(),
       softDeleteItem: vi.fn(),
+      isOnline: true,
+      conflicts: [],
+      resolveConflict: vi.fn(),
     });
 
     render(<EditItemPage />);
@@ -109,6 +112,9 @@ describe("EditItemPage", () => {
       updateItem: vi.fn(),
       toggleFavorite: vi.fn(),
       softDeleteItem: vi.fn(),
+      isOnline: true,
+      conflicts: [],
+      resolveConflict: vi.fn(),
     });
     render(<EditItemPage />);
     expect(screen.getByText("Item not found.")).toBeInTheDocument();

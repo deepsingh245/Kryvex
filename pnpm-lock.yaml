@@ -284,6 +284,12 @@ importers:
       '@kryvex/security':
         specifier: workspace:*
         version: link:../../packages/security
+      '@kryvex/storage':
+        specifier: workspace:*
+        version: link:../../packages/storage
+      '@kryvex/sync':
+        specifier: workspace:*
+        version: link:../../packages/sync
       '@kryvex/types':
         specifier: workspace:*
         version: link:../../packages/types
@@ -296,6 +302,9 @@ importers:
       '@kryvex/vault':
         specifier: workspace:*
         version: link:../../packages/vault
+      idb:
+        specifier: ^8.0.3
+        version: 8.0.3
       next:
         specifier: 16.3.4
         version: 16.3.4(@babel/core@7.29.7(supports-color@8.1.1))(@opentelemetry/api@1.9.1)(@types/node@22.20.1)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
@@ -339,6 +348,9 @@ importers:
       eslint-config-prettier:
         specifier: 10.1.8
         version: 10.1.8(eslint@10.10.0(jiti@2.7.0)(supports-color@8.1.1))
+      fake-indexeddb:
+        specifier: ^6.2.5
+        version: 6.2.5
       jsdom:
         specifier: 30.0.1
         version: 30.0.1(@noble/hashes@2.4.0)
@@ -525,6 +537,10 @@ importers:
         version: 5.0.0(@opentelemetry/api@1.9.1)(@types/node@22.20.1)(jsdom@30.0.1(@noble/hashes@2.4.0))(vite@8.2.2(@types/node@22.20.1)(esbuild@0.27.7)(jiti@2.7.0)(terser@5.51.2)(yaml@2.9.0))
 
   packages/storage:
+    dependencies:
+      '@kryvex/types':
+        specifier: workspace:*
+        version: link:../types
     devDependencies:
       '@kryvex/eslint-config':
         specifier: workspace:*

@@ -9,7 +9,9 @@ import {
   rejectLocalWrite,
 } from "./syncState";
 
-function envelope(overrides: Partial<VaultItemDocument> = {}): VaultItemDocument {
+function envelope(
+  overrides: Partial<VaultItemDocument> = {},
+): VaultItemDocument {
   return {
     id: "item1",
     ownerId: "alice",
@@ -29,7 +31,7 @@ function envelope(overrides: Partial<VaultItemDocument> = {}): VaultItemDocument
 describe("beginLocalWrite / confirmLocalWrite", () => {
   it("marks an item pending, then synced on confirm", () => {
     const local = envelope({ revision: 1 });
-    let state = beginLocalWrite(initialSyncState, "item1", 0, local);
+    let state = beginLocalWrite(initialSyncState, "item1", 0, local, "update");
     expect(state.status.item1).toBe("pending");
 
     state = confirmLocalWrite(state, "item1");
@@ -42,7 +44,7 @@ describe("rejectLocalWrite", () => {
   it("records a conflict when a pending write is rejected", () => {
     const local = envelope({ revision: 1 });
     const server = envelope({ revision: 2 });
-    let state = beginLocalWrite(initialSyncState, "item1", 0, local);
+    let state = beginLocalWrite(initialSyncState, "item1", 0, local, "update");
     state = rejectLocalWrite(state, "item1", server);
 
     expect(state.status.item1).toBe("conflict");
@@ -70,7 +72,7 @@ describe("applyRemoteDoc", () => {
 
   it("is a no-op when the incoming doc is stale relative to a pending write's base", () => {
     const local = envelope({ revision: 1 });
-    let state = beginLocalWrite(initialSyncState, "item1", 0, local);
+    let state = beginLocalWrite(initialSyncState, "item1", 0, local, "update");
     state = applyRemoteDoc(state, envelope({ revision: 0 }));
     expect(state.status.item1).toBe("pending");
     expect(state.conflicts.item1).toBeUndefined();
@@ -78,7 +80,7 @@ describe("applyRemoteDoc", () => {
 
   it("detects a proactive conflict when another write already landed past our pending write's base", () => {
     const local = envelope({ revision: 1 });
-    let state = beginLocalWrite(initialSyncState, "item1", 0, local);
+    let state = beginLocalWrite(initialSyncState, "item1", 0, local, "update");
     const server = envelope({ revision: 1 }); // someone else's write also based on revision 0
     state = applyRemoteDoc(state, server);
 
@@ -93,7 +95,7 @@ describe("applyRemoteDoc", () => {
 
   it("does not affect unrelated items' pending writes", () => {
     const local = envelope({ id: "item1", revision: 1 });
-    let state = beginLocalWrite(initialSyncState, "item1", 0, local);
+    let state = beginLocalWrite(initialSyncState, "item1", 0, local, "update");
     state = applyRemoteDoc(state, envelope({ id: "item2", revision: 5 }));
     expect(state.status.item2).toBe("synced");
     expect(state.status.item1).toBe("pending");
@@ -104,7 +106,7 @@ describe("dismissConflict", () => {
   it("clears a conflict and marks the item synced", () => {
     const local = envelope({ revision: 1 });
     const server = envelope({ revision: 2 });
-    let state = beginLocalWrite(initialSyncState, "item1", 0, local);
+    let state = beginLocalWrite(initialSyncState, "item1", 0, local, "update");
     state = rejectLocalWrite(state, "item1", server);
     state = dismissConflict(state, "item1");
 

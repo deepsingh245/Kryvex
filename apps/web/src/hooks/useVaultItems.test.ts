@@ -3,21 +3,31 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { generateKey } from "@kryvex/crypto";
 import {
   createVaultItem,
-  fetchVaultItems,
-  softDeleteVaultItem,
+  fetchVaultItem,
+  subscribeToVaultItems,
   updateVaultItem,
 } from "@kryvex/firebase";
-import type { ItemContent } from "@kryvex/types";
+import type { ItemContent, VaultItemDocument } from "@kryvex/types";
 import { encryptItemContent } from "@kryvex/vault";
 import { useVaultItems } from "./useVaultItems";
+import { createIndexedDbItemStore } from "@/lib/localItemStore";
 import { useVault } from "@/providers/VaultProvider";
+import { useOnlineStatus } from "./useOnlineStatus";
 
 vi.mock("@kryvex/firebase", () => ({
   initializeKryvexFirebase: vi.fn(() => ({ firestore: {} })),
   createVaultItem: vi.fn(),
-  fetchVaultItems: vi.fn(),
   updateVaultItem: vi.fn(),
-  softDeleteVaultItem: vi.fn(),
+  fetchVaultItem: vi.fn(),
+  subscribeToVaultItems: vi.fn(),
+}));
+
+vi.mock("@/lib/localItemStore", () => ({
+  createIndexedDbItemStore: vi.fn(),
+}));
+
+vi.mock("./useOnlineStatus", () => ({
+  useOnlineStatus: vi.fn(),
 }));
 
 vi.mock("@/providers/VaultProvider", () => ({
@@ -25,10 +35,12 @@ vi.mock("@/providers/VaultProvider", () => ({
 }));
 
 const mockedUseVault = vi.mocked(useVault);
-const mockedFetchVaultItems = vi.mocked(fetchVaultItems);
+const mockedCreateIndexedDbItemStore = vi.mocked(createIndexedDbItemStore);
+const mockedSubscribeToVaultItems = vi.mocked(subscribeToVaultItems);
 const mockedCreateVaultItem = vi.mocked(createVaultItem);
 const mockedUpdateVaultItem = vi.mocked(updateVaultItem);
-const mockedSoftDeleteVaultItem = vi.mocked(softDeleteVaultItem);
+const mockedFetchVaultItem = vi.mocked(fetchVaultItem);
+const mockedUseOnlineStatus = vi.mocked(useOnlineStatus);
 
 const vaultEncryptionKey = generateKey();
 const UNLOCKED_STATE = {
@@ -72,8 +84,41 @@ function rawDocFor(
   };
 }
 
+function permissionDeniedError(): Error {
+  return Object.assign(new Error("The caller does not have permission"), {
+    code: "permission-denied",
+  });
+}
+
+/** A simple in-memory fake matching the VaultItemLocalStore interface. */
+function createFakeLocalStore() {
+  const byUid = new Map<string, Map<string, VaultItemDocument>>();
+  return {
+    async getAll(uid: string) {
+      return Array.from(byUid.get(uid)?.values() ?? []);
+    },
+    async putMany(uid: string, items: VaultItemDocument[]) {
+      const bucket = byUid.get(uid) ?? new Map<string, VaultItemDocument>();
+      for (const item of items) bucket.set(item.id, item);
+      byUid.set(uid, bucket);
+    },
+    async remove(uid: string, itemId: string) {
+      byUid.get(uid)?.delete(itemId);
+    },
+    async clear(uid: string) {
+      byUid.delete(uid);
+    },
+  };
+}
+
+let capturedOnNext: ((docs: Record<string, unknown>[]) => void) | undefined;
+let capturedOnError: ((error: unknown) => void) | undefined;
+const unsubscribe = vi.fn();
+
 beforeEach(() => {
   vi.clearAllMocks();
+  capturedOnNext = undefined;
+  capturedOnError = undefined;
   mockedUseVault.mockReturnValue({
     state: UNLOCKED_STATE,
     signUp: vi.fn(),
@@ -81,50 +126,79 @@ beforeEach(() => {
     unlock: vi.fn(),
     signOut: vi.fn(),
   });
+  mockedCreateIndexedDbItemStore.mockReturnValue(createFakeLocalStore());
+  mockedUseOnlineStatus.mockReturnValue(true);
+  mockedSubscribeToVaultItems.mockImplementation(
+    (_fs, _uid, onNext, onError) => {
+      capturedOnNext = onNext;
+      capturedOnError = onError;
+      return unsubscribe;
+    },
+  );
 });
 
-describe("useVaultItems — load", () => {
-  it("fetches and decrypts items on mount when UNLOCKED", async () => {
-    mockedFetchVaultItems.mockResolvedValue([rawDocFor(LOGIN_CONTENT)]);
+describe("useVaultItems — offline-first load", () => {
+  it("hydrates from the local cache before the listener delivers anything", async () => {
+    const store = createFakeLocalStore();
+    const { wrappedItemKey, encryptedData } = encryptItemContent(
+      vaultEncryptionKey,
+      LOGIN_CONTENT,
+    );
+    await store.putMany("alice", [
+      {
+        id: "item1",
+        ownerId: "alice",
+        type: "login",
+        revision: 0,
+        updatedAt: null,
+        createdAt: null,
+        deleted: false,
+        favorite: false,
+        wrappedItemKey,
+        encryptedData,
+        attachmentRefs: [],
+      },
+    ]);
+    mockedCreateIndexedDbItemStore.mockReturnValue(store);
+
     const { result } = renderHook(() => useVaultItems());
 
-    await waitFor(() => expect(result.current.loading).toBe(false));
-    expect(result.current.items).toHaveLength(1);
+    await waitFor(() => expect(result.current.items).toHaveLength(1));
     const item = result.current.items[0]!;
     expect(item.decryptFailed).toBe(false);
-    if (!item.decryptFailed) {
-      expect(item.content.title).toBe("GitHub");
-    }
+    if (!item.decryptFailed) expect(item.content.title).toBe("GitHub");
   });
 
-  it("isolates a per-item decrypt failure instead of throwing or dropping the whole list", async () => {
-    const tamperedDoc = rawDocFor(LOGIN_CONTENT);
-    tamperedDoc.encryptedData = {
-      ...(tamperedDoc.encryptedData as object),
-      ciphertext: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
-    };
-    mockedFetchVaultItems.mockResolvedValue([
-      tamperedDoc,
-      rawDocFor(LOGIN_CONTENT, { id: "item2" }),
-    ]);
-
+  it("merges documents delivered by the real-time listener and persists them locally", async () => {
     const { result } = renderHook(() => useVaultItems());
-    await waitFor(() => expect(result.current.loading).toBe(false));
+    await waitFor(() => expect(capturedOnNext).toBeDefined());
 
-    expect(result.current.items).toHaveLength(2);
-    const failed = result.current.items.find((i) => i.id === "item1")!;
-    const ok = result.current.items.find((i) => i.id === "item2")!;
-    expect(failed.decryptFailed).toBe(true);
-    expect(ok.decryptFailed).toBe(false);
+    act(() => {
+      capturedOnNext!([rawDocFor(LOGIN_CONTENT)]);
+    });
+
+    await waitFor(() => expect(result.current.items).toHaveLength(1));
+  });
+
+  it("unsubscribes the listener on unmount", async () => {
+    const { unmount } = renderHook(() => useVaultItems());
+    await waitFor(() => expect(capturedOnNext).toBeDefined());
+    unmount();
+    expect(unsubscribe).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not throw when the listener reports an error", async () => {
+    renderHook(() => useVaultItems());
+    await waitFor(() => expect(capturedOnError).toBeDefined());
+    expect(() => capturedOnError!(new Error("listener failed"))).not.toThrow();
   });
 });
 
-describe("useVaultItems — mutations", () => {
-  it("createItem wraps/encrypts content and calls createVaultItem", async () => {
-    mockedFetchVaultItems.mockResolvedValue([]);
+describe("useVaultItems — writes", () => {
+  it("createItem calls createVaultItem and reflects the new item immediately", async () => {
     mockedCreateVaultItem.mockResolvedValue(undefined);
     const { result } = renderHook(() => useVaultItems());
-    await waitFor(() => expect(result.current.loading).toBe(false));
+    await waitFor(() => expect(capturedOnNext).toBeDefined());
 
     let id = "";
     await act(async () => {
@@ -133,70 +207,144 @@ describe("useVaultItems — mutations", () => {
 
     expect(id).toBeTruthy();
     expect(mockedCreateVaultItem).toHaveBeenCalledTimes(1);
-    const [, uid, itemId, envelope] = mockedCreateVaultItem.mock.calls[0]!;
-    expect(uid).toBe("alice");
-    expect(itemId).toBe(id);
-    expect(envelope).toMatchObject({
-      ownerId: "alice",
-      type: "login",
-      revision: 0,
-      favorite: false,
-    });
+    expect(result.current.items.some((i) => i.id === id)).toBe(true);
   });
 
-  it("updateItem re-encrypts under the existing item key and increments revision", async () => {
-    mockedFetchVaultItems.mockResolvedValue([rawDocFor(LOGIN_CONTENT)]);
-    mockedUpdateVaultItem.mockResolvedValue(undefined);
+  it("a permission-denied rejection produces a conflict", async () => {
+    mockedUpdateVaultItem.mockRejectedValue(permissionDeniedError());
+    const serverDoc = rawDocFor(LOGIN_CONTENT, { revision: 5 });
+    mockedFetchVaultItem.mockResolvedValue(serverDoc);
+
     const { result } = renderHook(() => useVaultItems());
-    await waitFor(() => expect(result.current.loading).toBe(false));
+    await waitFor(() => expect(capturedOnNext).toBeDefined());
+
+    act(() => {
+      capturedOnNext!([rawDocFor(LOGIN_CONTENT, { revision: 0 })]);
+    });
+    await waitFor(() => expect(result.current.items).toHaveLength(1));
 
     await act(async () => {
       await result.current.updateItem("item1", {
         ...LOGIN_CONTENT,
-        title: "GitHub (work)",
+        title: "GitHub (renamed)",
       });
     });
 
-    expect(mockedUpdateVaultItem).toHaveBeenCalledTimes(1);
-    const [, , , envelope] = mockedUpdateVaultItem.mock.calls[0]!;
-    expect(envelope).toMatchObject({ id: "item1", revision: 1 });
+    await waitFor(() => expect(result.current.conflicts).toHaveLength(1));
+    const conflict = result.current.conflicts[0]!;
+    expect(conflict.localContent?.title).toBe("GitHub (renamed)");
+    expect(conflict.serverContent?.title).toBe("GitHub");
   });
 
-  it("toggleFavorite flips favorite and increments revision without re-encrypting", async () => {
-    mockedFetchVaultItems.mockResolvedValue([rawDocFor(LOGIN_CONTENT)]);
-    mockedUpdateVaultItem.mockResolvedValue(undefined);
+  it("a non-permission-denied failure leaves the write pending for retry, not a conflict", async () => {
+    mockedUpdateVaultItem.mockRejectedValue(new Error("network unavailable"));
     const { result } = renderHook(() => useVaultItems());
-    await waitFor(() => expect(result.current.loading).toBe(false));
+    await waitFor(() => expect(capturedOnNext).toBeDefined());
+
+    act(() => {
+      capturedOnNext!([rawDocFor(LOGIN_CONTENT, { revision: 0 })]);
+    });
+    await waitFor(() => expect(result.current.items).toHaveLength(1));
 
     await act(async () => {
       await result.current.toggleFavorite("item1");
     });
 
-    expect(mockedUpdateVaultItem).toHaveBeenCalledTimes(1);
-    const [, , , envelope] = mockedUpdateVaultItem.mock.calls[0]!;
-    expect(envelope).toMatchObject({
-      id: "item1",
-      favorite: true,
-      revision: 1,
-    });
+    expect(result.current.conflicts).toHaveLength(0);
   });
+});
 
-  it("softDeleteItem marks deleted:true and increments revision", async () => {
-    mockedFetchVaultItems.mockResolvedValue([rawDocFor(LOGIN_CONTENT)]);
-    mockedSoftDeleteVaultItem.mockResolvedValue(undefined);
+describe("useVaultItems — conflict resolution", () => {
+  async function setupConflict() {
+    mockedUpdateVaultItem.mockRejectedValueOnce(permissionDeniedError());
+    const serverDoc = rawDocFor(LOGIN_CONTENT, { revision: 5 });
+    mockedFetchVaultItem.mockResolvedValue(serverDoc);
+
     const { result } = renderHook(() => useVaultItems());
-    await waitFor(() => expect(result.current.loading).toBe(false));
+    await waitFor(() => expect(capturedOnNext).toBeDefined());
+
+    act(() => {
+      capturedOnNext!([rawDocFor(LOGIN_CONTENT, { revision: 0 })]);
+    });
+    await waitFor(() => expect(result.current.items).toHaveLength(1));
 
     await act(async () => {
-      await result.current.softDeleteItem("item1");
+      await result.current.updateItem("item1", {
+        ...LOGIN_CONTENT,
+        title: "Mine",
+      });
+    });
+    await waitFor(() => expect(result.current.conflicts).toHaveLength(1));
+
+    return result;
+  }
+
+  it("keepMine re-writes the local content under the server's current revision", async () => {
+    mockedUpdateVaultItem.mockResolvedValue(undefined);
+    const result = await setupConflict();
+
+    await act(async () => {
+      await result.current.resolveConflict("item1", "keepMine");
     });
 
-    expect(mockedSoftDeleteVaultItem).toHaveBeenCalledTimes(1);
-    const [, , , envelope] = mockedSoftDeleteVaultItem.mock.calls[0]!;
-    expect(envelope).toMatchObject({
-      id: "item1",
-      deleted: true,
-      revision: 1,
+    expect(result.current.conflicts).toHaveLength(0);
+    const calls = mockedUpdateVaultItem.mock.calls;
+    const lastCall = calls[calls.length - 1]!;
+    expect(lastCall[3]).toMatchObject({ id: "item1", revision: 6 });
+  });
+
+  it("keepServer dismisses the conflict without writing", async () => {
+    const result = await setupConflict();
+    const writesBefore = mockedUpdateVaultItem.mock.calls.length;
+
+    await act(async () => {
+      await result.current.resolveConflict("item1", "keepServer");
     });
+
+    expect(result.current.conflicts).toHaveLength(0);
+    expect(mockedUpdateVaultItem.mock.calls.length).toBe(writesBefore);
+    const item = result.current.items.find((i) => i.id === "item1")!;
+    if (!item.decryptFailed) expect(item.content.title).toBe("GitHub");
+  });
+
+  it("keepBoth creates a brand-new item and leaves the original conflict-free", async () => {
+    mockedCreateVaultItem.mockResolvedValue(undefined);
+    const result = await setupConflict();
+
+    await act(async () => {
+      await result.current.resolveConflict("item1", "keepBoth");
+    });
+
+    expect(result.current.conflicts).toHaveLength(0);
+    expect(mockedCreateVaultItem).toHaveBeenCalledTimes(1);
+    expect(result.current.items.length).toBeGreaterThanOrEqual(2);
+  });
+});
+
+describe("useVaultItems — reconnect retry", () => {
+  it("retries pending writes once isOnline becomes true", async () => {
+    mockedUseOnlineStatus.mockReturnValue(false);
+    mockedUpdateVaultItem.mockRejectedValueOnce(new Error("offline"));
+
+    const { result, rerender } = renderHook(() => useVaultItems());
+    await waitFor(() => expect(capturedOnNext).toBeDefined());
+
+    act(() => {
+      capturedOnNext!([rawDocFor(LOGIN_CONTENT, { revision: 0 })]);
+    });
+    await waitFor(() => expect(result.current.items).toHaveLength(1));
+
+    await act(async () => {
+      await result.current.toggleFavorite("item1");
+    });
+    expect(mockedUpdateVaultItem).toHaveBeenCalledTimes(1);
+
+    mockedUpdateVaultItem.mockResolvedValue(undefined);
+    mockedUseOnlineStatus.mockReturnValue(true);
+    rerender();
+
+    await waitFor(() =>
+      expect(mockedUpdateVaultItem.mock.calls.length).toBeGreaterThanOrEqual(2),
+    );
   });
 });

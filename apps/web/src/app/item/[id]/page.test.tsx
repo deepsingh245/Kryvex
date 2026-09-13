@@ -91,6 +91,9 @@ function setup(
     updateItem: vi.fn(),
     toggleFavorite: vi.fn(),
     softDeleteItem: vi.fn(),
+    isOnline: true,
+    conflicts: [],
+    resolveConflict: vi.fn(),
     ...overrides,
   });
 }

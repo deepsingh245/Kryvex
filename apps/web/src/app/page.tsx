@@ -18,7 +18,7 @@ import { useVault } from "@/providers/VaultProvider";
 export default function Home() {
   const { state, signOut } = useVault();
   const router = useRouter();
-  const { items, loading, toggleFavorite } = useVaultItems();
+  const { items, loading, toggleFavorite, conflicts } = useVaultItems();
   const [query, setQuery] = useState("");
   const [tagFilter, setTagFilter] = useState<string | undefined>(undefined);
   const [favoritesOnly, setFavoritesOnly] = useState(false);
@@ -75,6 +75,17 @@ export default function Home() {
             </button>
           </div>
         </div>
+
+        {conflicts.length > 0 && (
+          <Link
+            href="/conflicts"
+            className="rounded border border-amber-400 bg-amber-50 px-4 py-2 text-sm font-medium text-amber-800"
+          >
+            {conflicts.length}{" "}
+            {conflicts.length === 1 ? "item has" : "items have"} sync conflicts
+            — Review
+          </Link>
+        )}
 
         <div className="flex flex-wrap items-center gap-3">
           <input

@@ -1,9 +1,9 @@
 /**
- * Phase 1 scaffold only. Real functions (account deletion, tombstone GC —
- * see docs/FIREBASE_SECURITY.md §6) land alongside the features they
- * support. This trivial callable proves the Functions codebase builds,
- * lints, typechecks, and deploys/emulates correctly before any real logic
- * is added. It never touches vault ciphertext or key material.
+ * Real functions land alongside the features they support — tombstone GC
+ * (Phase 5) below; account deletion is still future work. `ping` proves the
+ * Functions codebase builds, lints, typechecks, and deploys/emulates
+ * correctly. Nothing in this codebase touches vault ciphertext or key
+ * material.
  */
 
 import { initializeApp } from "firebase-admin/app";
@@ -18,3 +18,4 @@ export const ping = onCall(() => {
 });
 
 export { getKdfParams } from "./getKdfParams";
+export { tombstoneGc } from "./tombstoneGc";

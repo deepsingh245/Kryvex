@@ -44,6 +44,9 @@ describe("NewItemPage", () => {
       updateItem: vi.fn(),
       toggleFavorite: vi.fn(),
       softDeleteItem: vi.fn(),
+      isOnline: true,
+      conflicts: [],
+      resolveConflict: vi.fn(),
     });
     render(<NewItemPage />);
     expect(screen.getByText("Login")).toBeInTheDocument();
@@ -69,6 +72,9 @@ describe("NewItemPage", () => {
       updateItem: vi.fn(),
       toggleFavorite: vi.fn(),
       softDeleteItem: vi.fn(),
+      isOnline: true,
+      conflicts: [],
+      resolveConflict: vi.fn(),
     });
     render(<NewItemPage />);
 

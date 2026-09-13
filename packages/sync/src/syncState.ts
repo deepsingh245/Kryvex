@@ -28,11 +28,15 @@ export interface SyncConflict {
   serverDoc: VaultItemDocument;
 }
 
-interface PendingWrite {
+export interface PendingWrite {
   // The revision our optimistic write was built on top of (i.e. we're
   // trying to become baseRevision + 1).
   baseRevision: number;
   localDoc: VaultItemDocument;
+  // Which Firestore call a retry (after regaining connectivity) should use
+  // — "create" doesn't exist yet on the server, "update" (also covers
+  // soft-delete, which is just an update with deleted:true) does.
+  writeKind: "create" | "update";
 }
 
 export interface SyncState {
@@ -47,7 +51,10 @@ export const initialSyncState: SyncState = {
   conflicts: {},
 };
 
-function omit<T extends object>(record: Record<string, T>, key: string): Record<string, T> {
+function omit<T extends object>(
+  record: Record<string, T>,
+  key: string,
+): Record<string, T> {
   const next = { ...record };
   delete next[key];
   return next;
@@ -59,13 +66,14 @@ export function beginLocalWrite(
   itemId: string,
   baseRevision: number,
   localDoc: VaultItemDocument,
+  writeKind: "create" | "update",
 ): SyncState {
   return {
     ...state,
     status: { ...state.status, [itemId]: "pending" },
     pendingWrites: {
       ...state.pendingWrites,
-      [itemId]: { baseRevision, localDoc },
+      [itemId]: { baseRevision, localDoc, writeKind },
     },
   };
 }
