@@ -1,15 +1,21 @@
 import { describe, expect, it } from "vitest";
-import { SYNC_PACKAGE_PHASE, notYetImplemented } from "./index";
+import { applyRemoteDoc, initialSyncState } from "./index";
 
-describe("@kryvex/sync placeholder", () => {
-  it("resolves the @kryvex/types workspace dependency", () => {
-    expect(SYNC_PACKAGE_PHASE).toEqual({
-      phase: 1,
-      label: "foundation-scaffold",
+describe("@kryvex/sync public API", () => {
+  it("applyRemoteDoc is reachable from the package entry point", () => {
+    const state = applyRemoteDoc(initialSyncState, {
+      id: "item1",
+      ownerId: "alice",
+      type: "login",
+      revision: 0,
+      updatedAt: null,
+      createdAt: null,
+      deleted: false,
+      favorite: false,
+      wrappedItemKey: { v: 1, alg: "AES-256-GCM", nonce: "n", ciphertext: "c" },
+      encryptedData: { v: 1, alg: "AES-256-GCM", nonce: "n", ciphertext: "c" },
+      attachmentRefs: [],
     });
-  });
-
-  it("throws a clear not-implemented error", () => {
-    expect(() => notYetImplemented("resolveConflict")).toThrowError(/Phase 5/);
+    expect(state.status.item1).toBe("synced");
   });
 });

@@ -31,3 +31,6 @@ catalog:
   vitest: ^5.0.0
   eslint: ^10.10.0
   prettier: ^3.9.6
+
+minimumReleaseAgeExclude:
+  - expo-clipboard@57.0.2

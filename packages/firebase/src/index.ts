@@ -33,7 +33,8 @@ export { resolveKdfParamsForEmail } from "./prelogin";
 
 export {
   createVaultItem,
-  fetchVaultItems,
+  fetchVaultItem,
   softDeleteVaultItem,
+  subscribeToVaultItems,
   updateVaultItem,
 } from "./vaultItems";
