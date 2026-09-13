@@ -6,4 +6,9 @@ export {
   initialSyncState,
   rejectLocalWrite,
 } from "./syncState";
-export type { SyncConflict, SyncItemStatus, SyncState } from "./syncState";
+export type {
+  PendingWrite,
+  SyncConflict,
+  SyncItemStatus,
+  SyncState,
+} from "./syncState";

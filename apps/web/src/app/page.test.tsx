@@ -54,6 +54,23 @@ function loginItem(): DecryptedVaultItem {
   };
 }
 
+function mockVaultItems(
+  overrides: Partial<ReturnType<typeof useVaultItems>> = {},
+) {
+  mockedUseVaultItems.mockReturnValue({
+    items: [],
+    loading: false,
+    isOnline: true,
+    conflicts: [],
+    createItem: vi.fn(),
+    updateItem: vi.fn(),
+    toggleFavorite: vi.fn(),
+    softDeleteItem: vi.fn(),
+    resolveConflict: vi.fn(),
+    ...overrides,
+  });
+}
+
 describe("Home", () => {
   it("shows the empty-vault message when UNLOCKED with no items", () => {
     mockedUseVault.mockReturnValue({
@@ -63,14 +80,7 @@ describe("Home", () => {
       unlock: vi.fn(),
       signOut: vi.fn(),
     });
-    mockedUseVaultItems.mockReturnValue({
-      items: [],
-      loading: false,
-      createItem: vi.fn(),
-      updateItem: vi.fn(),
-      toggleFavorite: vi.fn(),
-      softDeleteItem: vi.fn(),
-    });
+    mockVaultItems();
     render(<Home />);
     expect(screen.getByText("Your vault is empty.")).toBeInTheDocument();
     expect(screen.getByText("Your vault")).toBeInTheDocument();
@@ -84,16 +94,39 @@ describe("Home", () => {
       unlock: vi.fn(),
       signOut: vi.fn(),
     });
-    mockedUseVaultItems.mockReturnValue({
-      items: [loginItem()],
-      loading: false,
-      createItem: vi.fn(),
-      updateItem: vi.fn(),
-      toggleFavorite: vi.fn(),
-      softDeleteItem: vi.fn(),
-    });
+    mockVaultItems({ items: [loginItem()] });
     render(<Home />);
     expect(screen.getByText("GitHub")).toBeInTheDocument();
+  });
+
+  it("shows a conflicts banner when there are unresolved conflicts", () => {
+    mockedUseVault.mockReturnValue({
+      state: UNLOCKED_STATE,
+      signUp: vi.fn(),
+      signIn: vi.fn(),
+      unlock: vi.fn(),
+      signOut: vi.fn(),
+    });
+    mockVaultItems({
+      conflicts: [
+        { itemId: "item1", localContent: undefined, serverContent: undefined },
+      ],
+    });
+    render(<Home />);
+    expect(screen.getByText(/sync/i)).toBeInTheDocument();
+  });
+
+  it("does not show a conflicts banner when there are none", () => {
+    mockedUseVault.mockReturnValue({
+      state: UNLOCKED_STATE,
+      signUp: vi.fn(),
+      signIn: vi.fn(),
+      unlock: vi.fn(),
+      signOut: vi.fn(),
+    });
+    mockVaultItems();
+    render(<Home />);
+    expect(screen.queryByText(/sync conflict/i)).not.toBeInTheDocument();
   });
 
   it("redirects to /sign-in when SIGNED_OUT", () => {
@@ -104,14 +137,7 @@ describe("Home", () => {
       unlock: vi.fn(),
       signOut: vi.fn(),
     });
-    mockedUseVaultItems.mockReturnValue({
-      items: [],
-      loading: false,
-      createItem: vi.fn(),
-      updateItem: vi.fn(),
-      toggleFavorite: vi.fn(),
-      softDeleteItem: vi.fn(),
-    });
+    mockVaultItems();
     render(<Home />);
     expect(replace).toHaveBeenCalledWith("/sign-in");
   });
@@ -127,14 +153,7 @@ describe("Home", () => {
       unlock: vi.fn(),
       signOut: vi.fn(),
     });
-    mockedUseVaultItems.mockReturnValue({
-      items: [],
-      loading: false,
-      createItem: vi.fn(),
-      updateItem: vi.fn(),
-      toggleFavorite: vi.fn(),
-      softDeleteItem: vi.fn(),
-    });
+    mockVaultItems();
     render(<Home />);
     expect(replace).toHaveBeenCalledWith("/unlock");
   });

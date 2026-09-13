@@ -1,6 +1,20 @@
 # Kryvex — Sync Engine
 
-Status: Phase 0 draft. See also: [DATA_MODEL.md](./DATA_MODEL.md),
+Status: Phase 5 — implemented for `apps/web` (`packages/sync`,
+`packages/storage`'s `VaultItemLocalStore` interface + `apps/web/src/lib/localItemStore.ts`'s
+IndexedDB implementation, `apps/web/src/hooks/useVaultItems.ts`,
+`firebase/functions/src/tombstoneGc.ts`). Two implementation-level scope
+decisions made against this doc's design, both revisit-if-needed rather than
+open: (1) §6's real-time subscription relies on Firestore's own
+`onSnapshot` initial-snapshot-then-live-updates behavior for both first load
+and ongoing sync, rather than a separate `updatedAt > lastSyncedAt`
+bootstrap query — simpler, revisit only if a real vault size makes the
+initial full listener too slow; (2) §7's conflict UI always offers all
+three resolutions (keep mine / keep server's / keep both) rather than
+attempting to detect "unambiguous" structured-item merges, since that
+detection was never specified here — never silently loses data either way.
+Mobile (`apps/mobile`) has not yet migrated to this — see PLAN.md's
+Phase 5b. See also: [DATA_MODEL.md](./DATA_MODEL.md),
 [FIREBASE_SECURITY.md](./FIREBASE_SECURITY.md).
 
 ## 1. Goals
