@@ -132,6 +132,8 @@ beforeEach(() => {
     signUp: vi.fn(),
     signIn: vi.fn(),
     unlock: vi.fn(),
+    lock: vi.fn(),
+    recoverVault: vi.fn(),
     signOut: vi.fn(),
   });
   mockedCreateIndexedDbItemStore.mockReturnValue(createFakeLocalStore());

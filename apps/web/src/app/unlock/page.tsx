@@ -74,6 +74,13 @@ export default function UnlockPage() {
         >
           {submitting ? "Unlocking…" : "Unlock"}
         </button>
+
+        <a
+          href="/recover"
+          className="text-center text-sm text-gray-500 underline"
+        >
+          Forgot your master password?
+        </a>
       </form>
     </main>
   );

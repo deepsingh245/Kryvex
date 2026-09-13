@@ -28,6 +28,9 @@ export type {
 export { BooleanField } from "./components/BooleanField";
 export type { BooleanFieldProps } from "./components/BooleanField";
 
+export { EmergencyKit } from "./components/EmergencyKit";
+export type { EmergencyKitProps } from "./components/EmergencyKit";
+
 export { Button } from "./components/Button";
 export type { ButtonProps } from "./components/Button";
 

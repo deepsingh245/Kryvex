@@ -24,8 +24,10 @@ what's implemented today.
 | Vault item CRUD (all 11 item types)                           | Done — web + mobile              |
 | Sync (offline-first, conflicts, tombstones)                   | Done — web + mobile              |
 | Attachments (encrypted files, Storage)                        | Done — web; mobile port deferred |
-| Session security (auto-lock, clipboard clear)                 | Next up (web)                    |
+| Recovery Key / Emergency Kit                                  | Done — web                       |
+| Session security (auto-lock, clipboard clear)                 | Done — web                       |
 | Biometric unlock / secure key storage                         | Mobile-only, deferred            |
+| UX polish, settings screen                                    | Next up (web)                    |
 | Release (production deploy)                                   | Not started                      |
 
 ## Tech stack

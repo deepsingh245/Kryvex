@@ -4,6 +4,7 @@ import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { signUpFormSchema } from "@kryvex/validation";
 import { secureLogger } from "@kryvex/security";
+import { EmergencyKit } from "@kryvex/ui";
 import { useVault } from "@/providers/VaultProvider";
 
 export default function SignUpPage() {
@@ -14,6 +15,7 @@ export default function SignUpPage() {
   const [confirmMasterPassword, setConfirmMasterPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [recoveryKey, setRecoveryKey] = useState<string | null>(null);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -31,8 +33,13 @@ export default function SignUpPage() {
 
     setSubmitting(true);
     try {
-      await signUp(parsed.data.email, parsed.data.masterPassword);
-      router.push("/");
+      const { recoveryKey } = await signUp(
+        parsed.data.email,
+        parsed.data.masterPassword,
+      );
+      // Show the Emergency Kit before navigating away — see
+      // docs/RECOVERY.md §2: it's shown exactly once, here.
+      setRecoveryKey(recoveryKey);
     } catch (err) {
       secureLogger.error("Sign-up failed", { email: parsed.data.email });
       setError(
@@ -45,6 +52,19 @@ export default function SignUpPage() {
     }
   }
 
+  if (recoveryKey) {
+    return (
+      <main className="flex min-h-screen flex-1 flex-col items-center justify-center p-8">
+        <div className="w-full max-w-sm">
+          <EmergencyKit
+            recoveryKey={recoveryKey}
+            onContinue={() => router.push("/")}
+          />
+        </div>
+      </main>
+    );
+  }
+
   return (
     <main className="flex min-h-screen flex-1 flex-col items-center justify-center p-8">
       <form
@@ -54,8 +74,9 @@ export default function SignUpPage() {
         <h1 className="text-xl font-semibold">Create your Kryvex vault</h1>
         <p className="text-sm text-gray-500">
           Your master password protects your vault. Kryvex cannot simply send it
-          to the server and recover your vault for you — if you lose it, your
-          data may be unrecoverable.
+          to the server and recover your vault for you — after you continue,
+          you&apos;ll get a one-time Emergency Kit as your only recovery option
+          if you forget it.
         </p>
 
         <label className="flex flex-col gap-1 text-sm">

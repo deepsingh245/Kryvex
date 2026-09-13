@@ -21,26 +21,38 @@ import {
   type KdfParams,
 } from "@kryvex/crypto";
 import {
+  confirmVaultRecovery,
   createUserProfileDocument,
   fetchUserProfileDocument,
   initializeKryvexFirebase,
   observeAuthState,
   resolveKdfParamsForEmail,
+  resolveRecoveryEnvelopeForEmail,
   signInWithAuthSecret,
   signOutKryvex,
   signUpWithAuthSecret,
+  updateUserProfileDocument,
+  verifyRecoveryCode,
   type KryvexFirebaseServices,
 } from "@kryvex/firebase";
+import { autoLock } from "@kryvex/security";
 import type { EncryptedEnvelope } from "@kryvex/types";
 import {
+  formatRecoveryKey,
   initialLockState,
   lockStateReducer,
+  parseRecoveryKey,
   type LockState,
 } from "@kryvex/vault";
 import {
   webFirebaseConfig,
   webFirebaseEmulatorEnv,
 } from "@/lib/firebaseConfig";
+
+// Matches the settings.autoLockMinutes value written at sign-up — not yet
+// read back from the profile document (an explicit MVP trim; a settings
+// screen to change it is Phase 8w).
+const AUTO_LOCK_TIMEOUT_MS = 5 * 60_000;
 
 // Lazily initialized, client-only. Next.js still renders this "use client"
 // component once on the server for the initial HTML — calling
@@ -57,11 +69,26 @@ interface KdfParamsRecord {
   protectedVaultKey?: EncryptedEnvelope;
 }
 
+interface RecoveryEnvelopeRecord {
+  protectedVaultKeyByRecovery?: EncryptedEnvelope;
+}
+
+export type LockReason = "manual" | "timeout" | "background";
+
 interface VaultContextValue {
   state: LockState;
-  signUp: (email: string, masterPassword: string) => Promise<void>;
+  signUp: (
+    email: string,
+    masterPassword: string,
+  ) => Promise<{ recoveryKey: string }>;
   signIn: (email: string, masterPassword: string) => Promise<void>;
   unlock: (masterPassword: string) => Promise<void>;
+  lock: (reason?: LockReason) => void;
+  recoverVault: (
+    oobCode: string,
+    recoveryKeyInput: string,
+    newMasterPassword: string,
+  ) => Promise<{ recoveryKey: string }>;
   signOut: () => Promise<void>;
 }
 
@@ -112,6 +139,46 @@ export function VaultProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
+  function lock(reason?: LockReason) {
+    dispatch(
+      reason ? { type: "LOCK_REQUESTED", reason } : { type: "LOCK_REQUESTED" },
+    );
+    dispatch({ type: "LOCK_COMPLETED" });
+  }
+
+  // Auto-lock: active only while unlocked. Resets on any activity signal;
+  // locks immediately on tab-hidden (build spec §19's "background" case),
+  // or after AUTO_LOCK_TIMEOUT_MS of no activity.
+  useEffect(() => {
+    if (state.status !== "UNLOCKED") return;
+
+    const timer = autoLock.createInactivityTimer(AUTO_LOCK_TIMEOUT_MS, () => {
+      lock("timeout");
+    });
+
+    function handleActivity() {
+      timer.reset();
+    }
+    function handleVisibilityChange() {
+      if (document.visibilityState === "hidden") lock("background");
+    }
+
+    window.addEventListener("mousemove", handleActivity);
+    window.addEventListener("keydown", handleActivity);
+    window.addEventListener("click", handleActivity);
+    window.addEventListener("touchstart", handleActivity);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      timer.cancel();
+      window.removeEventListener("mousemove", handleActivity);
+      window.removeEventListener("keydown", handleActivity);
+      window.removeEventListener("click", handleActivity);
+      window.removeEventListener("touchstart", handleActivity);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [state.status]);
+
   const value: VaultContextValue = {
     state,
 
@@ -130,6 +197,14 @@ export function VaultProvider({ children }: { children: ReactNode }) {
         stretchedMasterKey,
         vaultEncryptionKey,
       );
+      // Recovery Key — see docs/RECOVERY.md §2. A second, independent
+      // wrapping of the same VEK; never transmitted or stored unwrapped,
+      // shown to the user exactly once by the caller (sign-up page).
+      const recoveryKeyBytes = generateKey();
+      const protectedVaultKeyByRecovery = encryptBytes(
+        recoveryKeyBytes,
+        vaultEncryptionKey,
+      );
       pendingUnlock.current = {
         stretchedMasterKey,
         resolveVaultKey: async () => vaultEncryptionKey,
@@ -141,6 +216,7 @@ export function VaultProvider({ children }: { children: ReactNode }) {
         kdfSalt: bytesToHex(salt),
         kdfParams: DEFAULT_KDF_PARAMS,
         protectedVaultKey,
+        protectedVaultKeyByRecovery,
         settings: {
           autoLockMinutes: 5,
           clipboardClearSeconds: 30,
@@ -148,6 +224,7 @@ export function VaultProvider({ children }: { children: ReactNode }) {
         },
       });
       // onAuthStateChanged (registered above) picks this up and auto-unlocks.
+      return { recoveryKey: formatRecoveryKey(recoveryKeyBytes) };
     },
 
     async signIn(email, masterPassword) {
@@ -217,6 +294,78 @@ export function VaultProvider({ children }: { children: ReactNode }) {
         dispatch({ type: "UNLOCK_FAILED" });
         throw err;
       }
+    },
+
+    lock,
+
+    async recoverVault(oobCode, recoveryKeyInput, newMasterPassword) {
+      const services = getServices();
+      // Firebase's oobCode is what actually proves control of the email
+      // inbox — see docs/RECOVERY.md §3. verifyRecoveryCode throws if the
+      // link is expired/already used/invalid.
+      const email = await verifyRecoveryCode(services.auth, oobCode);
+
+      const envelope = (await resolveRecoveryEnvelopeForEmail(
+        services.functions,
+        email,
+      )) as RecoveryEnvelopeRecord | null;
+      if (!envelope?.protectedVaultKeyByRecovery) {
+        throw new Error("Recovery isn't available for this account.");
+      }
+
+      // Second, independent proof: possession of the Recovery Key itself.
+      // A tag mismatch (wrong key) throws the same generic message
+      // decryptBytes already uses — fail-closed, same precedent as unlock.
+      const recoveryKeyBytes = parseRecoveryKey(recoveryKeyInput);
+      const vaultEncryptionKey = decryptBytes(
+        recoveryKeyBytes,
+        envelope.protectedVaultKeyByRecovery,
+      );
+
+      const newSalt = generateKdfSalt();
+      const { masterKey } = await deriveKdfMaterial(
+        newMasterPassword,
+        newSalt,
+        DEFAULT_KDF_PARAMS,
+      );
+      const { authSecret: newAuthSecret, stretchedMasterKey } =
+        deriveAuthAndStretchedKey(masterKey);
+      const protectedVaultKey = encryptBytes(
+        stretchedMasterKey,
+        vaultEncryptionKey,
+      );
+
+      // The used kit is spent — issue a fresh Recovery Key, per
+      // docs/RECOVERY.md §3 step 5.
+      const newRecoveryKeyBytes = generateKey();
+      const protectedVaultKeyByRecovery = encryptBytes(
+        newRecoveryKeyBytes,
+        vaultEncryptionKey,
+      );
+
+      // Same pendingUnlock mechanism signUp/signIn already use — the VEK
+      // is already in hand, so the observeAuthState listener registered
+      // above auto-unlocks once signInWithAuthSecret below fires it,
+      // without asking the user to type the new password a second time.
+      pendingUnlock.current = {
+        stretchedMasterKey,
+        resolveVaultKey: async () => vaultEncryptionKey,
+      };
+
+      await confirmVaultRecovery(services.auth, oobCode, newAuthSecret);
+      const user = await signInWithAuthSecret(
+        services.auth,
+        email,
+        newAuthSecret,
+      );
+      await updateUserProfileDocument(services.firestore, user.uid, {
+        kdfSalt: bytesToHex(newSalt),
+        kdfParams: DEFAULT_KDF_PARAMS,
+        protectedVaultKey,
+        protectedVaultKeyByRecovery,
+      });
+
+      return { recoveryKey: formatRecoveryKey(newRecoveryKeyBytes) };
     },
 
     async signOut() {

@@ -632,6 +632,9 @@ importers:
       '@kryvex/password-generator':
         specifier: workspace:*
         version: link:../password-generator
+      '@kryvex/security':
+        specifier: workspace:*
+        version: link:../security
       '@kryvex/types':
         specifier: workspace:*
         version: link:../types

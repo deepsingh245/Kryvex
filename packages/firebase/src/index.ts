@@ -17,10 +17,13 @@ export type { KryvexFirebaseConfig, KryvexFirebaseServices } from "./app";
 export { initializeKryvexFirebaseNative } from "./appNative";
 
 export {
+  confirmVaultRecovery,
   observeAuthState,
+  sendVaultRecoveryEmail,
   signInWithAuthSecret,
   signOutKryvex,
   signUpWithAuthSecret,
+  verifyRecoveryCode,
 } from "./auth";
 
 export {
@@ -30,6 +33,7 @@ export {
 } from "./userProfile";
 
 export { resolveKdfParamsForEmail } from "./prelogin";
+export { resolveRecoveryEnvelopeForEmail } from "./recovery";
 
 export {
   createVaultItem,

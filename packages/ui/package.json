@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@kryvex/password-generator": "workspace:*",
+    "@kryvex/security": "workspace:*",
     "@kryvex/types": "workspace:*",
     "@kryvex/validation": "workspace:*"
   },

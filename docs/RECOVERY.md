@@ -1,6 +1,22 @@
 # Kryvex — Backup & Recovery
 
-Status: Phase 0 draft. See also: [CRYPTOGRAPHIC_ARCHITECTURE.md](./CRYPTOGRAPHIC_ARCHITECTURE.md).
+Status: Implemented for `apps/web` (Phase 7w). §2's Recovery Key/Emergency
+Kit flow runs at sign-up (`apps/web/src/providers/VaultProvider.tsx`'s
+`signUp`, `packages/ui/src/components/EmergencyKit.tsx`); §3's recovery flow
+runs via `apps/web/src/app/recover`/`recover/confirm`, `VaultProvider.tsx`'s
+`recoverVault`, and `firebase/functions/src/getRecoveryEnvelope.ts` (the
+Recovery-Key-side counterpart to `getKdfParams.ts`'s prelogin problem). One
+implementation detail beyond what's written below: recovering the Auth
+credential (needed since the derived `authSecret` is also unknown once the
+master password is forgotten) goes through Firebase's own
+`sendPasswordResetEmail`/`confirmPasswordReset` oobCode flow — this doubles
+as the "prove you still control the email inbox" factor, independent of
+Recovery Key possession; neither alone completes recovery. §4's "no kit,
+password lost" messaging and §6's future improvements remain not built
+(v1.5+, as already scoped). No QR code in the kit yet — text + downloadable
+file only. `apps/mobile` has not been ported to this — see `PLAN.md`'s
+Track B. See also:
+[CRYPTOGRAPHIC_ARCHITECTURE.md](./CRYPTOGRAPHIC_ARCHITECTURE.md).
 
 ## 1. The core tension
 

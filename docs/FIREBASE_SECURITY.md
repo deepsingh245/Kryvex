@@ -160,6 +160,14 @@ Kept minimal, per the build spec (§46). Anticipated uses only:
   `{ kdfSalt, kdfParams }` for a given email, `null` for a non-existent or
   incomplete account. Never touches ciphertext, a password, or a derived
   key — the narrowest surface that solves the problem.
+- **`getRecoveryEnvelope`** (added Phase 7w, implemented): the Recovery-Key
+  counterpart to the same prelogin problem — see `docs/RECOVERY.md` §3.
+  Same unauthenticated-callable, Admin-SDK, least-privilege shape as
+  `getKdfParams`, returning only `{ protectedVaultKeyByRecovery }` (never
+  `kdfSalt`/`protectedVaultKey`/anything else), `null` uniformly for
+  "no such account," "profile incomplete," and "no recovery key was ever
+  set up." Safe to leave unauthenticated: the returned ciphertext is
+  useless without the Recovery Key itself, which the server never sees.
 - Cloud Functions never receive a master password, a derived key, or plaintext
   vault content, and no function is ever added whose purpose is to decrypt
   user data server-side (see build spec §69 — no admin decrypt endpoint, ever).

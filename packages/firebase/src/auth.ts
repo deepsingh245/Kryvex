@@ -6,10 +6,13 @@
  */
 
 import {
+  confirmPasswordReset,
   createUserWithEmailAndPassword,
   onAuthStateChanged,
+  sendPasswordResetEmail,
   signInWithEmailAndPassword,
   signOut as firebaseSignOut,
+  verifyPasswordResetCode,
   type Auth,
   type User,
 } from "firebase/auth";
@@ -49,4 +52,39 @@ export function observeAuthState(
   return onAuthStateChanged(auth, (user) =>
     onChange(user ? toKryvexUser(user) : null),
   );
+}
+
+/**
+ * Recovery flow — see docs/RECOVERY.md §3. Firebase's own oobCode-based
+ * password reset is what actually lets the Auth credential (authSecret)
+ * change when the user can't sign in normally (they forgot the master
+ * password it's derived from) — this is a real security gate (proof of
+ * email-inbox control), not a workaround, and is independent of the
+ * Recovery-Key-unwraps-the-VEK check done elsewhere.
+ */
+export async function sendVaultRecoveryEmail(
+  auth: Auth,
+  email: string,
+  continueUrl: string,
+): Promise<void> {
+  await sendPasswordResetEmail(auth, email, {
+    url: continueUrl,
+    handleCodeInApp: true,
+  });
+}
+
+/** Returns the email address associated with the oobCode, or throws if expired/invalid. */
+export async function verifyRecoveryCode(
+  auth: Auth,
+  oobCode: string,
+): Promise<string> {
+  return await verifyPasswordResetCode(auth, oobCode);
+}
+
+export async function confirmVaultRecovery(
+  auth: Auth,
+  oobCode: string,
+  newAuthSecret: string,
+): Promise<void> {
+  await confirmPasswordReset(auth, oobCode, newAuthSecret);
 }

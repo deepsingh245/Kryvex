@@ -20,6 +20,8 @@ export {
   encryptAttachment,
 } from "./attachmentCrypto";
 
+export { formatRecoveryKey, parseRecoveryKey } from "./recoveryKey";
+
 export {
   initialItemCacheState,
   itemCacheReducer,

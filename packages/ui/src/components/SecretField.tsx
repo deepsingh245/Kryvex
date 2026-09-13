@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { clipboard as clipboardModule } from "@kryvex/security";
 
 export interface SecretFieldProps {
   label: string;
@@ -10,9 +11,11 @@ export interface SecretFieldProps {
   required?: boolean | undefined;
 }
 
-// No clipboard-clear-after-timeout here — that's Phase 7
-// (packages/security/src/clipboard.ts, currently a stub). Flagged as a
-// documented Phase 4 limitation, not silently shipped as if handled.
+const browserClipboard: clipboardModule.ClipboardIO = {
+  write: (text) => navigator.clipboard.writeText(text),
+  read: () => navigator.clipboard.readText(),
+};
+
 export function SecretField({
   label,
   value,
@@ -24,7 +27,7 @@ export function SecretField({
 
   async function handleCopy() {
     try {
-      await navigator.clipboard.writeText(value);
+      await clipboardModule.copyWithAutoClear(browserClipboard, value);
     } catch {
       // Clipboard API can be unavailable/denied — no-op; no secret is
       // exposed either way.
