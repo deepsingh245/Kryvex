@@ -3,8 +3,10 @@
 import { useEffect, useMemo, useReducer, useTransition } from "react";
 import {
   createVaultItem,
+  fetchAttachmentDocument,
   fetchVaultItem,
   initializeKryvexFirebase,
+  softDeleteAttachmentDocument,
   subscribeToVaultItems,
   updateVaultItem,
 } from "@kryvex/firebase";
@@ -43,7 +45,11 @@ function getServices() {
   return initializeKryvexFirebase(webFirebaseConfig, webFirebaseEmulatorEnv);
 }
 
-function newItemId(): string {
+// Exported so callers that need the id before the item is created (e.g. an
+// attachment item's AttachmentDocument.itemId, which must exist before the
+// item write that references it back) can generate it up front rather than
+// waiting for createItem's return value.
+export function newItemId(): string {
   return typeof crypto !== "undefined" && "randomUUID" in crypto
     ? crypto.randomUUID()
     : `item-${Date.now()}-${Math.random().toString(36).slice(2)}`;
@@ -118,7 +124,12 @@ export interface UseVaultItemsResult {
   loading: boolean;
   isOnline: boolean;
   conflicts: DecryptedSyncConflict[];
-  createItem: (type: ItemType, content: ItemContent) => Promise<string>;
+  createItem: (
+    type: ItemType,
+    content: ItemContent,
+    attachmentRefs?: string[],
+    id?: string,
+  ) => Promise<string>;
   updateItem: (id: string, content: ItemContent) => Promise<void>;
   toggleFavorite: (id: string) => Promise<void>;
   softDeleteItem: (id: string) => Promise<void>;
@@ -183,7 +194,12 @@ export function useVaultItems(): UseVaultItemsResult {
     }
 
     let cancelled = false;
+    let unsubscribe = () => {};
 
+    // Hydration must fully land (ITEMS_LOADED, a wholesale replace) before
+    // the listener attaches — subscribing first races the two dispatches:
+    // if a live update won the race and upserted an item, the hydration
+    // dispatch resolving afterward would wipe it back out.
     startTransition(async () => {
       const cachedDocs = await localStore.getAll(uid);
       if (cancelled) return;
@@ -191,39 +207,40 @@ export function useVaultItems(): UseVaultItemsResult {
         type: "ITEMS_LOADED",
         items: cachedDocs.map((doc) => decryptDoc(doc, vaultEncryptionKey)),
       });
-    });
 
-    const unsubscribe = subscribeToVaultItems(
-      getServices().firestore,
-      uid,
-      (rawDocs) => {
-        if (cancelled) return;
-        const validDocs: VaultItemDocument[] = [];
-        for (const raw of rawDocs) {
-          const parsed = vaultItemDocumentSchema.safeParse(raw);
-          if (!parsed.success) {
-            secureLogger.error(
-              "Vault item document failed envelope validation",
-            );
-            continue;
+      unsubscribe = subscribeToVaultItems(
+        getServices().firestore,
+        uid,
+        (rawDocs) => {
+          if (cancelled) return;
+          const validDocs: VaultItemDocument[] = [];
+          for (const raw of rawDocs) {
+            const parsed = vaultItemDocumentSchema.safeParse(raw);
+            if (!parsed.success) {
+              secureLogger.error(
+                "Vault item document failed envelope validation",
+              );
+              continue;
+            }
+            validDocs.push(parsed.data as VaultItemDocument);
           }
-          validDocs.push(parsed.data as VaultItemDocument);
-        }
-        for (const doc of validDocs) {
-          dispatchSync({ type: "APPLY_REMOTE", doc });
-          dispatchCache({
-            type: "ITEM_UPSERTED",
-            item: decryptDoc(doc, vaultEncryptionKey),
+          for (const doc of validDocs) {
+            dispatchSync({ type: "APPLY_REMOTE", doc });
+            dispatchCache({
+              type: "ITEM_UPSERTED",
+              item: decryptDoc(doc, vaultEncryptionKey),
+            });
+          }
+          void localStore.putMany(uid, validDocs);
+        },
+        (error) => {
+          secureLogger.error("Vault item listener failed", {
+            message: String(error),
           });
-        }
-        void localStore.putMany(uid, validDocs);
-      },
-      (error) => {
-        secureLogger.error("Vault item listener failed", {
-          message: String(error),
-        });
-      },
-    );
+        },
+      );
+      if (cancelled) unsubscribe();
+    });
 
     return () => {
       cancelled = true;
@@ -363,9 +380,8 @@ export function useVaultItems(): UseVaultItemsResult {
     isOnline,
     conflicts,
 
-    async createItem(type, content) {
+    async createItem(type, content, attachmentRefs = [], id = newItemId()) {
       const { uid, vaultEncryptionKey } = requireUnlocked();
-      const id = newItemId();
       const { wrappedItemKey, encryptedData } = encryptItemContent(
         vaultEncryptionKey,
         content,
@@ -381,7 +397,7 @@ export function useVaultItems(): UseVaultItemsResult {
         favorite: false,
         wrappedItemKey,
         encryptedData,
-        attachmentRefs: [],
+        attachmentRefs,
       };
       dispatchCache({
         type: "ITEM_UPSERTED",
@@ -466,6 +482,33 @@ export function useVaultItems(): UseVaultItemsResult {
         item: { ...existing, ...envelope },
       });
       await writeAndTrack(uid, envelope, "update");
+
+      // Best-effort cascade: an attachment-doc tombstone failure must never
+      // block or roll back the item's own tombstone above — the attachment
+      // GC function only ever acts on tombstoned docs, so a failure here
+      // just means this attachment's Storage blob is cleaned up on a later
+      // retry rather than never.
+      for (const attachmentId of existing.attachmentRefs) {
+        try {
+          const attachmentDoc = await fetchAttachmentDocument(
+            getServices().firestore,
+            uid,
+            attachmentId,
+          );
+          if (attachmentDoc) {
+            await softDeleteAttachmentDocument(
+              getServices().firestore,
+              uid,
+              attachmentId,
+              attachmentDoc,
+            );
+          }
+        } catch {
+          secureLogger.error("Failed to tombstone attachment", {
+            id: attachmentId,
+          });
+        }
+      }
     },
 
     async resolveConflict(itemId, resolution) {

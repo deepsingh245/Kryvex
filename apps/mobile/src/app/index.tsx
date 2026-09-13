@@ -22,7 +22,7 @@ import { useVault } from "@/providers/VaultProvider";
 export default function HomeScreen() {
   const { state, signOut } = useVault();
   const router = useRouter();
-  const { items, loading, toggleFavorite } = useVaultItems();
+  const { items, loading, toggleFavorite, conflicts } = useVaultItems();
   const [query, setQuery] = useState("");
   const [tagFilter, setTagFilter] = useState<string | undefined>(undefined);
   const [favoritesOnly, setFavoritesOnly] = useState(false);
@@ -65,6 +65,19 @@ export default function HomeScreen() {
             </TouchableOpacity>
           </View>
         </View>
+
+        {conflicts.length > 0 && (
+          <TouchableOpacity
+            style={styles.conflictBanner}
+            onPress={() => router.push("/conflicts")}
+          >
+            <Text style={styles.conflictBannerText}>
+              {conflicts.length}{" "}
+              {conflicts.length === 1 ? "item has" : "items have"} sync
+              conflicts — Review
+            </Text>
+          </TouchableOpacity>
+        )}
 
         <TextInput
           style={styles.search}
@@ -173,6 +186,14 @@ const styles = StyleSheet.create({
   title: { fontSize: 22, fontWeight: "600" },
   headerActions: { flexDirection: "row", gap: 12 },
   headerLink: { fontSize: 13, fontWeight: "600", color: "#111827" },
+  conflictBanner: {
+    borderWidth: 1,
+    borderColor: "#fbbf24",
+    backgroundColor: "#fffbeb",
+    borderRadius: 6,
+    padding: 10,
+  },
+  conflictBannerText: { fontSize: 13, fontWeight: "600", color: "#92400e" },
   search: {
     borderWidth: 1,
     borderColor: "#d1d5db",

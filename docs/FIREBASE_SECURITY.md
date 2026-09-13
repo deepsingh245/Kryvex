@@ -1,7 +1,11 @@
 # Kryvex — Firebase Security
 
 Status: Rules validated by emulator-based tests (`tests/security`,
-`tests/auth`) through Phase 3. See also: [DATA_MODEL.md](./DATA_MODEL.md),
+`tests/auth`), extended through Phase 6 (`isValidAttachment` +
+`tests/security/storage.rules.test.ts`, new this phase). §2's rule listing
+below is illustrative — `firebase/firestore.rules` and
+`firebase/storage.rules` are the deployed source of truth; this section is
+kept in sync by hand. See also: [DATA_MODEL.md](./DATA_MODEL.md),
 [SECURITY_THREAT_MODEL.md](./SECURITY_THREAT_MODEL.md).
 
 ## 1. Firestore layout
@@ -17,7 +21,7 @@ predicate (`request.auth.uid == uid`) rather than a per-document field
 comparison, and makes accidental cross-user queries structurally impossible
 (a query can't escape its own `uid` subtree).
 
-## 2. Firestore rules (Phase 0 draft)
+## 2. Firestore rules (matches `firebase/firestore.rules`)
 
 ```
 rules_version = '2';
@@ -29,10 +33,24 @@ service cloud.firestore {
     }
 
     function isValidItem(data) {
-      return data.keys().hasAll(['id','ownerId','type','revision','updatedAt','createdAt','deleted','wrappedItemKey','encryptedData'])
+      return data.keys().hasAll(['id','ownerId','type','revision','updatedAt','createdAt','deleted','favorite','wrappedItemKey','encryptedData','attachmentRefs'])
+        && data.ownerId == request.auth.uid
+        && data.type in ['login','secureNote','identity','card','pin','apiKey','recoveryCodes','image','pdf','file','custom']
+        && data.revision is int
+        && data.revision >= 0
+        && data.favorite is bool;
+    }
+
+    // Phase 6: same field-completeness rigor as isValidItem, applied to
+    // the attachments subcollection (previously only ownerId-checked).
+    function isValidAttachment(data) {
+      return data.keys().hasAll(['id','ownerId','itemId','revision','updatedAt','deleted','wrappedAttachmentKey','mimeType','sizeBytes','storagePath'])
         && data.ownerId == request.auth.uid
         && data.revision is int
-        && data.revision >= 0;
+        && data.revision >= 0
+        && data.sizeBytes is int
+        && data.sizeBytes >= 0
+        && data.mimeType is string;
     }
 
     match /users/{uid} {
@@ -54,11 +72,11 @@ service cloud.firestore {
 
       match /attachments/{attachmentId} {
         allow read: if isOwner(uid);
-        allow create: if isOwner(uid) && request.resource.data.ownerId == uid;
+        allow create: if isOwner(uid) && isValidAttachment(request.resource.data);
         allow update: if isOwner(uid)
-                      && request.resource.data.ownerId == uid
+                      && isValidAttachment(request.resource.data)
                       && request.resource.data.revision == resource.data.revision + 1;
-        allow delete: if false;
+        allow delete: if false; // hard delete only via the attachmentGc scheduled function
       }
     }
   }
@@ -129,6 +147,12 @@ Kept minimal, per the build spec (§46). Anticipated uses only:
   decryption capability is added.
 - **Tombstone garbage collection**: a scheduled function that purges
   `deleted: true` item/attachment documents past a retention window.
+  Implemented as two functions sharing one retention helper:
+  `firebase/functions/src/tombstoneGc.ts` (items, Phase 5) and
+  `firebase/functions/src/attachmentGc.ts` (attachments, Phase 6 — also
+  deletes the Storage blob at `storagePath` before the Firestore hard-delete,
+  since an attachment tombstone leaves an orphaned blob that item tombstones
+  don't have to worry about).
 - **`getKdfParams`** (added Phase 2, implemented): a deliberately
   unauthenticated callable resolving the sign-in "prelogin" problem — see
   `docs/CRYPTOGRAPHIC_ARCHITECTURE.md` §4.1. Uses the Admin SDK (bypasses
@@ -160,5 +184,9 @@ Kept minimal, per the build spec (§46). Anticipated uses only:
   enforcement is turned on for the project.
 
 These tests are implemented with `@firebase/rules-unit-testing` against the
-local emulator in Phase 1, and re-run in CI on every change to `firestore.rules`
-/ `storage.rules`.
+local emulator: `tests/security/firestore.rules.test.ts` (since Phase 1,
+extended each phase — the `isValidAttachment` field-completeness cases were
+added Phase 6) and `tests/security/storage.rules.test.ts` (new Phase 6 —
+previously no Storage rule test existed despite `storage.rules` itself being
+real since Phase 6's design). Both re-run in CI on every change to
+`firestore.rules` / `storage.rules` via `pnpm test:security`.

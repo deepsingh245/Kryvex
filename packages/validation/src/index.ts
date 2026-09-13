@@ -48,3 +48,6 @@ export type {
 
 export { passwordGeneratorOptionsSchema } from "./passwordGenerator";
 export type { PasswordGeneratorOptionsInput } from "./passwordGenerator";
+
+export { attachmentDocumentSchema } from "./attachment";
+export type { AttachmentDocumentInput } from "./attachment";

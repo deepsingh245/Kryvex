@@ -7,6 +7,7 @@ import HomeScreen from "./index";
 import { useVaultItems } from "@/hooks/useVaultItems";
 import { useVault } from "@/providers/VaultProvider";
 
+const mockRouterPush = jest.fn();
 jest.mock("expo-router", () => ({
   Redirect: () => null,
   // Real Link renders as Text; bare children crashes RN's "Text strings
@@ -14,7 +15,7 @@ jest.mock("expo-router", () => ({
   Link: ({ children }: { children: React.ReactNode }) => (
     <MockText>{children}</MockText>
   ),
-  useRouter: () => ({ push: jest.fn(), replace: jest.fn() }),
+  useRouter: () => ({ push: mockRouterPush, replace: jest.fn() }),
 }));
 
 jest.mock("@/providers/VaultProvider", () => ({
@@ -61,6 +62,23 @@ function loginItem(): DecryptedVaultItem {
   };
 }
 
+function mockVaultItems(
+  overrides: Partial<ReturnType<typeof useVaultItems>> = {},
+) {
+  mockedUseVaultItems.mockReturnValue({
+    items: [],
+    loading: false,
+    isOnline: true,
+    conflicts: [],
+    createItem: jest.fn(),
+    updateItem: jest.fn(),
+    toggleFavorite: jest.fn(),
+    softDeleteItem: jest.fn(),
+    resolveConflict: jest.fn(),
+    ...overrides,
+  });
+}
+
 describe("HomeScreen", () => {
   it("shows the empty-vault message when UNLOCKED with no items", async () => {
     mockedUseVault.mockReturnValue({
@@ -70,14 +88,7 @@ describe("HomeScreen", () => {
       unlock: jest.fn(),
       signOut: jest.fn(),
     });
-    mockedUseVaultItems.mockReturnValue({
-      items: [],
-      loading: false,
-      createItem: jest.fn(),
-      updateItem: jest.fn(),
-      toggleFavorite: jest.fn(),
-      softDeleteItem: jest.fn(),
-    });
+    mockVaultItems();
     await render(<HomeScreen />);
     expect(screen.getByText("Your vault is empty.")).toBeTruthy();
     expect(screen.getByText("Your vault")).toBeTruthy();
@@ -91,14 +102,7 @@ describe("HomeScreen", () => {
       unlock: jest.fn(),
       signOut: jest.fn(),
     });
-    mockedUseVaultItems.mockReturnValue({
-      items: [loginItem()],
-      loading: false,
-      createItem: jest.fn(),
-      updateItem: jest.fn(),
-      toggleFavorite: jest.fn(),
-      softDeleteItem: jest.fn(),
-    });
+    mockVaultItems({ items: [loginItem()] });
     await render(<HomeScreen />);
     expect(screen.getByText("GitHub")).toBeTruthy();
   });
@@ -112,17 +116,43 @@ describe("HomeScreen", () => {
       unlock: jest.fn(),
       signOut: jest.fn(),
     });
-    mockedUseVaultItems.mockReturnValue({
-      items: [loginItem()],
-      loading: false,
-      createItem: jest.fn(),
-      updateItem: jest.fn(),
-      toggleFavorite,
-      softDeleteItem: jest.fn(),
-    });
+    mockVaultItems({ items: [loginItem()], toggleFavorite });
     await render(<HomeScreen />);
     await fireEvent.press(screen.getByText("☆"));
     expect(toggleFavorite).toHaveBeenCalledWith("item1");
+  });
+
+  it("shows a conflicts banner and navigates to /conflicts when pressed", async () => {
+    mockedUseVault.mockReturnValue({
+      state: UNLOCKED_STATE,
+      signUp: jest.fn(),
+      signIn: jest.fn(),
+      unlock: jest.fn(),
+      signOut: jest.fn(),
+    });
+    mockVaultItems({
+      conflicts: [
+        { itemId: "item1", localContent: undefined, serverContent: undefined },
+      ],
+    });
+    await render(<HomeScreen />);
+    const banner = screen.getByText(/sync/i);
+    expect(banner).toBeTruthy();
+    await fireEvent.press(banner);
+    expect(mockRouterPush).toHaveBeenCalledWith("/conflicts");
+  });
+
+  it("does not show a conflicts banner when there are none", async () => {
+    mockedUseVault.mockReturnValue({
+      state: UNLOCKED_STATE,
+      signUp: jest.fn(),
+      signIn: jest.fn(),
+      unlock: jest.fn(),
+      signOut: jest.fn(),
+    });
+    mockVaultItems();
+    await render(<HomeScreen />);
+    expect(screen.queryByText(/sync conflict/i)).toBeNull();
   });
 
   it("does not render vault content when SIGNED_OUT", async () => {
@@ -133,14 +163,7 @@ describe("HomeScreen", () => {
       unlock: jest.fn(),
       signOut: jest.fn(),
     });
-    mockedUseVaultItems.mockReturnValue({
-      items: [],
-      loading: false,
-      createItem: jest.fn(),
-      updateItem: jest.fn(),
-      toggleFavorite: jest.fn(),
-      softDeleteItem: jest.fn(),
-    });
+    mockVaultItems();
     await render(<HomeScreen />);
     expect(screen.queryByText("Your vault")).toBeNull();
   });

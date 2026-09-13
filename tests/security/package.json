@@ -14,6 +14,7 @@
     "@kryvex/tsconfig": "workspace:*",
     "@types/node": "^22",
     "eslint": "catalog:",
+    "firebase": "^12.18.0",
     "typescript": "catalog:",
     "vitest": "catalog:"
   }

@@ -2,6 +2,7 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import type { DecryptedVaultItem } from "@kryvex/vault";
 import ItemDetailPage from "./page";
+import { useAttachment } from "@/hooks/useAttachment";
 import { useVaultItems } from "@/hooks/useVaultItems";
 import { useVault } from "@/providers/VaultProvider";
 
@@ -20,8 +21,13 @@ vi.mock("@/hooks/useVaultItems", () => ({
   useVaultItems: vi.fn(),
 }));
 
+vi.mock("@/hooks/useAttachment", () => ({
+  useAttachment: vi.fn(),
+}));
+
 const mockedUseVault = vi.mocked(useVault);
 const mockedUseVaultItems = vi.mocked(useVaultItems);
+const mockedUseAttachment = vi.mocked(useAttachment);
 
 const UNLOCKED_STATE = {
   status: "UNLOCKED" as const,
@@ -52,6 +58,30 @@ function loginItem(overridesFavorite = false): DecryptedVaultItem {
       username: "alice",
       password: "hunter2",
       websites: [],
+    },
+  };
+}
+
+function imageItem(): DecryptedVaultItem {
+  return {
+    id: "item1",
+    ownerId: "1",
+    type: "image",
+    revision: 0,
+    updatedAt: null,
+    createdAt: null,
+    deleted: false,
+    favorite: false,
+    wrappedItemKey: { v: 1, alg: "AES-256-GCM", nonce: "n", ciphertext: "c" },
+    encryptedData: { v: 1, alg: "AES-256-GCM", nonce: "n", ciphertext: "c" },
+    attachmentRefs: ["att1"],
+    decryptFailed: false,
+    content: {
+      type: "image",
+      title: "Passport photo",
+      tags: [],
+      customFields: [],
+      attachmentId: "att1",
     },
   };
 }
@@ -124,5 +154,34 @@ describe("ItemDetailPage", () => {
     render(<ItemDetailPage />);
     fireEvent.click(screen.getByLabelText("Favorite"));
     expect(toggleFavorite).toHaveBeenCalledWith("item1");
+  });
+
+  it("renders an AttachmentPreview for image/pdf/file items", () => {
+    mockedUseAttachment.mockReturnValue({
+      metadata: {
+        fileName: "passport.jpg",
+        mimeType: "image/jpeg",
+        sizeBytes: 2048,
+      },
+      loading: false,
+      error: null,
+      loadContent: vi.fn(),
+    });
+    setup([imageItem()]);
+    render(<ItemDetailPage />);
+    expect(mockedUseAttachment).toHaveBeenCalledWith("att1");
+    expect(screen.getByText(/passport\.jpg/)).toBeInTheDocument();
+  });
+
+  it("shows a loading state for the attachment while metadata is still fetching", () => {
+    mockedUseAttachment.mockReturnValue({
+      metadata: undefined,
+      loading: true,
+      error: null,
+      loadContent: vi.fn(),
+    });
+    setup([imageItem()]);
+    render(<ItemDetailPage />);
+    expect(screen.getAllByText("Loading…").length).toBeGreaterThan(0);
   });
 });

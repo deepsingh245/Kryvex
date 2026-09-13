@@ -3,8 +3,13 @@
 Status: Phase 3 implemented (AES-256-GCM content/key-wrapping encryption and
 Argon2id/HKDF key derivation are real, in `packages/crypto`). Recovery-Key
 wrapping (§8/§10's Recovery Key references) remains design-only until the
-Recovery Key onboarding flow ships — see [RECOVERY.md](./RECOVERY.md). See
-also: [SECURITY_THREAT_MODEL.md](./SECURITY_THREAT_MODEL.md),
+Recovery Key onboarding flow ships — see [RECOVERY.md](./RECOVERY.md).
+Per-attachment DEKs (Phase 6, `apps/web` — mobile is Phase 6b) reuse this
+same AES-256-GCM primitive unchanged, whole-buffer only (no chunking/
+streaming), bounded by `firebase/storage.rules`' 50MB upload cap — see
+`packages/vault/src/attachmentCrypto.ts` and
+[DATA_MODEL.md](./DATA_MODEL.md) §3's implementation note. See also:
+[SECURITY_THREAT_MODEL.md](./SECURITY_THREAT_MODEL.md),
 [DATA_MODEL.md](./DATA_MODEL.md).
 
 ## 1. Primitives

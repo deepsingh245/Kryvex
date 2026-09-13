@@ -97,6 +97,68 @@ describe("EditItemPage", () => {
     });
   });
 
+  it("allows editing title/tags/notes for an attachment item without an attachmentId field, and preserves attachmentId on submit", async () => {
+    const updateItem = vi.fn().mockResolvedValue(undefined);
+    const imageItem: DecryptedVaultItem = {
+      id: "item1",
+      ownerId: "1",
+      type: "image",
+      revision: 0,
+      updatedAt: null,
+      createdAt: null,
+      deleted: false,
+      favorite: false,
+      wrappedItemKey: { v: 1, alg: "AES-256-GCM", nonce: "n", ciphertext: "c" },
+      encryptedData: { v: 1, alg: "AES-256-GCM", nonce: "n", ciphertext: "c" },
+      attachmentRefs: ["att1"],
+      decryptFailed: false,
+      content: {
+        type: "image",
+        title: "Passport photo",
+        tags: [],
+        customFields: [],
+        attachmentId: "att1",
+      },
+    };
+    mockedUseVault.mockReturnValue({
+      state: UNLOCKED_STATE,
+      signUp: vi.fn(),
+      signIn: vi.fn(),
+      unlock: vi.fn(),
+      signOut: vi.fn(),
+    });
+    mockedUseVaultItems.mockReturnValue({
+      items: [imageItem],
+      loading: false,
+      createItem: vi.fn(),
+      updateItem,
+      toggleFavorite: vi.fn(),
+      softDeleteItem: vi.fn(),
+      isOnline: true,
+      conflicts: [],
+      resolveConflict: vi.fn(),
+    });
+
+    render(<EditItemPage />);
+    expect(screen.getByLabelText("Title")).toHaveValue("Passport photo");
+    expect(screen.queryByLabelText("File")).not.toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText("Title"), {
+      target: { value: "Passport photo (renamed)" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    await vi.waitFor(() => {
+      expect(updateItem).toHaveBeenCalledWith(
+        "item1",
+        expect.objectContaining({
+          title: "Passport photo (renamed)",
+          attachmentId: "att1",
+        }),
+      );
+    });
+  });
+
   it("shows not-found for an unknown id", () => {
     mockedUseVault.mockReturnValue({
       state: UNLOCKED_STATE,

@@ -39,3 +39,11 @@ export {
   subscribeToVaultItems,
   updateVaultItem,
 } from "./vaultItems";
+
+export {
+  createAttachmentDocument,
+  downloadAttachmentBlob,
+  fetchAttachmentDocument,
+  softDeleteAttachmentDocument,
+  uploadAttachmentBlob,
+} from "./attachments";

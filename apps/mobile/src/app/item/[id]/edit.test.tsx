@@ -85,6 +85,9 @@ describe("EditItemScreen", () => {
       updateItem,
       toggleFavorite: jest.fn(),
       softDeleteItem: jest.fn(),
+      isOnline: true,
+      conflicts: [],
+      resolveConflict: jest.fn(),
     });
 
     await render(<EditItemScreen />);
@@ -119,6 +122,9 @@ describe("EditItemScreen", () => {
       updateItem: jest.fn(),
       toggleFavorite: jest.fn(),
       softDeleteItem: jest.fn(),
+      isOnline: true,
+      conflicts: [],
+      resolveConflict: jest.fn(),
     });
     await render(<EditItemScreen />);
     expect(screen.getByText("Item not found.")).toBeTruthy();

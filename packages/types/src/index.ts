@@ -1,7 +1,8 @@
 /**
  * Domain types shared across the monorepo. Auth/profile types exist as of
  * Phase 2; vault item types (VaultItemDocument, ItemContent variants — see
- * docs/DATA_MODEL.md) as of Phase 4. AttachmentDocument is still Phase 6.
+ * docs/DATA_MODEL.md) as of Phase 4. AttachmentDocument (docs/DATA_MODEL.md
+ * §3) as of Phase 6.
  */
 
 export type { AuthenticatedUser } from "./auth";
@@ -11,6 +12,7 @@ export type {
   UserProfileDocument,
   UserProfileSettings,
 } from "./userProfile";
+export type { AttachmentDocument } from "./attachment";
 export {
   ITEM_TYPES,
   type Address,

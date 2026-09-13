@@ -1,9 +1,9 @@
 /**
  * Real functions land alongside the features they support — tombstone GC
- * (Phase 5) below; account deletion is still future work. `ping` proves the
- * Functions codebase builds, lints, typechecks, and deploys/emulates
- * correctly. Nothing in this codebase touches vault ciphertext or key
- * material.
+ * (Phase 5) and attachment GC (Phase 6) below; account deletion is still
+ * future work. `ping` proves the Functions codebase builds, lints,
+ * typechecks, and deploys/emulates correctly. Nothing in this codebase
+ * touches vault ciphertext or key material.
  */
 
 import { initializeApp } from "firebase-admin/app";
@@ -18,4 +18,6 @@ export const ping = onCall(() => {
 });
 
 export { getKdfParams } from "./getKdfParams";
+export { getRecoveryEnvelope } from "./getRecoveryEnvelope";
 export { tombstoneGc } from "./tombstoneGc";
+export { attachmentGc } from "./attachmentGc";

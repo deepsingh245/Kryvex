@@ -16,6 +16,15 @@ export {
 } from "./fieldConfig";
 export type { ItemFieldConfig, ItemFieldKind } from "./fieldConfig";
 
+export { AttachmentPreview } from "./components/AttachmentPreview";
+export type { AttachmentPreviewProps } from "./components/AttachmentPreview";
+
+export { AttachmentUploadForm } from "./components/AttachmentUploadForm";
+export type {
+  AttachmentUploadFormProps,
+  AttachmentUploadFormValues,
+} from "./components/AttachmentUploadForm";
+
 export { BooleanField } from "./components/BooleanField";
 export type { BooleanFieldProps } from "./components/BooleanField";
 
