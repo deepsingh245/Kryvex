@@ -3,7 +3,9 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { generateKey } from "@kryvex/crypto";
 import {
   createVaultItem,
+  fetchAttachmentDocument,
   fetchVaultItem,
+  softDeleteAttachmentDocument,
   subscribeToVaultItems,
   updateVaultItem,
 } from "@kryvex/firebase";
@@ -20,6 +22,8 @@ vi.mock("@kryvex/firebase", () => ({
   updateVaultItem: vi.fn(),
   fetchVaultItem: vi.fn(),
   subscribeToVaultItems: vi.fn(),
+  fetchAttachmentDocument: vi.fn(),
+  softDeleteAttachmentDocument: vi.fn(),
 }));
 
 vi.mock("@/lib/localItemStore", () => ({
@@ -40,6 +44,10 @@ const mockedSubscribeToVaultItems = vi.mocked(subscribeToVaultItems);
 const mockedCreateVaultItem = vi.mocked(createVaultItem);
 const mockedUpdateVaultItem = vi.mocked(updateVaultItem);
 const mockedFetchVaultItem = vi.mocked(fetchVaultItem);
+const mockedFetchAttachmentDocument = vi.mocked(fetchAttachmentDocument);
+const mockedSoftDeleteAttachmentDocument = vi.mocked(
+  softDeleteAttachmentDocument,
+);
 const mockedUseOnlineStatus = vi.mocked(useOnlineStatus);
 
 const vaultEncryptionKey = generateKey();
@@ -318,6 +326,73 @@ describe("useVaultItems — conflict resolution", () => {
     expect(result.current.conflicts).toHaveLength(0);
     expect(mockedCreateVaultItem).toHaveBeenCalledTimes(1);
     expect(result.current.items.length).toBeGreaterThanOrEqual(2);
+  });
+});
+
+describe("useVaultItems — attachment cascade delete", () => {
+  it("soft-deleting an item with attachmentRefs also tombstones its attachment documents", async () => {
+    mockedFetchAttachmentDocument.mockResolvedValue({
+      id: "att1",
+      ownerId: "alice",
+      itemId: "item1",
+      revision: 0,
+      updatedAt: null,
+      deleted: false,
+      wrappedAttachmentKey: {
+        v: 1,
+        alg: "AES-256-GCM",
+        nonce: "n",
+        ciphertext: "c",
+      },
+      mimeType: "image/png",
+      sizeBytes: 1024,
+      storagePath: "users/alice/attachments/att1",
+    });
+
+    const { result } = renderHook(() => useVaultItems());
+    await waitFor(() => expect(capturedOnNext).toBeDefined());
+
+    act(() => {
+      capturedOnNext!([rawDocFor(LOGIN_CONTENT, { attachmentRefs: ["att1"] })]);
+    });
+    await waitFor(() => expect(result.current.items).toHaveLength(1));
+
+    await act(async () => {
+      await result.current.softDeleteItem("item1");
+    });
+
+    expect(mockedFetchAttachmentDocument).toHaveBeenCalledWith(
+      expect.anything(),
+      "alice",
+      "att1",
+    );
+    expect(mockedSoftDeleteAttachmentDocument).toHaveBeenCalledWith(
+      expect.anything(),
+      "alice",
+      "att1",
+      expect.objectContaining({ id: "att1" }),
+    );
+  });
+
+  it("does not block or throw when tombstoning the attachment document fails", async () => {
+    mockedFetchAttachmentDocument.mockRejectedValue(new Error("network"));
+
+    const { result } = renderHook(() => useVaultItems());
+    await waitFor(() => expect(capturedOnNext).toBeDefined());
+
+    act(() => {
+      capturedOnNext!([rawDocFor(LOGIN_CONTENT, { attachmentRefs: ["att1"] })]);
+    });
+    await waitFor(() => expect(result.current.items).toHaveLength(1));
+
+    await expect(
+      act(async () => {
+        await result.current.softDeleteItem("item1");
+      }),
+    ).resolves.not.toThrow();
+
+    const item = result.current.items.find((i) => i.id === "item1")!;
+    expect(item.deleted).toBe(true);
   });
 });
 

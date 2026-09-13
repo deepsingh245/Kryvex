@@ -1,12 +1,19 @@
 # Kryvex — Data Model
 
-Status: Phase 4 — `VaultItemDocument`/`ItemContent` below are implemented in
+Status: Phase 4/6 — `VaultItemDocument`/`ItemContent` are implemented in
 `packages/types`, `packages/validation`, and `packages/vault`'s
 `itemCrypto.ts` (wrap/encrypt/decrypt), with direct Firestore CRUD via
 `packages/firebase/src/vaultItems.ts` and a real UI in `apps/web`.
-`AttachmentDocument` (§3) remains design-only until Phase 6 — item types
-`image`/`pdf`/`file` are modeled in the type system but excluded from the
-Add-item flow until then. See also:
+`AttachmentDocument` (§3) is implemented as of Phase 6 (`apps/web` only —
+mobile is Phase 6b): `packages/types/src/attachment.ts`,
+`packages/validation/src/attachment.ts`, `packages/vault/src/attachmentCrypto.ts`
+(encrypt/decrypt plus the Storage blob framing — see its own doc comment for
+why the content envelope's nonce travels inside the blob rather than as a
+Firestore field), `packages/firebase/src/attachments.ts` (Firestore CRUD +
+Storage upload/download), and `apps/web`'s `AttachmentUploadForm`/
+`AttachmentPreview` components. `image`/`pdf`/`file` are now full members of
+the Add-item flow (one attachment per item — not "attach a file to any item
+type", which stays out of scope). See also:
 [CRYPTOGRAPHIC_ARCHITECTURE.md](./CRYPTOGRAPHIC_ARCHITECTURE.md),
 [FIREBASE_SECURITY.md](./FIREBASE_SECURITY.md), [SYNC_ENGINE.md](./SYNC_ENGINE.md).
 
@@ -230,6 +237,16 @@ of the file content (encrypted client-side before upload — see build spec
 §13). `mimeType`/`sizeBytes` are left in the clear as a pragmatic exception
 (needed for UI rendering/quota without a decrypt round-trip); actual filenames
 and content are not.
+
+**Implementation note (Phase 6):** `AttachmentDocument` has no field for the
+content envelope's nonce — since the blob is "raw ciphertext," the 96-bit
+nonce travels inside the blob itself (`packages/vault/src/attachmentCrypto.ts`'s
+`attachmentEnvelopeToBlob`/`blobToAttachmentEnvelope`: 12 nonce bytes,
+followed by the ciphertext bytes). This also avoids paying
+`bytesToBase64`'s byte-loop cost twice for a large file — the blob upload is
+raw binary, not a base64 JSON envelope. Encryption is whole-buffer only this
+phase (no chunking/streaming), bounded by `firebase/storage.rules`' 50MB cap —
+see `docs/CRYPTOGRAPHIC_ARCHITECTURE.md`'s own implementation note.
 
 ## 4. Non-secret account/profile document
 

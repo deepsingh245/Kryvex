@@ -5,10 +5,12 @@
  * React Native UI (Phase 4b) without pulling a web-only icon library into a
  * shared package.
  *
- * image/pdf/file are modeled here for forward compatibility but marked
- * `enabled: false`: attachment upload/storage is Phase 6
- * (docs/ARCHITECTURE.md), so their create flow is intentionally excluded
- * from apps/web's type picker until then.
+ * image/pdf/file are now enabled (Phase 6) but have an EMPTY fixed-field
+ * list here: `attachmentId` is an internal reference, never user-edited
+ * text, so it's not part of the generic ItemForm at all — the Add flow uses
+ * a dedicated upload component (AttachmentUploadForm) instead of ItemForm,
+ * and the Edit flow reuses ItemForm for title/tags/notes/customFields only
+ * (no file replacement this phase — see PLAN.md's Phase 6 scope note).
  *
  * Not covered by this generic config (kept out of Phase 4's MVP form
  * scope, revisit if needed): IdentityContent.idNumbers and structured
@@ -66,8 +68,6 @@ export const ITEM_TYPE_ICON_NAMES: Record<ItemType, string> = {
   custom: "sliders",
 };
 
-// image/pdf/file are excluded from creation until Phase 6 builds
-// attachment storage — see this file's header comment.
 export const ITEM_TYPE_ENABLED: Record<ItemType, boolean> = {
   login: true,
   secureNote: true,
@@ -76,9 +76,9 @@ export const ITEM_TYPE_ENABLED: Record<ItemType, boolean> = {
   pin: true,
   apiKey: true,
   recoveryCodes: true,
-  image: false,
-  pdf: false,
-  file: false,
+  image: true,
+  pdf: true,
+  file: true,
   custom: true,
 };
 
@@ -114,8 +114,8 @@ export const ITEM_TYPE_FIELD_CONFIG: Record<ItemType, ItemFieldConfig[]> = {
     { key: "service", label: "Service", kind: "text", required: true },
     { key: "codes", label: "Codes", kind: "codeList" },
   ],
-  image: [{ key: "attachmentId", label: "Image", kind: "text" }],
-  pdf: [{ key: "attachmentId", label: "PDF", kind: "text" }],
-  file: [{ key: "attachmentId", label: "File", kind: "text" }],
+  image: [],
+  pdf: [],
+  file: [],
   custom: [],
 };

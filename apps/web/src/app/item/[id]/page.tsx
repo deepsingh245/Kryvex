@@ -4,13 +4,40 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { secureLogger } from "@kryvex/security";
-import { ITEM_TYPE_FIELD_CONFIG, ItemTypeBadge, SecretField } from "@kryvex/ui";
+import {
+  AttachmentPreview,
+  ITEM_TYPE_FIELD_CONFIG,
+  ItemTypeBadge,
+  SecretField,
+} from "@kryvex/ui";
+import { useAttachment } from "@/hooks/useAttachment";
 import { useVaultItems } from "@/hooks/useVaultItems";
 import { useVault } from "@/providers/VaultProvider";
 
 interface RecoveryCode {
   code: string;
   used: boolean;
+}
+
+function AttachmentSection({ attachmentId }: { attachmentId: string }) {
+  const { metadata, loading, error, loadContent } = useAttachment(attachmentId);
+
+  if (loading) return <p className="text-sm text-gray-500">Loading…</p>;
+  if (error || !metadata)
+    return (
+      <p role="alert" className="text-sm text-red-600">
+        {error ?? "Unable to load this attachment."}
+      </p>
+    );
+
+  return (
+    <AttachmentPreview
+      fileName={metadata.fileName}
+      mimeType={metadata.mimeType}
+      sizeBytes={metadata.sizeBytes}
+      onRequestContent={loadContent}
+    />
+  );
 }
 
 export default function ItemDetailPage() {
@@ -107,9 +134,16 @@ export default function ItemDetailPage() {
             </div>
           )}
 
+          {(item.content.type === "image" ||
+            item.content.type === "pdf" ||
+            item.content.type === "file") && (
+            <AttachmentSection attachmentId={item.content.attachmentId} />
+          )}
+
           {/* Reuses ITEM_TYPE_FIELD_CONFIG (the same source that drives
               ItemForm) so the detail view and the edit form never disagree
-              about field labels/kinds. */}
+              about field labels/kinds. Empty for image/pdf/file — see
+              AttachmentSection above instead. */}
           {ITEM_TYPE_FIELD_CONFIG[item.type].map((field) => {
             const value = (item.content as unknown as Record<string, unknown>)[
               field.key

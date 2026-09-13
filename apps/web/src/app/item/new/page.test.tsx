@@ -1,6 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import NewItemPage from "./page";
+import { useCreateAttachment } from "@/hooks/useCreateAttachment";
 import { useVaultItems } from "@/hooks/useVaultItems";
 import { useVault } from "@/providers/VaultProvider";
 
@@ -16,10 +17,16 @@ vi.mock("@/providers/VaultProvider", () => ({
 
 vi.mock("@/hooks/useVaultItems", () => ({
   useVaultItems: vi.fn(),
+  newItemId: () => "generated-item-id",
+}));
+
+vi.mock("@/hooks/useCreateAttachment", () => ({
+  useCreateAttachment: vi.fn(),
 }));
 
 const mockedUseVault = vi.mocked(useVault);
 const mockedUseVaultItems = vi.mocked(useVaultItems);
+const mockedUseCreateAttachment = vi.mocked(useCreateAttachment);
 
 const UNLOCKED_STATE = {
   status: "UNLOCKED" as const,
@@ -28,8 +35,22 @@ const UNLOCKED_STATE = {
   vaultEncryptionKey: new Uint8Array(),
 };
 
+function mockVaultItems(createItem = vi.fn()) {
+  mockedUseVaultItems.mockReturnValue({
+    items: [],
+    loading: false,
+    createItem,
+    updateItem: vi.fn(),
+    toggleFavorite: vi.fn(),
+    softDeleteItem: vi.fn(),
+    isOnline: true,
+    conflicts: [],
+    resolveConflict: vi.fn(),
+  });
+}
+
 describe("NewItemPage", () => {
-  it("shows the type picker excluding image/pdf/file", () => {
+  it("shows the type picker including image/pdf/file (Phase 6)", () => {
     mockedUseVault.mockReturnValue({
       state: UNLOCKED_STATE,
       signUp: vi.fn(),
@@ -37,23 +58,14 @@ describe("NewItemPage", () => {
       unlock: vi.fn(),
       signOut: vi.fn(),
     });
-    mockedUseVaultItems.mockReturnValue({
-      items: [],
-      loading: false,
-      createItem: vi.fn(),
-      updateItem: vi.fn(),
-      toggleFavorite: vi.fn(),
-      softDeleteItem: vi.fn(),
-      isOnline: true,
-      conflicts: [],
-      resolveConflict: vi.fn(),
-    });
+    mockVaultItems();
+    mockedUseCreateAttachment.mockReturnValue(vi.fn());
     render(<NewItemPage />);
     expect(screen.getByText("Login")).toBeInTheDocument();
     expect(screen.getByText("Custom")).toBeInTheDocument();
-    expect(screen.queryByText("Image")).not.toBeInTheDocument();
-    expect(screen.queryByText("PDF")).not.toBeInTheDocument();
-    expect(screen.queryByText("File")).not.toBeInTheDocument();
+    expect(screen.getByText("Image")).toBeInTheDocument();
+    expect(screen.getByText("PDF")).toBeInTheDocument();
+    expect(screen.getByText("File")).toBeInTheDocument();
   });
 
   it("selecting a type renders the ItemForm, and submitting creates the item and navigates", async () => {
@@ -65,17 +77,8 @@ describe("NewItemPage", () => {
       unlock: vi.fn(),
       signOut: vi.fn(),
     });
-    mockedUseVaultItems.mockReturnValue({
-      items: [],
-      loading: false,
-      createItem,
-      updateItem: vi.fn(),
-      toggleFavorite: vi.fn(),
-      softDeleteItem: vi.fn(),
-      isOnline: true,
-      conflicts: [],
-      resolveConflict: vi.fn(),
-    });
+    mockVaultItems(createItem);
+    mockedUseCreateAttachment.mockReturnValue(vi.fn());
     render(<NewItemPage />);
 
     fireEvent.click(screen.getByText("Secure Note"));
@@ -94,6 +97,52 @@ describe("NewItemPage", () => {
     });
     await vi.waitFor(() => {
       expect(push).toHaveBeenCalledWith("/item/new-id");
+    });
+  });
+
+  it("selecting Image renders the upload form, and submitting encrypts+uploads the attachment then creates the item", async () => {
+    const createItem = vi.fn().mockResolvedValue(undefined);
+    const createAttachment = vi.fn().mockResolvedValue("att1");
+    mockedUseVault.mockReturnValue({
+      state: UNLOCKED_STATE,
+      signUp: vi.fn(),
+      signIn: vi.fn(),
+      unlock: vi.fn(),
+      signOut: vi.fn(),
+    });
+    mockVaultItems(createItem);
+    mockedUseCreateAttachment.mockReturnValue(createAttachment);
+    render(<NewItemPage />);
+
+    fireEvent.click(screen.getByText("Image"));
+    expect(screen.getByLabelText("File")).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText("Title"), {
+      target: { value: "My Photo" },
+    });
+    const file = new File(["x"], "photo.png", { type: "image/png" });
+    fireEvent.change(screen.getByLabelText("File"), {
+      target: { files: [file] },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Upload" }));
+
+    await vi.waitFor(() => {
+      expect(createAttachment).toHaveBeenCalledWith(file, "generated-item-id");
+    });
+    await vi.waitFor(() => {
+      expect(createItem).toHaveBeenCalledWith(
+        "image",
+        expect.objectContaining({
+          type: "image",
+          title: "My Photo",
+          attachmentId: "att1",
+        }),
+        ["att1"],
+        "generated-item-id",
+      );
+    });
+    await vi.waitFor(() => {
+      expect(push).toHaveBeenCalledWith("/item/generated-item-id");
     });
   });
 });

@@ -91,7 +91,15 @@ export function ItemForm({
     e.preventDefault();
     setError(null);
 
+    // Spread initialContent FIRST: it carries fields that exist on this
+    // type's ItemContent but aren't part of ITEM_TYPE_FIELD_CONFIG at all
+    // (e.g. AttachmentItemContent.attachmentId, since image/pdf/file items
+    // have an empty fixed-field list — it's an internal reference, never
+    // user-edited — see fieldConfig.ts's header comment). Every field this
+    // form actually edits (title/tags/notes/customFields/fixedFields) is
+    // spread after, so it always wins over whatever initialContent had.
     const candidate = {
+      ...(initialContent ?? {}),
       type,
       title,
       tags,

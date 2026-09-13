@@ -100,6 +100,9 @@ function setup(
     updateItem: jest.fn(),
     toggleFavorite: jest.fn(),
     softDeleteItem: jest.fn(),
+    isOnline: true,
+    conflicts: [],
+    resolveConflict: jest.fn(),
     ...overrides,
   });
 }

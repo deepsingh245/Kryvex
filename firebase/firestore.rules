@@ -18,6 +18,20 @@ service cloud.firestore {
         && data.favorite is bool;
     }
 
+    // Keep this field list in sync by hand with
+    // packages/types/src/attachment.ts's AttachmentDocument — same
+    // manually-synced-duplicate precedent as isValidItem above.
+    // encryptedFileName is optional, so deliberately not in hasAll.
+    function isValidAttachment(data) {
+      return data.keys().hasAll(['id','ownerId','itemId','revision','updatedAt','deleted','wrappedAttachmentKey','mimeType','sizeBytes','storagePath'])
+        && data.ownerId == request.auth.uid
+        && data.revision is int
+        && data.revision >= 0
+        && data.sizeBytes is int
+        && data.sizeBytes >= 0
+        && data.mimeType is string;
+    }
+
     match /users/{uid} {
       allow read: if isOwner(uid);
       // profile is created once at signup, updated only for settings/key-rotation fields
@@ -37,11 +51,11 @@ service cloud.firestore {
 
       match /attachments/{attachmentId} {
         allow read: if isOwner(uid);
-        allow create: if isOwner(uid) && request.resource.data.ownerId == uid;
+        allow create: if isOwner(uid) && isValidAttachment(request.resource.data);
         allow update: if isOwner(uid)
-                      && request.resource.data.ownerId == uid
+                      && isValidAttachment(request.resource.data)
                       && request.resource.data.revision == resource.data.revision + 1;
-        allow delete: if false;
+        allow delete: if false; // hard delete only via the attachmentGc scheduled function
       }
     }
   }

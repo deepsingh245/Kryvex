@@ -1,9 +1,13 @@
 # Kryvex — Sync Engine
 
-Status: Phase 5 — implemented for `apps/web` (`packages/sync`,
+Status: Phase 5 — implemented for both `apps/web` (`packages/sync`,
 `packages/storage`'s `VaultItemLocalStore` interface + `apps/web/src/lib/localItemStore.ts`'s
 IndexedDB implementation, `apps/web/src/hooks/useVaultItems.ts`,
-`firebase/functions/src/tombstoneGc.ts`). Two implementation-level scope
+`firebase/functions/src/tombstoneGc.ts`) and `apps/mobile` (Phase 5b —
+same `packages/sync` engine, `apps/mobile/src/lib/localItemStore.ts`'s
+AsyncStorage implementation, `apps/mobile/src/hooks/useVaultItems.ts`,
+`apps/mobile/src/hooks/useOnlineStatus.ts` via
+`@react-native-community/netinfo`). Two implementation-level scope
 decisions made against this doc's design, both revisit-if-needed rather than
 open: (1) §6's real-time subscription relies on Firestore's own
 `onSnapshot` initial-snapshot-then-live-updates behavior for both first load
@@ -13,8 +17,15 @@ initial full listener too slow; (2) §7's conflict UI always offers all
 three resolutions (keep mine / keep server's / keep both) rather than
 attempting to detect "unambiguous" structured-item merges, since that
 detection was never specified here — never silently loses data either way.
-Mobile (`apps/mobile`) has not yet migrated to this — see PLAN.md's
-Phase 5b. See also: [DATA_MODEL.md](./DATA_MODEL.md),
+Both platforms' hooks sequence hydration strictly before the listener
+subscribes (the local-cache read must fully dispatch before
+`subscribeToVaultItems` is called) — an early implementation raced the two,
+letting a live update arrive and then get silently overwritten by a
+slow-to-resolve hydration read; see KRYVEX_SOURCE_OF_TRUTH.md §12's
+decisions log. Phase 6 (`apps/web`) added attachment sync per §8 below —
+simpler than item sync (fetch-on-demand, no real-time listener or conflict
+UI for the attachment envelope itself), since attachment content is
+effectively write-once this phase. See also: [DATA_MODEL.md](./DATA_MODEL.md),
 [FIREBASE_SECURITY.md](./FIREBASE_SECURITY.md).
 
 ## 1. Goals
@@ -116,8 +127,20 @@ data. Define a deterministic conflict-resolution strategy."
 
 ## 8. Attachment sync
 
-- An `AttachmentDocument`'s envelope syncs like any other document (revision,
-  tombstone, etc.).
+- An `AttachmentDocument`'s envelope carries the same revision/tombstone
+  fields as a `VaultItemDocument`, CAS-enforced identically by
+  `firestore.rules`.
+- **Implementation (Phase 6, `apps/web`):** unlike items, an attachment's
+  envelope is fetched on demand (`fetchAttachmentDocument`, a plain one-shot
+  read whenever the owning item renders) rather than through a real-time
+  listener or the full `packages/sync` conflict-bookkeeping engine — no
+  offline hydration, no conflict UI for attachments specifically. This is a
+  deliberate scope simplification: an attachment's content is effectively
+  write-once (this phase has no "replace the file" edit flow — see
+  `KRYVEX_SOURCE_OF_TRUTH.md`'s decisions log), so there's no realistic
+  concurrent-edit surface to detect a conflict on. The owning item's own
+  `attachmentRefs`/`ItemContent.attachmentId` still go through the full item
+  sync engine as normal.
 - The encrypted blob itself is uploaded/downloaded independently via Firebase
   Storage, addressed by `storagePath`. A device only downloads the blob when
   the user actually opens/previews the attachment (lazy — see build spec §56

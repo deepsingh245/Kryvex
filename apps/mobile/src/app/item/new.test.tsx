@@ -56,6 +56,9 @@ describe("NewItemScreen", () => {
       updateItem: jest.fn(),
       toggleFavorite: jest.fn(),
       softDeleteItem: jest.fn(),
+      isOnline: true,
+      conflicts: [],
+      resolveConflict: jest.fn(),
     });
     await render(<NewItemScreen />);
     expect(screen.getByText("Login")).toBeTruthy();
@@ -81,6 +84,9 @@ describe("NewItemScreen", () => {
       updateItem: jest.fn(),
       toggleFavorite: jest.fn(),
       softDeleteItem: jest.fn(),
+      isOnline: true,
+      conflicts: [],
+      resolveConflict: jest.fn(),
     });
     await render(<NewItemScreen />);
 

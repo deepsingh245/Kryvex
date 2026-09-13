@@ -5,16 +5,28 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { secureLogger } from "@kryvex/security";
 import { ITEM_TYPES, type ItemContent, type ItemType } from "@kryvex/types";
-import { ITEM_TYPE_ENABLED, ITEM_TYPE_LABELS, ItemForm } from "@kryvex/ui";
-import { useVaultItems } from "@/hooks/useVaultItems";
+import {
+  AttachmentUploadForm,
+  ITEM_TYPE_ENABLED,
+  ITEM_TYPE_LABELS,
+  ItemForm,
+  type AttachmentUploadFormValues,
+} from "@kryvex/ui";
+import { useCreateAttachment } from "@/hooks/useCreateAttachment";
+import { newItemId, useVaultItems } from "@/hooks/useVaultItems";
 import { useVault } from "@/providers/VaultProvider";
 
-// image/pdf/file are excluded from the picker — see @kryvex/ui/fieldConfig's
-// ITEM_TYPE_ENABLED header comment: attachment upload is Phase 6.
+const ATTACHMENT_TYPES = new Set<ItemType>(["image", "pdf", "file"]);
+
+function isAttachmentType(type: ItemType): type is "image" | "pdf" | "file" {
+  return ATTACHMENT_TYPES.has(type);
+}
+
 export default function NewItemPage() {
   const { state } = useVault();
   const router = useRouter();
   const { createItem } = useVaultItems();
+  const createAttachment = useCreateAttachment();
   const [selectedType, setSelectedType] = useState<ItemType | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -32,6 +44,37 @@ export default function NewItemPage() {
       router.push(`/item/${id}`);
     } catch (err) {
       secureLogger.error("Failed to create item");
+      setError(err instanceof Error ? err.message : "Failed to save item.");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function handleAttachmentSubmit(
+    type: "image" | "pdf" | "file",
+    values: AttachmentUploadFormValues,
+  ) {
+    setError(null);
+    setSubmitting(true);
+    try {
+      const id = newItemId();
+      const attachmentId = await createAttachment(values.file, id);
+      await createItem(
+        type,
+        {
+          type,
+          title: values.title,
+          tags: values.tags,
+          notes: values.notes,
+          customFields: values.customFields,
+          attachmentId,
+        },
+        [attachmentId],
+        id,
+      );
+      router.push(`/item/${id}`);
+    } catch (err) {
+      secureLogger.error("Failed to create attachment item");
       setError(err instanceof Error ? err.message : "Failed to save item.");
     } finally {
       setSubmitting(false);
@@ -74,12 +117,23 @@ export default function NewItemPage() {
       <h1 className="text-xl font-semibold">
         Add {ITEM_TYPE_LABELS[selectedType]}
       </h1>
-      <ItemForm
-        type={selectedType}
-        onSubmit={(content) => void handleSubmit(content)}
-        onCancel={() => setSelectedType(null)}
-        submitting={submitting}
-      />
+      {isAttachmentType(selectedType) ? (
+        <AttachmentUploadForm
+          type={selectedType}
+          onSubmit={(values) =>
+            void handleAttachmentSubmit(selectedType, values)
+          }
+          onCancel={() => setSelectedType(null)}
+          submitting={submitting}
+        />
+      ) : (
+        <ItemForm
+          type={selectedType}
+          onSubmit={(content) => void handleSubmit(content)}
+          onCancel={() => setSelectedType(null)}
+          submitting={submitting}
+        />
+      )}
       {error && (
         <p role="alert" className="text-sm text-red-600">
           {error}

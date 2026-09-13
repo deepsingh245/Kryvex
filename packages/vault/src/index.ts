@@ -13,6 +13,14 @@ export {
 } from "./itemCrypto";
 
 export {
+  attachmentEnvelopeToBlob,
+  blobToAttachmentEnvelope,
+  decryptAttachmentContent,
+  decryptAttachmentFileName,
+  encryptAttachment,
+} from "./attachmentCrypto";
+
+export {
   initialItemCacheState,
   itemCacheReducer,
   selectVisibleItems,

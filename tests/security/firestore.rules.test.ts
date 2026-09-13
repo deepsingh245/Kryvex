@@ -312,6 +312,102 @@ describe("firestore.rules — users/{uid}/items/{itemId}", () => {
   });
 });
 
+describe("firestore.rules — users/{uid}/attachments/{attachmentId}", () => {
+  function validAttachment(overrides: Record<string, unknown> = {}) {
+    return {
+      id: "att1",
+      ownerId: "alice",
+      itemId: "item1",
+      revision: 0,
+      updatedAt: new Date(),
+      deleted: false,
+      wrappedAttachmentKey: {},
+      mimeType: "image/png",
+      sizeBytes: 1024,
+      storagePath: "users/alice/attachments/att1",
+      ...overrides,
+    };
+  }
+
+  it("denies user A reading user B's attachments", async () => {
+    const aliceDb = testEnv.authenticatedContext("alice").firestore();
+    await assertFails(aliceDb.doc("users/bob/attachments/att1").get());
+  });
+
+  it("denies creating an attachment with a mismatched ownerId", async () => {
+    const aliceDb = testEnv.authenticatedContext("alice").firestore();
+    await assertFails(
+      aliceDb
+        .doc("users/alice/attachments/att1")
+        .set(validAttachment({ ownerId: "bob" })),
+    );
+  });
+
+  it("allows creating a well-formed attachment owned by the caller", async () => {
+    const aliceDb = testEnv.authenticatedContext("alice").firestore();
+    await assertSucceeds(
+      aliceDb.doc("users/alice/attachments/att1").set(validAttachment()),
+    );
+  });
+
+  it("denies creating an attachment missing the storagePath field", async () => {
+    const doc = validAttachment() as Record<string, unknown>;
+    delete doc.storagePath;
+    const aliceDb = testEnv.authenticatedContext("alice").firestore();
+    await assertFails(aliceDb.doc("users/alice/attachments/att1").set(doc));
+  });
+
+  it("denies creating an attachment with a negative sizeBytes", async () => {
+    const aliceDb = testEnv.authenticatedContext("alice").firestore();
+    await assertFails(
+      aliceDb
+        .doc("users/alice/attachments/att1")
+        .set(validAttachment({ sizeBytes: -1 })),
+    );
+  });
+
+  it("denies a hard delete of an attachment", async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await context
+        .firestore()
+        .doc("users/alice/attachments/att1")
+        .set(validAttachment());
+    });
+    const aliceDb = testEnv.authenticatedContext("alice").firestore();
+    await assertFails(aliceDb.doc("users/alice/attachments/att1").delete());
+  });
+
+  it("denies an update that does not increment the revision", async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await context
+        .firestore()
+        .doc("users/alice/attachments/att1")
+        .set(validAttachment());
+    });
+    const aliceDb = testEnv.authenticatedContext("alice").firestore();
+    await assertFails(
+      aliceDb
+        .doc("users/alice/attachments/att1")
+        .set(validAttachment(), { merge: true }),
+    );
+  });
+
+  it("allows a tombstone update with the revision correctly incremented", async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await context
+        .firestore()
+        .doc("users/alice/attachments/att1")
+        .set(validAttachment());
+    });
+    const aliceDb = testEnv.authenticatedContext("alice").firestore();
+    await assertSucceeds(
+      aliceDb
+        .doc("users/alice/attachments/att1")
+        .set(validAttachment({ revision: 1, deleted: true })),
+    );
+  });
+});
+
 describe("firestore.rules sanity", () => {
   it("loaded a non-empty ruleset", () => {
     expect(readFileSync(rulesPath, "utf8").length).toBeGreaterThan(0);
