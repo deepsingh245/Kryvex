@@ -1,6 +1,6 @@
 # Kryvex — Source of Truth
 
-Status: **Phase 4 (Vault) complete for web.** This is the primary project
+Status: **Phase 4 (Vault) complete for web and mobile.** This is the primary project
 reference. Read this before any other file when picking up work on Kryvex.
 Detailed reasoning for each section lives in the linked `docs/*.md` file —
 this document summarizes and cross-references rather than duplicating.
@@ -127,6 +127,7 @@ build spec §18.
 | One generic, data-driven `ItemForm` (per-`ItemType` field-config array) instead of 11 hand-built forms                                                | `ItemContentBase` is genuinely shared and per-type deltas are small; extends the `CustomField` type-discrimination pattern DATA_MODEL.md already establishes to all fields, not just custom ones                               | packages/ui/src/fieldConfig.ts             |
 | `image`/`pdf`/`file` item types modeled in the type system but excluded from the Add-item flow                                                        | Attachment upload/storage is Phase 6; avoids building UI that would need reworking once real attachment storage lands                                                                                                          | DATA_MODEL.md §1, §6 (Phase 4 status note) |
 | No clipboard auto-clear on `SecretField`'s copy button in Phase 4                                                                                     | Deferred to Phase 7's `packages/security/src/clipboard.ts` (currently a stub); documented limitation, not silently shipped as if handled                                                                                       | packages/ui/src/components/SecretField.tsx |
+| Phase 4b's React Native vault UI components live in `apps/mobile/src/components/`, not a new `packages/ui/native` subpath                             | Avoids adding a second (Jest-based) test runner inside `packages/ui`'s existing Vitest-only setup; only one mobile app exists today, so a shared package isn't yet justified — `fieldConfig.ts`/validation schemas stay shared    | apps/mobile/src/components/                |
 
 ## 13. Known limitations
 
@@ -290,17 +291,35 @@ this phase) plus a `type` enum constraint; `tests/security` was extended to
 cover both, plus other-than-`login` types and an `ownerId`-change-on-update
 denial.
 
+The `CLAUDE.md` §4 step 6 security review pass over `itemCrypto.ts`'s
+key-wrap/DEK-reuse logic, `useVaultItems.ts`'s cache-clear-on-lock behavior,
+the Firestore write path against the rules' compare-and-swap boundary, and
+the password generator's RNG was performed this session — no issues found.
 **Not yet done, flagged rather than assumed:** a manual click-through of the
 web UI against the real Firebase emulator (carried-over gap from Phases 2-3
-— no browser-automation tool available in this session either), and the
-`CLAUDE.md` §4 step 6 security review pass over the call-outs listed in
-this phase's plan (`itemCrypto.ts`'s key-wrap/DEK-reuse logic,
-`useVaultItems.ts`'s cache-clear-on-lock behavior, the Firestore write path
-against the rules' compare-and-swap boundary, the password generator's RNG).
+— no browser-automation tool available in this session either).
 
-Phase 4b (porting the same screens to `apps/mobile` via Expo Router,
-consuming the same platform-agnostic `packages/types`/`validation`/
-`password-generator`/`firebase`/`vault` layers built this phase, plus new
-React Native counterparts of `packages/ui`'s DOM-based components) is the
-immediate next step, scheduled explicitly rather than left to slip — see
-`PLAN.md`.
+Phase 4b (porting Phase 4's screens to `apps/mobile`) is complete:
+`apps/mobile/src/components/` gains React Native counterparts of every
+`packages/ui` Phase 4 component (`TextField`, `SecretField` — using
+`expo-clipboard` instead of `navigator.clipboard`, `TagsInput`,
+`CustomFieldsEditor` — its field-type picker reuses the tag-chip
+interaction pattern rather than a native `<select>`/picker dependency,
+`PasswordGeneratorPanel` — a +/- length stepper instead of a native slider,
+`ItemForm`, etc.), all consuming the same platform-agnostic
+`packages/types`/`validation`/`password-generator`/`firebase`/`vault`
+layers Phase 4 built, unchanged; `apps/mobile/src/hooks/useVaultItems.ts` is
+a near-twin of web's hook, differing only in Firebase init (native
+persistence via `getReactNativePersistence`/`AsyncStorage`, same pattern
+`VaultProvider.tsx` already established); new Expo Router screens replace
+the "Your vault is empty" stub (Vault Home, Item Detail, Add/Edit Item,
+standalone Password Generator). See §12's decisions log for why these
+components live in `apps/mobile/src/components/` rather than a new
+`packages/ui/native` subpath. Security review for this pass (clipboard
+limitation carried over, decrypted content confirmed never touching
+`AsyncStorage`, cache-clear/decrypt-isolation behavior confirmed identical
+to web since it's the same shared `@kryvex/vault` code) found no issues.
+**Not yet done:** a manual click-through in Expo Go (same no-automation
+caveat as web).
+
+Phase 5 (Sync) is next — see `PLAN.md`.

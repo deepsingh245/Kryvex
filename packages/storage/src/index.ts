@@ -1,11 +1,9 @@
 /**
- * Phase 1 scaffold. The real local-cache abstraction (IndexedDB on web,
- * platform secure storage on mobile — see docs/CRYPTOGRAPHIC_ARCHITECTURE.md
- * §7 and build spec §58-59: encrypted-at-rest ciphertext only, never raw key
- * material) lands as offline-first sync is built in Phase 5. This
- * in-memory implementation is a TEMPORARY placeholder only — it must not be
- * used to cache real vault data, since it is neither persistent nor
- * platform-appropriate secure storage.
+ * `LocalCache` below is a generic string k/v scaffold kept for whatever
+ * still wants a trivial in-memory cache. The real offline vault-item cache
+ * — `VaultItemLocalStore` — lands with Phase 5's sync engine; see
+ * vaultItemStore.ts for the platform-agnostic interface (concrete
+ * IndexedDB/AsyncStorage implementations live in each consuming app).
  */
 
 export interface LocalCache {
@@ -15,7 +13,7 @@ export interface LocalCache {
   clear(): void;
 }
 
-/** TEMPORARY in-memory placeholder — replaced by a real platform-backed cache in Phase 5. */
+/** Generic in-memory k/v cache — not the vault-item offline cache (see VaultItemLocalStore). */
 export function createInMemoryLocalCache(): LocalCache {
   const store = new Map<string, string>();
   return {
@@ -31,3 +29,5 @@ export function createInMemoryLocalCache(): LocalCache {
     },
   };
 }
+
+export type { VaultItemLocalStore } from "./vaultItemStore";
