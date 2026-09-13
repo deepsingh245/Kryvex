@@ -1,15 +1,17 @@
 # Kryvex — Build Plan
 
-Status: **Strategy change (this session): finish `apps/web` completely
-before resuming any `apps/mobile` work.** Previously each phase shipped web
-then an immediate "Xb" mobile port (4→4b, 5→5b, 6→6b). Going forward, §4's
-roadmap is split into a **Web-completion track** (done now, uninterrupted)
-and a **Mobile-completion track** (picked back up only once the web track is
-entirely done — including the mobile phases/ports already sitting half-open
-below, e.g. Phase 6b). Phase 6 (Attachments, web) is the most recent
-completed phase — see "Current status" in `KRYVEX_SOURCE_OF_TRUTH.md` for
-its full detail and decisions log. **Next up:** Phase 7w (web session
-security — auto-lock, clipboard auto-clear; see §4).
+Status: **Phase 7w (web session security + Recovery Key) complete.**
+`apps/web` is being taken to full completion before any `apps/mobile` work
+resumes (this session's strategy change — see §4's Track A/Track B split).
+Phase 7w closed three real gaps confirmed with the user beforehand: a full
+Recovery Key/Emergency Kit flow (`docs/RECOVERY.md`, including a new
+`getRecoveryEnvelope` Cloud Function and Firebase's own password-reset
+oobCode flow to rotate the Auth credential), auto-lock
+(`packages/security/src/autoLock.ts`, wired into `VaultProvider.tsx` with a
+new `lock()` method and a "Lock" button), and clipboard auto-clear
+(`packages/security/src/clipboard.ts`, wired into `SecretField.tsx`). See
+"Current status" in `KRYVEX_SOURCE_OF_TRUTH.md` for full detail and the
+decisions log. **Next up:** Phase 8w (UX polish).
 Owner: lead architect/engineer (Claude), directed by project owner
 Last updated: 2026-09-13
 
@@ -149,18 +151,18 @@ port after every web phase as before. Phases already done on both platforms
 
 ### Track A — Web completion (current focus, uninterrupted)
 
-| Phase | Focus                                                                                                                                                                                                                                                                                                                                                                                          |
-| ----- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1     | **Done.** Foundation — monorepo, web+mobile scaffolds, shared packages, lint/test/CI, Firebase emulator                                                                                                                                                                                                                                                                                        |
-| 2     | **Done.** Authentication — Firebase Auth, registration/login/logout, `AUTHENTICATED_LOCKED` state (also pulled in Argon2id/HKDF, originally planned for Phase 3)                                                                                                                                                                                                                               |
-| 3     | **Done.** Cryptographic core — encrypt/decrypt (AES-256-GCM via `@noble/ciphers`), envelope serialization, tamper detection (fail-closed AEAD unwrap), Vault Encryption Key generation/wrapping. KDF/HKDF already landed in Phase 2. Shipped without new tests per explicit direction — flagged as a follow-up.                                                                                |
-| 4     | **Done (web + mobile).** Vault — all 11 item types, custom fields, generator, favorites, tags, search, on both `apps/web` and `apps/mobile`.                                                                                                                                                                                                                                                   |
-| 5     | **Done (web + mobile).** Sync — encrypted Firestore records, offline, versioning, conflicts, tombstones, on both platforms.                                                                                                                                                                                                                                                                    |
-| 6     | **Done (web).** Attachments — encrypted image/PDF/file, Storage, secure previews.                                                                                                                                                                                                                                                                                                              |
-| 7w    | **Next.** Web session security — real `packages/security/autoLock.ts` (lock on background/inactivity/explicit lock/session expiry) and `clipboard.ts` (clear-after-timeout on `SecretField`'s copy button) implementations, wired into `apps/web`. Both are currently Phase-1 stubs. Biometric/Keychain-Keystore concerns stay mobile-only (Phase 7m below) — nothing analogous exists on web. |
-| 8w    | UX polish (web) — responsive UI, accessibility, onboarding (including the Recovery Key kit, deferred from Phase 3), empty/error/loading states                                                                                                                                                                                                                                                 |
-| 9w    | Security hardening (web + shared packages) — dedicated review pass across XSS/CSRF/rules/crypto/logging/deps                                                                                                                                                                                                                                                                                   |
-| 10w   | Release (web) — production Firebase project, web deploy, release checklist                                                                                                                                                                                                                                                                                                                     |
+| Phase | Focus                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1     | **Done.** Foundation — monorepo, web+mobile scaffolds, shared packages, lint/test/CI, Firebase emulator                                                                                                                                                                                                                                                                                                                                                             |
+| 2     | **Done.** Authentication — Firebase Auth, registration/login/logout, `AUTHENTICATED_LOCKED` state (also pulled in Argon2id/HKDF, originally planned for Phase 3)                                                                                                                                                                                                                                                                                                    |
+| 3     | **Done.** Cryptographic core — encrypt/decrypt (AES-256-GCM via `@noble/ciphers`), envelope serialization, tamper detection (fail-closed AEAD unwrap), Vault Encryption Key generation/wrapping. KDF/HKDF already landed in Phase 2. Shipped without new tests per explicit direction — flagged as a follow-up.                                                                                                                                                     |
+| 4     | **Done (web + mobile).** Vault — all 11 item types, custom fields, generator, favorites, tags, search, on both `apps/web` and `apps/mobile`.                                                                                                                                                                                                                                                                                                                        |
+| 5     | **Done (web + mobile).** Sync — encrypted Firestore records, offline, versioning, conflicts, tombstones, on both platforms.                                                                                                                                                                                                                                                                                                                                         |
+| 6     | **Done (web).** Attachments — encrypted image/PDF/file, Storage, secure previews.                                                                                                                                                                                                                                                                                                                                                                                   |
+| 7w    | **Done.** Web session security + Recovery Key — real `packages/security/autoLock.ts`/`clipboard.ts` implementations wired into `apps/web` (a "Lock" button, idle-timeout/tab-hidden auto-lock, clipboard-clear-after-timeout), plus the full Recovery Key/Emergency Kit flow (`docs/RECOVERY.md`) so a forgotten master password is actually recoverable. Biometric/Keychain-Keystore concerns stay mobile-only (Phase 7m below) — nothing analogous exists on web. |
+| 8w    | **Next.** UX polish (web) — responsive UI, accessibility, empty/error/loading states, a settings screen to actually read/change `autoLockMinutes`/`clipboardClearSeconds` (hardcoded defaults for now)                                                                                                                                                                                                                                                              |
+| 9w    | Security hardening (web + shared packages) — dedicated review pass across XSS/CSRF/rules/crypto/logging/deps                                                                                                                                                                                                                                                                                                                                                        |
+| 10w   | Release (web) — production Firebase project, web deploy, release checklist                                                                                                                                                                                                                                                                                                                                                                                          |
 
 ### Track B — Mobile completion (deferred until Track A is entirely done)
 
@@ -222,6 +224,10 @@ and a short "Changed / Tests / Security considerations / Files / Next step" repo
     session's strategy change): `apps/mobile` work of any kind, including
     already-scoped Phase 6b, is paused until Track A (web) reaches Phase
     10w. See §4's Track A/Track B split.
-13. **Next up:** Phase 7w — web session security: real
-    `packages/security/autoLock.ts` and `clipboard.ts` implementations,
-    wired into `apps/web`.
+13. ~~Phase 7w — web session security + Recovery Key.~~ Done — see
+    "Current status" in `KRYVEX_SOURCE_OF_TRUTH.md` for the full decisions
+    log (two-factor recovery, no-QR scope trim, hardcoded-defaults trim)
+    and the flagged manual-click-through follow-up.
+14. **Next up:** Phase 8w — UX polish (web): responsive UI, accessibility,
+    empty/error/loading states, a settings screen for
+    `autoLockMinutes`/`clipboardClearSeconds`.

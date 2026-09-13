@@ -92,6 +92,12 @@ export default function SignInPage() {
         >
           Need a vault? Create one
         </a>
+        <a
+          href="/recover"
+          className="text-center text-sm text-gray-500 underline"
+        >
+          Forgot your master password?
+        </a>
       </form>
     </main>
   );

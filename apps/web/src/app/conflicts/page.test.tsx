@@ -34,6 +34,8 @@ describe("ConflictsPage", () => {
       signUp: vi.fn(),
       signIn: vi.fn(),
       unlock: vi.fn(),
+      lock: vi.fn(),
+      recoverVault: vi.fn(),
       signOut: vi.fn(),
     });
     mockedUseVaultItems.mockReturnValue({
@@ -58,6 +60,8 @@ describe("ConflictsPage", () => {
       signUp: vi.fn(),
       signIn: vi.fn(),
       unlock: vi.fn(),
+      lock: vi.fn(),
+      recoverVault: vi.fn(),
       signOut: vi.fn(),
     });
     mockedUseVaultItems.mockReturnValue({

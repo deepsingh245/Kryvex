@@ -19,12 +19,17 @@ import {
   hexToBytes,
 } from "@kryvex/crypto";
 import {
+  confirmVaultRecovery,
   createUserProfileDocument,
   fetchUserProfileDocument,
   initializeKryvexFirebase,
   resolveKdfParamsForEmail,
+  resolveRecoveryEnvelopeForEmail,
+  sendVaultRecoveryEmail,
   signInWithAuthSecret,
   signUpWithAuthSecret,
+  updateUserProfileDocument,
+  verifyRecoveryCode,
   type KryvexFirebaseServices,
 } from "@kryvex/firebase";
 import type { EncryptedEnvelope } from "@kryvex/types";
@@ -58,6 +63,23 @@ afterAll(async () => {
 
 function uniqueEmail(): string {
   return `${randomUUID()}@example.com`;
+}
+
+// The Auth emulator exposes every pending out-of-band code (password reset,
+// email verification, ...) via its own REST testing endpoint — no real
+// email delivery needed. See docs/RECOVERY.md §3.
+async function fetchOobCodeForEmail(email: string): Promise<string> {
+  const res = await fetch(
+    "http://localhost:9099/emulator/v1/projects/demo-kryvex/oobCodes",
+  );
+  const body = (await res.json()) as {
+    oobCodes: { email: string; oobCode: string; requestType: string }[];
+  };
+  const match = [...body.oobCodes]
+    .reverse()
+    .find((c) => c.email === email && c.requestType === "PASSWORD_RESET");
+  if (!match) throw new Error(`No pending oobCode found for ${email}`);
+  return match.oobCode;
 }
 
 async function signUpFixture(email: string, masterPassword: string) {
@@ -298,5 +320,125 @@ describe("Vault Encryption Key wrapping (Phase 3)", () => {
     expect(() =>
       decryptBytes(wrongStretchedMasterKey, profile.protectedVaultKey),
     ).toThrow("Unable to decrypt vault item.");
+  });
+});
+
+describe("vault recovery (Recovery Key + Emergency Kit, Phase 7w)", () => {
+  it("recovers the vault end-to-end: email link + Recovery Key, new master password, VEK unchanged", async () => {
+    const email = uniqueEmail();
+    const oldMasterPassword = "correct horse battery staple";
+    const { vaultEncryptionKey } = await signUpFixtureWithVek(
+      email,
+      oldMasterPassword,
+    );
+
+    // Same second, independent wrapping VaultProvider.signUp does.
+    const recoveryKeyBytes = generateKey();
+    const protectedVaultKeyByRecovery = encryptBytes(
+      recoveryKeyBytes,
+      vaultEncryptionKey,
+    );
+    await updateUserProfileDocument(
+      services.firestore,
+      services.auth.currentUser!.uid,
+      { protectedVaultKeyByRecovery },
+    );
+    await services.auth.signOut();
+
+    // "Forgot master password" — trigger the reset email and grab the
+    // oobCode from the emulator directly (no real email delivery).
+    await sendVaultRecoveryEmail(
+      services.auth,
+      email,
+      "http://localhost:3000/recover/confirm",
+    );
+    const oobCode = await fetchOobCodeForEmail(email);
+
+    // Client side of recoverVault (mirrors VaultProvider.tsx exactly).
+    const resolvedEmail = await verifyRecoveryCode(services.auth, oobCode);
+    expect(resolvedEmail).toBe(email);
+
+    const envelope = (await resolveRecoveryEnvelopeForEmail(
+      services.functions,
+      email,
+    )) as { protectedVaultKeyByRecovery: EncryptedEnvelope } | null;
+    expect(envelope?.protectedVaultKeyByRecovery).toBeDefined();
+
+    const recoveredVek = decryptBytes(
+      recoveryKeyBytes,
+      envelope!.protectedVaultKeyByRecovery,
+    );
+    expect(recoveredVek).toEqual(vaultEncryptionKey);
+
+    const newMasterPassword = "a brand new master password";
+    const newSalt = generateKdfSalt();
+    const { masterKey } = await deriveKdfMaterial(
+      newMasterPassword,
+      newSalt,
+      FAST_PARAMS,
+    );
+    const { authSecret: newAuthSecret, stretchedMasterKey } =
+      deriveAuthAndStretchedKey(masterKey);
+    const newProtectedVaultKey = encryptBytes(stretchedMasterKey, recoveredVek);
+
+    await confirmVaultRecovery(services.auth, oobCode, newAuthSecret);
+    const user = await signInWithAuthSecret(
+      services.auth,
+      email,
+      newAuthSecret,
+    );
+    await updateUserProfileDocument(services.firestore, user.uid, {
+      kdfSalt: bytesToHex(newSalt),
+      kdfParams: FAST_PARAMS,
+      protectedVaultKey: newProtectedVaultKey,
+    });
+    await services.auth.signOut();
+
+    // Old master password's derived authSecret no longer signs in.
+    const { masterKey: oldMasterKey } = await deriveKdfMaterial(
+      oldMasterPassword,
+      newSalt,
+      FAST_PARAMS,
+    );
+    const { authSecret: oldAuthSecret } =
+      deriveAuthAndStretchedKey(oldMasterKey);
+    await expect(
+      signInWithAuthSecret(services.auth, email, oldAuthSecret),
+    ).rejects.toThrow();
+
+    // New master password signs in and unwraps back to the *original* VEK
+    // — existing vault content is untouched by recovery.
+    const signedInAgain = await signInWithAuthSecret(
+      services.auth,
+      email,
+      newAuthSecret,
+    );
+    const finalProfile = (await fetchUserProfileDocument(
+      services.firestore,
+      signedInAgain.uid,
+    )) as { protectedVaultKey: EncryptedEnvelope };
+    expect(
+      decryptBytes(stretchedMasterKey, finalProfile.protectedVaultKey),
+    ).toEqual(vaultEncryptionKey);
+  });
+
+  it("getRecoveryEnvelope returns null when no recovery key was ever set up", async () => {
+    const email = uniqueEmail();
+    await signUpFixtureWithVek(email, "correct horse battery staple");
+    await services.auth.signOut();
+
+    const result = await resolveRecoveryEnvelopeForEmail(
+      services.functions,
+      email,
+    );
+    expect(result).toBeNull();
+  });
+
+  it("getRecoveryEnvelope returns null for a non-existent account", async () => {
+    const result = await resolveRecoveryEnvelopeForEmail(
+      services.functions,
+      uniqueEmail(),
+    );
+    expect(result).toBeNull();
   });
 });

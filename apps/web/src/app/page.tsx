@@ -16,7 +16,7 @@ import { useVault } from "@/providers/VaultProvider";
  * Phase 2/3 "your vault is empty" stub.
  */
 export default function Home() {
-  const { state, signOut } = useVault();
+  const { state, lock, signOut } = useVault();
   const router = useRouter();
   const { items, loading, toggleFavorite, conflicts } = useVaultItems();
   const [query, setQuery] = useState("");
@@ -66,6 +66,13 @@ export default function Home() {
             >
               + Add
             </Link>
+            <button
+              type="button"
+              onClick={() => lock("manual")}
+              className="rounded border px-4 py-2 text-sm font-medium"
+            >
+              Lock
+            </button>
             <button
               type="button"
               onClick={() => void signOut()}
