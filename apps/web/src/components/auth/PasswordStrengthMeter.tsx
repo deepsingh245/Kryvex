@@ -1,5 +1,4 @@
-import { Progress } from "@/components/ui/progress";
-import { cn } from "@/lib/utils";
+import { Progress, cn } from "@kryvex/ui";
 import { evaluateMasterPassword } from "./passwordRequirements";
 
 interface PasswordStrengthMeterProps {

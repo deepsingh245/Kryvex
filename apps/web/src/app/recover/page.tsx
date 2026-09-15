@@ -1,11 +1,16 @@
 "use client";
 
+import { KeyRound, MailCheck } from "lucide-react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import {
   initializeKryvexFirebase,
   sendVaultRecoveryEmail,
 } from "@kryvex/firebase";
 import { secureLogger } from "@kryvex/security";
+import { Button, Input, Label } from "@kryvex/ui";
+import { AuthCard } from "@/components/auth/AuthCard";
 import {
   webFirebaseConfig,
   webFirebaseEmulatorEnv,
@@ -19,6 +24,7 @@ function getServices() {
 }
 
 export default function RecoverPage() {
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [sent, setSent] = useState(false);
@@ -49,63 +55,58 @@ export default function RecoverPage() {
 
   if (sent) {
     return (
-      <main className="flex min-h-screen flex-1 flex-col items-center justify-center p-8">
-        <div className="flex w-full max-w-sm flex-col gap-4 text-center">
-          <h1 className="text-xl font-semibold">Check your email</h1>
-          <p className="text-sm text-gray-500">
-            If an account exists for {email}, we&apos;ve sent a link to continue
-            recovering your vault. Follow it to enter your Recovery Key and set
-            a new master password.
+      <main className="flex min-h-screen flex-1 flex-col items-center justify-center p-6 sm:p-8">
+        <AuthCard icon={MailCheck} title="Check your email">
+          <p className="text-sm text-text-secondary">
+            If an account exists for {email}, we&apos;ve sent a link to
+            continue recovering your vault. Follow it to enter your Recovery
+            Key and set a new master password.
           </p>
-          <a href="/sign-in" className="text-sm text-gray-500 underline">
+          <Link
+            href="/sign-in"
+            className="mt-5 block text-center text-sm text-text-secondary underline-offset-4 hover:text-foreground hover:underline"
+          >
             Back to sign in
-          </a>
-        </div>
+          </Link>
+        </AuthCard>
       </main>
     );
   }
 
   return (
-    <main className="flex min-h-screen flex-1 flex-col items-center justify-center p-8">
-      <form
-        onSubmit={handleSubmit}
-        className="flex w-full max-w-sm flex-col gap-4"
+    <main className="flex min-h-screen flex-1 flex-col items-center justify-center p-6 sm:p-8">
+      <AuthCard
+        icon={KeyRound}
+        title="Recover your vault"
+        description="Enter your account email. We'll send a link to continue — you'll need your Emergency Kit's Recovery Key on the next step."
+        onBack={() => router.push("/sign-in")}
       >
-        <h1 className="text-xl font-semibold">Recover your vault</h1>
-        <p className="text-sm text-gray-500">
-          Enter your account email. We&apos;ll send a link to continue —
-          you&apos;ll need your Emergency Kit&apos;s Recovery Key on the next
-          step.
-        </p>
+        <form onSubmit={handleSubmit} className="flex flex-col gap-5" noValidate>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="email">Email</Label>
+            <Input
+              id="email"
+              type="email"
+              autoComplete="email"
+              autoFocus
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+          </div>
 
-        <label className="flex flex-col gap-1 text-sm">
-          Email
-          <input
-            type="email"
-            autoComplete="email"
-            autoFocus
-            required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="rounded border px-3 py-2"
-          />
-        </label>
+          <Button type="submit" size="lg" disabled={submitting}>
+            {submitting ? "Sending…" : "Send recovery link"}
+          </Button>
 
-        <button
-          type="submit"
-          disabled={submitting}
-          className="rounded bg-gray-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
-        >
-          {submitting ? "Sending…" : "Send recovery link"}
-        </button>
-
-        <a
-          href="/sign-in"
-          className="text-center text-sm text-gray-500 underline"
-        >
-          Back to sign in
-        </a>
-      </form>
+          <Link
+            href="/sign-in"
+            className="text-center text-sm text-text-secondary underline-offset-4 hover:text-foreground hover:underline"
+          >
+            Back to sign in
+          </Link>
+        </form>
+      </AuthCard>
     </main>
   );
 }

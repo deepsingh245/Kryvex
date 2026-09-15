@@ -1,13 +1,15 @@
 "use client";
 
+import { Plus, Sparkles, Trash2 } from "lucide-react";
 import { useState, type FormEvent } from "react";
 import type { CustomField, ItemContent, ItemType } from "@kryvex/types";
 import { itemContentSchema } from "@kryvex/validation";
 import { ITEM_TYPE_FIELD_CONFIG, type ItemFieldConfig } from "../fieldConfig";
 import { BooleanField } from "./BooleanField";
-import { Button } from "./Button";
+import { Button } from "./ui/button";
 import { CustomFieldsEditor } from "./CustomFieldsEditor";
 import { DateField } from "./DateField";
+import { Input } from "./ui/input";
 import { MultilineField } from "./MultilineField";
 import { PasswordGeneratorPanel } from "./PasswordGeneratorPanel";
 import { SecretField } from "./SecretField";
@@ -135,7 +137,14 @@ export function ItemForm({
             />
             {type === "login" && field.key === "password" && (
               <div className="flex flex-col gap-2">
-                <Button onClick={() => setShowGenerator((s) => !s)}>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  className="self-start"
+                  onClick={() => setShowGenerator((s) => !s)}
+                >
+                  <Sparkles className="h-4 w-4" strokeWidth={1.75} />
                   {showGenerator ? "Hide generator" : "Generate password"}
                 </Button>
                 {showGenerator && (
@@ -193,19 +202,22 @@ export function ItemForm({
         const codes = Array.isArray(value) ? (value as RecoveryCode[]) : [];
         return (
           <div key={field.key} className="flex flex-col gap-2 text-sm">
-            <span>{field.label}</span>
+            <span className="font-medium text-foreground">{field.label}</span>
             {codes.map((code, index) => (
-              <div key={index} className="flex items-center gap-2">
-                <input
+              <div
+                key={index}
+                className="flex items-center gap-2 rounded-md border border-border bg-surface-2 p-2"
+              >
+                <Input
                   value={code.code}
                   onChange={(e) => {
                     const next = [...codes];
                     next[index] = { ...next[index]!, code: e.target.value };
                     updateFixed(field.key, next);
                   }}
-                  className="flex-1 rounded border px-2 py-1"
+                  className="h-9 flex-1 font-mono text-sm"
                 />
-                <label className="flex items-center gap-1 text-xs">
+                <label className="flex items-center gap-1.5 text-xs text-text-secondary">
                   <input
                     type="checkbox"
                     checked={code.used}
@@ -217,32 +229,37 @@ export function ItemForm({
                       };
                       updateFixed(field.key, next);
                     }}
+                    className="h-3.5 w-3.5 rounded border-border-strong accent-primary"
                   />
                   Used
                 </label>
-                <button
+                <Button
                   type="button"
+                  variant="ghost"
+                  size="sm"
                   onClick={() =>
                     updateFixed(
                       field.key,
                       codes.filter((_, i) => i !== index),
                     )
                   }
-                  className="rounded border px-2 py-1 text-xs"
                 >
-                  Remove
-                </button>
+                  <Trash2 className="h-3.5 w-3.5" strokeWidth={1.75} />
+                </Button>
               </div>
             ))}
-            <button
+            <Button
               type="button"
+              variant="secondary"
+              size="sm"
+              className="self-start"
               onClick={() =>
                 updateFixed(field.key, [...codes, { code: "", used: false }])
               }
-              className="self-start rounded border px-3 py-1 text-xs"
             >
-              + Add code
-            </button>
+              <Plus className="h-4 w-4" strokeWidth={1.75} />
+              Add code
+            </Button>
           </div>
         );
       }
@@ -277,7 +294,7 @@ export function ItemForm({
     // (below) rather than the browser's native required-field tooltip —
     // without this, native constraint validation silently blocks the
     // submit event before handleSubmit (and our error message) ever runs.
-    <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
+    <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-5">
       <TextField label="Title" value={title} required onChange={setTitle} />
       <TagsInput
         label="Tags"
@@ -301,7 +318,7 @@ export function ItemForm({
       />
 
       {error && (
-        <p role="alert" className="text-sm text-red-600">
+        <p role="alert" className="text-sm text-destructive">
           {error}
         </p>
       )}
@@ -310,7 +327,7 @@ export function ItemForm({
         <Button type="submit" variant="primary" disabled={submitting}>
           {submitting ? "Saving…" : "Save"}
         </Button>
-        <Button onClick={onCancel} disabled={submitting}>
+        <Button type="button" variant="secondary" onClick={onCancel} disabled={submitting}>
           Cancel
         </Button>
       </div>

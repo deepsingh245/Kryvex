@@ -3,8 +3,14 @@
 import type { LucideIcon } from "lucide-react";
 import { ArrowLeft } from "lucide-react";
 import type { ReactNode } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { cn } from "@/lib/utils";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+  cn,
+} from "@kryvex/ui";
 
 interface AuthCardProps {
   icon?: LucideIcon;
@@ -46,7 +52,7 @@ export function AuthCard({
             <Icon className="h-7 w-7 text-primary" strokeWidth={1.75} />
           </div>
         )}
-        <CardTitle>{title}</CardTitle>
+        <CardTitle as="h1">{title}</CardTitle>
         {description && <CardDescription>{description}</CardDescription>}
       </CardHeader>
       <CardContent>{children}</CardContent>

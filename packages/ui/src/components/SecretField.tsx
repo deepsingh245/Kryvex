@@ -1,7 +1,10 @@
 "use client";
 
+import { Check, Copy, Eye, EyeOff } from "lucide-react";
 import { useId, useState } from "react";
 import { clipboard as clipboardModule } from "@kryvex/security";
+import { Input } from "./ui/input";
+import { Label } from "./ui/label";
 
 export interface SecretFieldProps {
   label: string;
@@ -53,33 +56,45 @@ export function SecretField({
   }
 
   return (
-    <div className="flex flex-col gap-1 text-sm">
-      <label htmlFor={inputId}>{label}</label>
-      <div className="flex items-center gap-2">
-        <input
+    <div className="flex flex-col gap-1.5">
+      <Label htmlFor={inputId}>{label}</Label>
+      <div className="relative">
+        <Input
           id={inputId}
           type={revealed ? "text" : "password"}
           value={value}
           required={required}
           readOnly={readOnly}
           onChange={onChange ? (e) => onChange(e.target.value) : undefined}
-          className="flex-1 rounded border px-3 py-2"
+          className="pr-20 font-mono text-sm"
         />
-        <button
-          type="button"
-          aria-pressed={revealed}
-          onClick={() => setRevealed((r) => !r)}
-          className="rounded border px-2 py-1 text-xs"
-        >
-          {revealed ? "Hide" : "Reveal"}
-        </button>
-        <button
-          type="button"
-          onClick={() => void handleCopy()}
-          className="rounded border px-2 py-1 text-xs"
-        >
-          Copy
-        </button>
+        <div className="absolute inset-y-0 right-0 flex items-center">
+          <button
+            type="button"
+            aria-pressed={revealed}
+            aria-label={revealed ? "Hide" : "Reveal"}
+            onClick={() => setRevealed((r) => !r)}
+            className="flex h-10 w-10 items-center justify-center rounded-md text-text-secondary transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            {revealed ? (
+              <EyeOff className="h-[18px] w-[18px]" strokeWidth={1.75} />
+            ) : (
+              <Eye className="h-[18px] w-[18px]" strokeWidth={1.75} />
+            )}
+          </button>
+          <button
+            type="button"
+            aria-label="Copy"
+            onClick={() => void handleCopy()}
+            className="mr-1 flex h-10 w-10 items-center justify-center rounded-md text-text-secondary transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            {justCopied ? (
+              <Check className="h-[18px] w-[18px] text-success" strokeWidth={2} />
+            ) : (
+              <Copy className="h-[18px] w-[18px]" strokeWidth={1.75} />
+            )}
+          </button>
+        </div>
       </div>
       <span className="sr-only" role="status" aria-live="polite">
         {justCopied ? "Copied" : ""}

@@ -1,11 +1,15 @@
 "use client";
 
-import { Suspense, useEffect, useState, type FormEvent } from "react";
+import { KeyRound } from "lucide-react";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useState, type FormEvent } from "react";
 import { initializeKryvexFirebase, verifyRecoveryCode } from "@kryvex/firebase";
 import { masterPasswordSchema } from "@kryvex/validation";
 import { secureLogger } from "@kryvex/security";
-import { EmergencyKit } from "@kryvex/ui";
+import { Button, EmergencyKit, Input, Label } from "@kryvex/ui";
+import { AuthCard } from "@/components/auth/AuthCard";
+import { PasswordInput } from "@/components/auth/PasswordInput";
 import {
   webFirebaseConfig,
   webFirebaseEmulatorEnv,
@@ -23,7 +27,7 @@ export default function RecoverConfirmPage() {
     <Suspense
       fallback={
         <main className="flex min-h-screen flex-1 flex-col items-center justify-center p-8">
-          <p className="text-sm text-gray-500">Loading…</p>
+          <p className="text-sm text-text-secondary">Loading…</p>
         </main>
       }
     >
@@ -107,9 +111,9 @@ function RecoverConfirmInner() {
 
   if (newRecoveryKey) {
     return (
-      <main className="flex min-h-screen flex-1 flex-col items-center justify-center p-8">
+      <main className="flex min-h-screen flex-1 flex-col items-center justify-center p-6 sm:p-8">
         <div className="w-full max-w-sm">
-          <p className="mb-4 text-sm text-gray-500">
+          <p className="mb-4 text-sm text-text-secondary">
             Your vault has been recovered with a new master password. Your old
             Emergency Kit is no longer valid — here is a new one.
           </p>
@@ -125,7 +129,7 @@ function RecoverConfirmInner() {
   if (checkingCode) {
     return (
       <main className="flex min-h-screen flex-1 flex-col items-center justify-center p-8">
-        <p className="text-sm text-gray-500">Checking link…</p>
+        <p className="text-sm text-text-secondary">Checking link…</p>
       </main>
     );
   }
@@ -133,79 +137,65 @@ function RecoverConfirmInner() {
   if (!oobCode || !codeValid) {
     return (
       <main className="flex min-h-screen flex-1 flex-col items-center justify-center gap-4 p-8">
-        <p className="text-sm text-gray-500">
+        <p className="text-sm text-text-secondary">
           This recovery link is invalid or has expired.
         </p>
-        <a href="/recover" className="text-sm underline">
+        <Link href="/recover" className="text-sm text-primary underline">
           Request a new one
-        </a>
+        </Link>
       </main>
     );
   }
 
   return (
-    <main className="flex min-h-screen flex-1 flex-col items-center justify-center p-8">
-      <form
-        onSubmit={handleSubmit}
-        className="flex w-full max-w-sm flex-col gap-4"
+    <main className="flex min-h-screen flex-1 flex-col items-center justify-center p-6 sm:p-8">
+      <AuthCard
+        icon={KeyRound}
+        title="Recover your vault"
+        description="Enter the Recovery Key from your Emergency Kit and choose a new master password."
       >
-        <h1 className="text-xl font-semibold">Recover your vault</h1>
-        <p className="text-sm text-gray-500">
-          Enter the Recovery Key from your Emergency Kit and choose a new master
-          password.
-        </p>
+        <form onSubmit={handleSubmit} className="flex flex-col gap-5" noValidate>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="recoveryKey">Recovery Key</Label>
+            <Input
+              id="recoveryKey"
+              type="text"
+              autoComplete="off"
+              autoFocus
+              required
+              value={recoveryKeyInput}
+              onChange={(e) => setRecoveryKeyInput(e.target.value)}
+              className="font-mono"
+            />
+          </div>
 
-        <label className="flex flex-col gap-1 text-sm">
-          Recovery Key
-          <input
-            type="text"
-            autoComplete="off"
-            autoFocus
-            required
-            value={recoveryKeyInput}
-            onChange={(e) => setRecoveryKeyInput(e.target.value)}
-            className="rounded border px-3 py-2 font-mono"
-          />
-        </label>
-
-        <label className="flex flex-col gap-1 text-sm">
-          New master password
-          <input
-            type="password"
+          <PasswordInput
+            label="New master password"
             autoComplete="new-password"
             required
             value={newMasterPassword}
             onChange={(e) => setNewMasterPassword(e.target.value)}
-            className="rounded border px-3 py-2"
           />
-        </label>
 
-        <label className="flex flex-col gap-1 text-sm">
-          Confirm new master password
-          <input
-            type="password"
+          <PasswordInput
+            label="Confirm new master password"
             autoComplete="new-password"
             required
             value={confirmMasterPassword}
             onChange={(e) => setConfirmMasterPassword(e.target.value)}
-            className="rounded border px-3 py-2"
           />
-        </label>
 
-        {error && (
-          <p role="alert" className="text-sm text-red-600">
-            {error}
-          </p>
-        )}
+          {error && (
+            <p role="alert" className="text-sm text-destructive">
+              {error}
+            </p>
+          )}
 
-        <button
-          type="submit"
-          disabled={submitting}
-          className="rounded bg-gray-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
-        >
-          {submitting ? "Recovering…" : "Recover vault"}
-        </button>
-      </form>
+          <Button type="submit" size="lg" disabled={submitting}>
+            {submitting ? "Recovering…" : "Recover vault"}
+          </Button>
+        </form>
+      </AuthCard>
     </main>
   );
 }

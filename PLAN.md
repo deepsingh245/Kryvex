@@ -1,11 +1,16 @@
 # Kryvex — Build Plan
 
-Status: **Phase 8v (visual design system, web) complete.**
+Status: **Phase 8v2 (visual design system rollout, rest of web app) complete.**
 `apps/web` is being taken to full completion before any `apps/mobile` work
 resumes (this session's strategy change — see §4's Track A/Track B split).
-Phase 8v applied the Kryvex visual system (`KRYVEX_UI_README.md`) to the
-first 3 onboarding screens — see "Current status" in
-`KRYVEX_SOURCE_OF_TRUTH.md` for the full decisions log.
+Phase 8v2 extended the Kryvex visual system to every remaining `apps/web`
+page (sign-in, Vault Home, Item Detail/Edit/New, Generator, Settings,
+Recovery x2, Conflicts), consolidated the shared shadcn-style primitives
+into `packages/ui`, and added the desktop sidebar / mobile nav shell — see
+"Current status" in `KRYVEX_SOURCE_OF_TRUTH.md` for the full decisions log.
+Phase 8v (before it) applied the same visual system to the first 3
+onboarding screens only — see "Current status" in `KRYVEX_SOURCE_OF_TRUTH.md`
+for that decisions log.
 Phase 8w closed the concrete gaps found in a codebase audit: a real settings
 screen (`/settings`) that reads/writes `UserProfileSettings`
 (`autoLockMinutes`/`clipboardClearSeconds`/`biometricUnlockEnabled`) instead
@@ -167,6 +172,7 @@ port after every web phase as before. Phases already done on both platforms
 | 7w    | **Done.** Web session security + Recovery Key — real `packages/security/autoLock.ts`/`clipboard.ts` implementations wired into `apps/web` (a "Lock" button, idle-timeout/tab-hidden auto-lock, clipboard-clear-after-timeout), plus the full Recovery Key/Emergency Kit flow (`docs/RECOVERY.md`) so a forgotten master password is actually recoverable. Biometric/Keychain-Keystore concerns stay mobile-only (Phase 7m below) — nothing analogous exists on web. |
 | 8w    | **Done.** UX polish (web) — settings screen (`/settings`) for `autoLockMinutes`/`clipboardClearSeconds`/`biometricUnlockEnabled`, accessibility fixes, error/loading-state gaps closed, responsive layout, focus management.                                                                                                                                                                                                                                        |
 | 8v    | **Done.** Visual design system (web) — Kryvex visual identity (`KRYVEX_UI_README.md`) applied: Tailwind v4 semantic tokens (color/radius/shadow), Inter/JetBrains Mono, a small shadcn-style component foundation (`lucide-react`, `react-hook-form`, `sonner`), and the first 3 screens restyled/built (Welcome, Create Master Password, Unlock Vault). Master-password policy strengthened to match the on-screen requirements checklist.                     |
+| 8v2   | **Done.** Visual design system rollout (rest of web app) — shared primitives consolidated into `packages/ui` (retiring the apps/web-local duplicate); every remaining `packages/ui` component restyled; a desktop sidebar + mobile nav shell (`(vault)/layout.tsx`) replacing Vault Home's ad hoc button row and consolidating the SIGNED_OUT/AUTHENTICATED_LOCKED redirect gate out of ~7 pages into one; Vault Home, Item Detail/Edit/New, sign-in, Generator, Settings, Recovery (x2), Conflicts all restyled. Item Detail's Delete now confirms via a real `Dialog` instead of `window.confirm`. Fixed a real bug found during verification: Tailwind wasn't scanning `packages/ui`'s source through its pnpm symlink, silently breaking any button styled via bare `buttonVariants()` (fixed with an `@source` directive).                                                                                                                                                              |
 | 9w    | **Next.** Security hardening (web + shared packages) — dedicated review pass across XSS/CSRF/rules/crypto/logging/deps                                                                                                                                                                                                                                                                                                                                              |
 | 10w   | Release (web) — production Firebase project, web deploy, release checklist                                                                                                                                                                                                                                                                                                                                                                                          |
 
@@ -241,5 +247,10 @@ and a short "Changed / Tests / Security considerations / Files / Next step" repo
     `KRYVEX_SOURCE_OF_TRUTH.md` for the full decisions log (design tokens,
     shadcn-style component foundation, first 3 screens, master-password
     policy change).
-16. **Next up:** Phase 9w — security hardening (web + shared packages):
+16. ~~Phase 8v2 — visual design system rollout (rest of web app).~~ Done —
+    see "Current status" in `KRYVEX_SOURCE_OF_TRUTH.md` for the full
+    decisions log (primitives consolidation, nav shell, every remaining
+    page restyled, the delete-confirm behavior change, the Tailwind
+    `@source` fix).
+17. **Next up:** Phase 9w — security hardening (web + shared packages):
     dedicated review pass across XSS/CSRF/rules/crypto/logging/deps.

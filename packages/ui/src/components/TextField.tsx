@@ -1,3 +1,7 @@
+import { useId } from "react";
+import { Input } from "./ui/input";
+import { Label } from "./ui/label";
+
 export interface TextFieldProps {
   label: string;
   value: string;
@@ -15,17 +19,18 @@ export function TextField({
   required,
   autoComplete,
 }: TextFieldProps) {
+  const id = useId();
   return (
-    <label className="flex flex-col gap-1 text-sm">
-      {label}
-      <input
+    <div className="flex flex-col gap-1.5">
+      <Label htmlFor={id}>{label}</Label>
+      <Input
+        id={id}
         type={type}
         value={value}
         required={required}
         autoComplete={autoComplete}
         onChange={(e) => onChange(e.target.value)}
-        className="rounded border px-3 py-2"
       />
-    </label>
+    </div>
   );
 }

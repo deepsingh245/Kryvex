@@ -1,8 +1,8 @@
 # Kryvex — Source of Truth
 
-Status: **Phase 8v (visual design system, web) complete.** This is the
-primary project reference. Read this before any other file when picking up
-work on Kryvex.
+Status: **Phase 8v2 (visual design system rollout, rest of web app)
+complete.** This is the primary project reference. Read this before any
+other file when picking up work on Kryvex.
 Detailed reasoning for each section lives in the linked `docs/*.md` file —
 this document summarizes and cross-references rather than duplicating.
 
@@ -721,5 +721,125 @@ are still on the old un-tokened styling — migrating them onto the same
 token/shadcn foundation is a natural next pass, tracked as a follow-up, not
 done here. `apps/mobile` gets the same treatment once Track A reaches Phase
 10w, per the existing deferral.
+
+Phase 8v2 (visual design system rollout, rest of web app) is complete.
+Phase 8v (above) deliberately scoped the Kryvex visual system to 3
+onboarding screens only; this phase extends it to everything else —
+sign-in, Vault Home, Item Detail/Edit/New, Generator, Settings, Recovery
+(request+confirm), Conflicts — plus the `packages/ui` components those
+pages render through, since most of the actual UI surface lives there, not
+in `apps/web` itself.
+
+**Primitives consolidation**: the shadcn-style `Button`/`Input`/`Label`/
+`Card`/`Progress` + `cn()` built in `apps/web/src/components/ui/` for Phase
+8v moved into `packages/ui/src/components/ui/` (and `packages/ui/src/lib/
+utils.ts`) as the single canonical foundation — `packages/ui` gained
+`lucide-react`/`class-variance-authority`/`clsx`/`tailwind-merge` as direct
+dependencies. The old flat `packages/ui/src/components/Button.tsx`
+(`primary|secondary|danger` variants) is retired in favor of the new one
+(`primary|secondary|ghost|destructive|link`); every internal consumer
+(`AttachmentPreview`, `AttachmentUploadForm`, `EmergencyKit`, `ItemForm`,
+`PasswordGeneratorPanel`) now imports from `./ui/button`. The 3 onboarding
+screens and `apps/web/src/components/auth/*` now import `Button`/`Input`/
+`Label`/`Card`/`Progress`/`cn` from `@kryvex/ui`; the `apps/web`-local
+duplicate and `apps/web/src/lib/utils.ts` are deleted, and the now-unused
+`class-variance-authority`/`clsx`/`tailwind-merge` direct deps were dropped
+from `apps/web/package.json` (still available transitively via
+`@kryvex/ui`). `CardTitle` gained an `as` prop (default `h3`) since a `Card`
+is now used many-per-page (item tiles, `ItemCard`) — `AuthCard` explicitly
+passes `as="h1"` since it's still each auth screen's one true heading.
+
+**Rest of `packages/ui` restyled**, same props/behavior: `TextField`/
+`MultilineField` now built on the new `Input`/`Textarea`/`Label`;
+`BooleanField` is a token-styled native checkbox; `SecretField` matches
+`PasswordInput`'s show/hide treatment (`Eye`/`EyeOff`) plus a `Copy`/`Check`
+button, keeping its `aria-live` "Copied" announcement and exact `Reveal`/
+`Hide`/`Copy` accessible names (existing test contract); `TagsInput` chips
+are token-styled with an `X` remove icon; `CustomFieldsEditor`/`ItemForm`/
+`AttachmentUploadForm` restyled in place (`ItemForm` deliberately keeps its
+own `useState` form, not migrated to `react-hook-form` — bigger behavior-
+risk change, out of scope here); `ItemTypeBadge` gained a per-type Lucide
+icon via a new exported `getItemTypeIcon()` lookup (also used by `apps/web`'s
+`ItemCard`/type-picker tiles); `PasswordGeneratorPanel`/`EmergencyKit`
+restyled (`EmergencyKit`'s recovery-key block is now a `Card`). New shared
+primitives added to `packages/ui/src/components/ui/`: `badge`, `alert`,
+`skeleton`, `search-input`, `select` (a token-styled **native** `<select>`,
+not a custom listbox — nothing here needs multi-select), `dialog` and
+`sheet` (both hand-rolled — Escape/backdrop-close, `dialog` has a Tab focus
+trap — no Radix dependency added), `empty-state`, `textarea`.
+
+**Navigation shell**: `page.tsx`, `item/**`, `generator/`, `settings/`,
+`conflicts/` moved into a `(vault)/` Next.js route group (URLs unchanged);
+`welcome`/`sign-in`/`sign-up`/`unlock`/`recover(+confirm)` stay top-level —
+no persistent nav on those. New `(vault)/layout.tsx` renders
+`components/layout/Sidebar.tsx` (desktop) + `MobileTopBar.tsx` (mobile,
+opens a `Sheet` reusing the same `SidebarNav`) and is now the **single**
+place the `SIGNED_OUT`→`/welcome`/`AUTHENTICATED_LOCKED`→`/unlock` redirect
+gate lives, replacing ~7 duplicated copies (Home, Item Detail/Edit/New,
+Generator, Settings, Conflicts) — each of those pages' own redirect tests
+were removed in favor of one `(vault)/layout.test.tsx`. Sidebar categories
+(Logins/Secure Notes/Cards/Identities/API Keys/Recovery Codes/Files) filter
+Vault Home via a `?type=` search param, resolved client-side in `page.tsx`
+(no `packages/vault` changes). **"Recently Used" was explicitly dropped**
+from the sidebar (present in the original design ask) — investigation
+found `VaultItemDocument.updatedAt`/`createdAt` are deliberately typed
+`unknown` (Firestore Timestamp serialization was never finalized, see
+Phase 1/2 decisions), nothing in the app reads or sorts by them today, and
+no normalization helper exists — building a sort on top of an `unknown`
+value would be exactly the kind of shaky-foundation feature this pass was
+scoped to avoid. Flagged as a real follow-up: add a safe timestamp-
+normalization helper to `packages/vault` first, then reintroduce it.
+
+**Vault Home**: old inline button row (Generator/Settings/+Add/Lock/Sign
+out) removed — Settings, Generator, Lock Vault, and Sign out moved to the
+sidebar's bottom section (Generator and Sign out aren't in the README's
+suggested sidebar list but have no other home, so they were added rather
+than silently dropping existing functionality); top row is now
+`SearchInput` + primary `+ Add`. Items render via new `components/vault/
+ItemCard.tsx` (per-type icon, `Star`/`StarOff` favorite toggle) instead of
+a raw `<li>`; empty/no-results states use `EmptyState`; conflict/load-error
+banners use `Alert`; loading state uses `Skeleton` rows.
+
+**Item Detail/Edit/New**: Detail's tags render as `Badge`s; footer actions
+use the new `Button` variants. **Behavior change**: Delete now opens a real
+`Dialog` ("Delete this item?" / Cancel / Delete) instead of firing
+`window.confirm` — matches `KRYVEX_UI_README.md` §13's "never make
+destructive actions visually dominant unless confirmation is required" and
+§17 listing `ConfirmDialog` as a core component; new tests cover both the
+cancel and confirm paths. New's type-picker grid is now `Card` tiles with
+the same per-type icon as `ItemTypeBadge`.
+
+**Sign-in, Generator, Settings, Recovery, Conflicts**: sign-in and both
+recovery screens now use the same `AuthCard`/`PasswordInput` pattern as
+sign-up/unlock; Settings' two dropdowns became the new `Select`; Conflicts'
+two-version comparison is now a `Card` per conflict with an `AlertTriangle`
+marker and restyled action buttons.
+
+**A real bug found and fixed during verification**: browser-testing this
+phase against a live Firebase emulator (sign up → add an item → item
+detail → delete-confirm → sidebar filter → settings → mobile drawer, via
+Playwright) surfaced visually broken buttons — "Add", "Edit", "Back to
+vault" all rendered as ~27px-wide unstyled links instead of proper
+buttons. Root cause: `packages/ui` is a pnpm workspace package resolved
+through a `node_modules` symlink, and Tailwind v4's automatic source
+detection doesn't reliably scan through that symlink — so utility classes
+used *only* inside `packages/ui`'s `.tsx` files (never coincidentally
+duplicated in an already-scanned `apps/web` file) silently generated no
+CSS. Fixed with one line in `apps/web/src/app/globals.css`:
+`@source "../../../../packages/ui/src";` — re-verified via the same
+Playwright walkthrough that every affected button now renders correctly.
+This is a real monorepo gotcha worth remembering: any *new* Tailwind-v4
+workspace package consumed the same way will need the same `@source` line,
+or its classes will silently vanish exactly like this.
+
+**Deferred / recommended next**: `apps/mobile` still waits for Track A to
+reach Phase 10w, per the existing split. `KRYVEX_UI_README.md` §17 lists
+several components (CommandPalette, DataTable, Tooltip, Popover, Dropdown,
+Tabs, Accordion, Avatar, Breadcrumb, AutoLockIndicator, VaultStatus,
+RecoveryCodeGrid, TOTPDisplay, ...) that no current page needs — none were
+built, since doing so would mean inventing UI for features that don't
+exist yet (e.g. `TOTPDisplay` needs real TOTP code generation, which isn't
+implemented anywhere). "Recently Used" (see above) is the one concrete,
+scoped follow-up.
 
 Phase 9w (security hardening) is the next scheduled step — see `PLAN.md`.

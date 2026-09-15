@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Button } from "./Button";
+import { Button } from "./ui/button";
 
 // Object URLs stay valid past this component's own lifetime revoke (e.g. a
 // download/new-tab open needs a moment to actually read the blob) but must
@@ -95,8 +95,8 @@ export function AttachmentPreview({
   }
 
   return (
-    <div className="flex flex-col gap-2 text-sm">
-      <p>
+    <div className="flex flex-col gap-2.5 text-sm">
+      <p className="text-text-secondary">
         {fileName} · {mimeType} · {formatBytes(sizeBytes)}
       </p>
 
@@ -108,16 +108,30 @@ export function AttachmentPreview({
           <img
             src={imageUrl}
             alt={fileName}
-            className="max-h-96 max-w-full rounded border object-contain"
+            className="max-h-96 max-w-full rounded-lg border border-border object-contain"
           />
         ) : (
-          <Button onClick={handleShowPreview} disabled={loading}>
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            className="self-start"
+            onClick={handleShowPreview}
+            disabled={loading}
+          >
             {loading ? "Decrypting…" : "Show preview"}
           </Button>
         )
       ) : (
         <>
-          <Button onClick={handleOpenOrDownload} disabled={loading}>
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            className="self-start"
+            onClick={handleOpenOrDownload}
+            disabled={loading}
+          >
             {loading ? "Decrypting…" : isPdf ? "Open PDF" : "Download"}
           </Button>
           {/* Hidden anchor used to trigger a named download without
@@ -129,7 +143,7 @@ export function AttachmentPreview({
       )}
 
       {error && (
-        <p role="alert" className="text-red-600">
+        <p role="alert" className="text-destructive">
           {error}
         </p>
       )}

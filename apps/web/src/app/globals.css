@@ -1,5 +1,12 @@
 @import "tailwindcss";
 
+/* @kryvex/ui is a pnpm workspace package resolved via a node_modules
+ * symlink — Tailwind v4's automatic source detection doesn't reliably
+ * scan through that symlink, so classes used only in its .tsx source
+ * (never duplicated in apps/web's own files) silently got no CSS
+ * generated for them. Forcing the real source in explicitly fixes it. */
+@source "../../../../packages/ui/src";
+
 /*
  * Kryvex design tokens — see KRYVEX_UI_README.md §4/§5/§9/§10/§25.
  * Dark is the primary identity (bare :root); prefers-color-scheme: light

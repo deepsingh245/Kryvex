@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, type ChangeEvent, type FormEvent } from "react";
+import { useId, useState, type ChangeEvent, type FormEvent } from "react";
 import type { CustomField } from "@kryvex/types";
 import { CustomFieldsEditor } from "./CustomFieldsEditor";
+import { Label } from "./ui/label";
 import { MultilineField } from "./MultilineField";
 import { TagsInput } from "./TagsInput";
 import { TextField } from "./TextField";
-import { Button } from "./Button";
+import { Button } from "./ui/button";
 
 // Matches firebase/storage.rules' upload size cap exactly.
 const MAX_ATTACHMENT_BYTES = 50 * 1024 * 1024;
@@ -46,6 +47,7 @@ export function AttachmentUploadForm({
   onCancel,
   submitting,
 }: AttachmentUploadFormProps) {
+  const fileInputId = useId();
   const [title, setTitle] = useState("");
   const [tags, setTags] = useState<string[]>([]);
   const [notes, setNotes] = useState("");
@@ -91,7 +93,7 @@ export function AttachmentUploadForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
+    <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-5">
       <TextField label="Title" value={title} required onChange={setTitle} />
       <TagsInput
         label="Tags"
@@ -106,20 +108,21 @@ export function AttachmentUploadForm({
         rows={3}
       />
 
-      <label className="flex flex-col gap-1 text-sm">
-        File
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor={fileInputId}>File</Label>
         <input
+          id={fileInputId}
           type="file"
           accept={ACCEPT_BY_TYPE[type]}
           onChange={handleFileChange}
-          className="rounded border px-3 py-2"
+          className="flex h-11 w-full min-w-0 rounded-md border border-border-strong bg-surface text-sm text-foreground shadow-sm outline-none file:mr-3 file:h-11 file:cursor-pointer file:border-0 file:border-r file:border-border file:bg-surface-2 file:px-3.5 file:text-sm file:font-medium file:text-foreground hover:file:bg-border-strong focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/40"
         />
-      </label>
+      </div>
 
       <CustomFieldsEditor fields={customFields} onChange={setCustomFields} />
 
       {error && (
-        <p role="alert" className="text-sm text-red-600">
+        <p role="alert" className="text-sm text-destructive">
           {error}
         </p>
       )}
@@ -128,7 +131,7 @@ export function AttachmentUploadForm({
         <Button type="submit" variant="primary" disabled={submitting}>
           {submitting ? "Uploading…" : "Upload"}
         </Button>
-        <Button onClick={onCancel} disabled={submitting}>
+        <Button type="button" variant="secondary" onClick={onCancel} disabled={submitting}>
           Cancel
         </Button>
       </div>
