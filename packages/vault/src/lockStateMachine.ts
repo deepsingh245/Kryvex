@@ -8,6 +8,7 @@
  * imports @kryvex/firebase.
  */
 
+import { wipeBytes } from "@kryvex/crypto";
 import type { AuthenticatedUser } from "@kryvex/types";
 
 export type LockState =
@@ -84,9 +85,14 @@ export function lockStateReducer(
         : state;
 
     case "LOCK_REQUESTED":
-      return state.status === "UNLOCKED"
-        ? { status: "LOCKING", user: state.user }
-        : state;
+      if (state.status !== "UNLOCKED") return state;
+      // Best-effort: wipe the outgoing key material now that this reducer
+      // (not a component closure, which can go stale) has the true current
+      // state — see @kryvex/crypto's wipeBytes doc comment for what this
+      // does and doesn't guarantee. Shared by apps/web and apps/mobile.
+      wipeBytes(state.stretchedMasterKey);
+      wipeBytes(state.vaultEncryptionKey);
+      return { status: "LOCKING", user: state.user };
 
     case "LOCK_COMPLETED":
       return state.status === "LOCKING"

@@ -1,8 +1,8 @@
 # Kryvex — Source of Truth
 
-Status: **Phase 8v2 (visual design system rollout, rest of web app)
-complete.** This is the primary project reference. Read this before any
-other file when picking up work on Kryvex.
+Status: **Phase 9w (security hardening, web + shared packages) complete.**
+This is the primary project reference. Read this before any other file
+when picking up work on Kryvex.
 Detailed reasoning for each section lives in the linked `docs/*.md` file —
 this document summarizes and cross-references rather than duplicating.
 
@@ -124,7 +124,7 @@ build spec §18.
 | Hand-rolled `btoa`/`atob` base64 wrapper in `packages/crypto`, not a new dependency                                                                                                                                                      | Neither `@noble/hashes` nor `@noble/ciphers` exports base64; native Hermes/browser `btoa`/`atob` support confirmed for this repo's Expo SDK (57, past the SDK-51 baseline)                                                                                                                                                  | CRYPTOGRAPHIC_ARCHITECTURE.md §3                                                     |
 | `unlock()`'s Phase 2 `signInWithAuthSecret` re-verification call dropped, replaced with local AEAD unwrap                                                                                                                                | Phase 3's `protectedVaultKey` unwrap-and-fail-closed is now the real local correctness signal Phase 2 lacked; re-authenticating an already-signed-in user on every unlock was redundant once it existed                                                                                                                     | CRYPTOGRAPHIC_ARCHITECTURE.md §11                                                    |
 | In-memory substring search over decrypted content, no persisted index (Phase 4, reconfirmed Phase 5)                                                                                                                                     | The full item set is already decrypted into memory to render the list, so a substring scan is free; Phase 5's offline cache stores encrypted envelopes only, so it doesn't change this — a plaintext search index still isn't worth building. Resolves PLAN.md's previously-open "local search index" risk                  | DATA_MODEL.md §6                                                                     |
-| Per-item DEK reused across edits (`reencryptItemContent` unwraps and re-encrypts under the _same_ key rather than rotating per save)                                                                                                     | Keeps `wrappedItemKey` stable/unchanged on every edit, minimizing update diffs; explicit per-edit DEK rotation would need its own future flow if ever required                                                                                                                                                              | packages/vault/src/itemCrypto.ts                                                     |
+| Per-item DEK reused across edits (`reencryptItemContent` unwraps and re-encrypts under the _same_ key rather than rotating per save) — **re-reviewed and confirmed in Phase 9w**, not just a Phase 4-era assumption                     | Keeps `wrappedItemKey` stable/unchanged on every edit, minimizing update diffs; AES-256-GCM's safety comes from never reusing a nonce under a key, not from limiting key reuse — `encryptBytes` always draws a fresh CSPRNG nonce per call, so repeated encryption under the same DEK is safe. Explicit per-edit rotation would need its own future flow if ever required for other reasons | packages/vault/src/itemCrypto.ts                                                     |
 | One generic, data-driven `ItemForm` (per-`ItemType` field-config array) instead of 11 hand-built forms                                                                                                                                   | `ItemContentBase` is genuinely shared and per-type deltas are small; extends the `CustomField` type-discrimination pattern DATA_MODEL.md already establishes to all fields, not just custom ones                                                                                                                            | packages/ui/src/fieldConfig.ts                                                       |
 | `image`/`pdf`/`file` item types modeled in the type system but excluded from the Add-item flow                                                                                                                                           | Attachment upload/storage is Phase 6; avoids building UI that would need reworking once real attachment storage lands                                                                                                                                                                                                       | DATA_MODEL.md §1, §6 (Phase 4 status note)                                           |
 | No clipboard auto-clear on `SecretField`'s copy button in Phase 4                                                                                                                                                                        | Deferred to Phase 7's `packages/security/src/clipboard.ts` (currently a stub); documented limitation, not silently shipped as if handled                                                                                                                                                                                    | packages/ui/src/components/SecretField.tsx                                           |
@@ -149,6 +149,12 @@ build spec §18.
 | Settings (`autoLockMinutes`/`clipboardClearSeconds`/`biometricUnlockEnabled`) kept as local React state in `apps/web/src/providers/VaultProvider.tsx`, not added to the shared `@kryvex/vault` `LockState`/`lockStateReducer` (Phase 8w) | Same reasoning as Phase 7w's `lock()` addition — this state is web-specific UI state, not part of the cross-platform lock state machine `apps/mobile`'s own `VaultProvider.tsx` also depends on; avoids touching a shared reducer for a web-only concern                                                                    | apps/web/src/providers/VaultProvider.tsx                                             |
 | No new shared `LoadingState`/`ErrorBanner`/`EmptyState` component in `packages/ui`; the existing per-page inline pattern (`<p role="alert">`/`<p className="text-gray-500">`) is reused instead (Phase 8w)                               | Every page already follows one consistent pattern; introducing an abstraction wasn't warranted by what was actually missing (three specific silent-failure gaps, not a systemic one) — revisit only if duplication becomes a real maintenance problem                                                                       | apps/web/src/app/page.tsx, conflicts/page.tsx                                        |
 | No automated accessibility tooling (e.g. axe-core in CI) added this phase (Phase 8w)                                                                                                                                                     | Targeted, manually-identified accessibility fixes were in scope; broader automated coverage is candidate scope for Phase 9w (security/quality hardening), not this pass                                                                                                                                                     | PLAN.md                                                                              |
+| KDF-params upgrade path (rehash-on-unlock if policy strengthens) deferred, not built in Phase 9w                                                                                                                                         | Today's shipped Argon2id params (64 MiB/t=3/p=1) already meet the documented target — this is real but non-urgent feature work (silently re-deriving keys and re-wrapping the VEK on a successful unlock), not a hardening-review-pass fix; tracked as a follow-up                                                        | docs/CRYPTOGRAPHIC_ARCHITECTURE.md §6                                                |
+| Best-effort key-buffer zeroing (`wipeBytes`) added for `masterKey`/`authKeyBytes` (in `deriveAuthAndStretchedKey`'s callers) and `stretchedMasterKey`/`vaultEncryptionKey` (in `lockStateReducer`'s `LOCK_REQUESTED`), Phase 9w           | Shrinks the window raw key material sits in memory after use; explicitly documented as defense-in-depth, not a guarantee — JS has no secure-erase primitive. Wiping lives in the shared reducer (not each app's own `lock()` wrapper) since the reducer always has the true current state, avoiding a stale-closure bug a component-level wipe would risk | packages/crypto/src/wipe.ts, packages/vault/src/lockStateMachine.ts                  |
+| Firebase App Check wired on `apps/web` (reCAPTCHA v3 + emulator debug-token mode) but `enforceAppCheck` left off on every Cloud Function, Phase 9w                                                                                       | `apps/mobile` has no App Check wiring at all yet (deferred to Track B); enforcing now would lock mobile users out of sign-up/sign-in/recovery. Also corrects `docs/FIREBASE_SECURITY.md` §4, which previously overstated App Check as already "enabled"                                                                     | packages/firebase/src/app.ts, docs/FIREBASE_SECURITY.md §4                          |
+| `firestore.rules`' `users/{uid}` create/update rules gained `isValidKdfParams` (floors `kdfParams` at the shipped Argon2id defaults), Phase 9w                                                                                           | No validation existed at all before — a compromised or buggy client could write arbitrarily weak Argon2id parameters into its own profile doc, cheapening a future offline attack if the wrapped keys were also exfiltrated. Only floors the values; a stronger future policy can still raise them                        | firebase/firestore.rules, tests/security/firestore.rules.test.ts                    |
+| Five non-cryptographic ID-generation `Math.random()` fallbacks (used only when `crypto.randomUUID` is unavailable) replaced with a CSPRNG-backed fallback in `apps/web`/`packages/ui`; `apps/mobile`'s two mirrors left as-is, Phase 9w   | Not exploitable (worst case is an ID collision, not a confidentiality/integrity break), but a literal violation of CLAUDE.md's absolute "never `Math.random()`" wording — closed for policy consistency where in scope; mobile is frozen per the Track A/B split                                                            | apps/web/src/hooks/useVaultItems.ts, useCreateAttachment.ts, packages/ui/src/components/CustomFieldsEditor.tsx |
+| `react/no-danger` added to the shared ESLint config, Phase 9w                                                                                                                                                                            | Nothing in the codebase uses `dangerouslySetInnerHTML` today (confirmed repo-wide) — this locks that state in defensively rather than fixing a live bug, since a vault app rendering decrypted user content is exactly where an XSS sink would matter most                                                                 | packages/eslint-config/react.js                                                     |
 
 ## 13. Known limitations
 
@@ -842,4 +848,63 @@ exist yet (e.g. `TOTPDisplay` needs real TOTP code generation, which isn't
 implemented anywhere). "Recently Used" (see above) is the one concrete,
 scoped follow-up.
 
-Phase 9w (security hardening) is the next scheduled step — see `PLAN.md`.
+Phase 9w (security hardening, web + shared packages) is complete. Three
+parallel research passes — the documented threat model/Firebase rules/
+crypto architecture plus existing test coverage, the actual `apps/web`
+XSS/logging/localStorage/CSRF/dependency surface, and the actual
+`packages/crypto`/`packages/vault`/`packages/password-generator`
+implementations against best practice — found the security posture
+fundamentally solid: no XSS sinks anywhere, no weak hashes, no
+`Math.random()` in any crypto path, correct fail-closed AEAD throughout,
+no secrets in logs/URLs/`localStorage`. This phase closed the small number
+of real, mostly self-flagged gaps that review surfaced — see §12's
+decisions log for each one's full reasoning:
+
+- **Firebase App Check** wired on `apps/web` (reCAPTCHA v3 in production,
+  emulator debug-token mode in dev), but deliberately **not enforced** on
+  any Cloud Function yet — `apps/mobile` has no App Check wiring, and
+  enforcing now would lock mobile out. Also corrected
+  `docs/FIREBASE_SECURITY.md` §4, which previously and incorrectly claimed
+  App Check was already "enabled."
+- **`firestore.rules`** gained `isValidKdfParams`, flooring a profile's
+  Argon2id parameters at the shipped defaults on create/update — previously
+  unvalidated entirely. 6 new emulator test cases in
+  `tests/security/firestore.rules.test.ts` (37 total, up from 31). Also
+  directly cross-checked `packages/types`' `ITEM_TYPES`/`VaultItemDocument`/
+  `AttachmentDocument` shapes against `isValidItem`/`isValidAttachment`'s
+  hand-synced lists — confirmed no drift.
+- **Best-effort key-buffer wiping** (`wipeBytes`, new in `packages/crypto`)
+  for `masterKey`/`authKeyBytes` and, in the shared `lockStateReducer`
+  itself (not each app's `lock()` wrapper, to avoid a stale-closure bug),
+  `stretchedMasterKey`/`vaultEncryptionKey` on lock. Shared with
+  `apps/mobile` for free since the reducer is a shared package.
+- **Per-item DEK reuse across edits** re-reviewed and confirmed safe
+  (nonce freshness, not key reuse, is what AES-256-GCM actually depends
+  on) — resolved the code's own "flagged for security review" comment
+  rather than leaving it open.
+- **KDF-param upgrade path** (rehash-on-unlock if policy strengthens)
+  explicitly deferred as a documented follow-up — real feature work, not
+  in scope for a review pass.
+- Five non-cryptographic `Math.random()` ID-generation fallbacks replaced
+  with a CSPRNG-backed fallback in `apps/web`/`packages/ui` (not
+  exploitable, but a literal violation of CLAUDE.md's absolute wording);
+  `apps/mobile`'s two mirrors left as-is per the Track A/B split.
+- `react/no-danger` added to the shared ESLint config (nothing uses
+  `dangerouslySetInnerHTML` today — locks that in defensively).
+  `secureLogger`'s doc comment now explicitly states the one real gap its
+  redaction has (the `message` string itself is never scanned, only object
+  keys in `meta`) as a hard rule for callers, since no current call site
+  was exploiting it but the gap itself was undocumented before.
+- `pnpm audit --prod`: 4 advisories found (2 high, 2 moderate), all
+  transitive dependencies of `apps/mobile`'s React Native/Expo toolchain
+  (`image-size` via `metro`, `uuid` via `xcode`, `decode-uri-component` via
+  `expo-router`), all denial-of-service-class issues in build/dev tooling —
+  zero findings in `apps/web`/`packages/*`. No dependency changes made;
+  tracked for whenever mobile hardening (Phase 9m) happens.
+- Not done, flagged as a manual action item (not something code can
+  safely do): enabling Firebase Auth's **Email Enumeration Protection**
+  project setting — an Identity Platform setting with possible cost/
+  behavior implications the project owner should decide on. See
+  `docs/DEPLOYMENT.md`'s release checklist.
+
+Phase 10w (release, web) is the next scheduled step — see `PLAN.md`.

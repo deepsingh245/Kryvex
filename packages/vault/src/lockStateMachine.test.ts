@@ -55,9 +55,34 @@ describe("lockStateReducer — valid transitions", () => {
   });
 
   it("UNLOCKED + LOCK_REQUESTED -> LOCKING", () => {
-    expect(lockStateReducer(UNLOCKED, { type: "LOCK_REQUESTED" })).toEqual(
+    // Dedicated buffers (not the shared `key`/`vaultKey` fixtures used
+    // elsewhere in this file) since this transition wipes them in place —
+    // see the next test, which asserts on that directly.
+    const ownKey = new Uint8Array([1, 2, 3]);
+    const ownVaultKey = new Uint8Array([4, 5, 6]);
+    const unlocked: LockState = {
+      status: "UNLOCKED",
+      user,
+      stretchedMasterKey: ownKey,
+      vaultEncryptionKey: ownVaultKey,
+    };
+    expect(lockStateReducer(unlocked, { type: "LOCK_REQUESTED" })).toEqual(
       LOCKING,
     );
+  });
+
+  it("UNLOCKED + LOCK_REQUESTED wipes the outgoing key buffers", () => {
+    const ownKey = new Uint8Array([1, 2, 3]);
+    const ownVaultKey = new Uint8Array([4, 5, 6]);
+    const unlocked: LockState = {
+      status: "UNLOCKED",
+      user,
+      stretchedMasterKey: ownKey,
+      vaultEncryptionKey: ownVaultKey,
+    };
+    lockStateReducer(unlocked, { type: "LOCK_REQUESTED" });
+    expect(ownKey).toEqual(new Uint8Array(3));
+    expect(ownVaultKey).toEqual(new Uint8Array(3));
   });
 
   it("LOCKING + LOCK_COMPLETED -> AUTHENTICATED_LOCKED", () => {

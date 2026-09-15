@@ -205,6 +205,18 @@ target devices, but the design targets:
   non-secret Firestore profile document, so they can be strengthened over time
   for new/re-derived unlocks (client re-derives with new params + re-wraps the
   Protected Vault Encryption Key) without breaking older stored data.
+- **Shipped default confirmed in Phase 9w's hardening review**:
+  `packages/crypto`'s `DEFAULT_KDF_PARAMS` is 64 MiB / t=3 / p=1 — meets the
+  web target stated above. `firebase/firestore.rules`' `isValidKdfParams`
+  (added Phase 9w) now floors any client-written `kdfParams` at exactly
+  these values, closing a previously-unvalidated write path.
+- **Not yet built** (tracked follow-up, deliberately out of Phase 9w's
+  review-pass scope): an automatic "rehash on next successful unlock if
+  the account's stored `kdfParams` are below the current policy" upgrade
+  path. Today, an account's params are fixed at sign-up/recovery time
+  forever unless the user changes their master password. This is real
+  feature work (re-deriving keys and re-wrapping the Vault Encryption Key
+  silently on unlock), not a hardening-pass fix.
 
 ## 7. Key storage
 
@@ -216,6 +228,16 @@ target devices, but the design targets:
   unwrapped Vault Encryption Key, any unwrapped item/attachment DEK currently
   in use. Never written to `localStorage`. An encrypted local cache (ciphertext
   only) may live in IndexedDB for offline-first access.
+- **Best-effort buffer wiping (Phase 9w):** `packages/crypto`'s `wipeBytes`
+  (`buffer.fill(0)`) is called on `masterKey`/the intermediate
+  `authKeyBytes` once `deriveAuthAndStretchedKey` no longer needs them, and
+  on `stretchedMasterKey`/`vaultEncryptionKey` inside the shared
+  `lockStateReducer`'s `LOCK_REQUESTED` handling (shared by both
+  platforms). This is explicitly defense-in-depth, not a guarantee — JS
+  has no secure-erase primitive, so a buffer may already be copied
+  elsewhere (e.g. an internal Argon2id/WASM buffer) before this runs, and
+  the GC can still leave stale copies in memory pages. It shrinks the
+  window a memory-scraping attack has; it doesn't close it.
 - **Mobile client:** same in-memory rule for unwrapped key material; biometric
   unlock protects a Keychain (iOS) / Keystore (Android) entry that itself holds
   the wrapped Vault Encryption Key material or an equivalent locally-scoped

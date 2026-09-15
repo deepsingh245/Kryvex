@@ -9,6 +9,14 @@
  * best-effort safety net — known-sensitive key names are redacted before
  * anything reaches the console, so a mistake (e.g. accidentally logging a
  * decrypted item) fails safe instead of leaking a secret verbatim.
+ *
+ * HARD RULE (Phase 9w audit — every current call site already follows this,
+ * confirmed repo-wide): redaction only inspects *object keys* in the
+ * `...meta` arguments below. The `message` string itself, and any bare
+ * string/primitive passed as `meta`, are never scanned or redacted. Never
+ * interpolate a variable into `message` (e.g. `` `Unlock failed for
+ * ${masterPassword}` ``) — pass it as a named field in a `meta` object
+ * instead, where this module's redaction can actually see and mask it.
  */
 
 const SENSITIVE_KEY_PATTERN =

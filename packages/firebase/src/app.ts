@@ -15,6 +15,11 @@
  */
 
 import { getApp, getApps, initializeApp, type FirebaseApp } from "firebase/app";
+import {
+  initializeAppCheck,
+  ReCaptchaV3Provider,
+  type AppCheck,
+} from "firebase/app-check";
 import { connectAuthEmulator, getAuth, type Auth } from "firebase/auth";
 import {
   connectFirestoreEmulator,
@@ -50,6 +55,22 @@ export interface KryvexFirebaseServices {
   firestore: Firestore;
   storage: FirebaseStorage;
   functions: Functions;
+  // undefined when App Check isn't configured for this session (no site
+  // key and not running against the emulator) — Phase 9w wires this up on
+  // the web client, but no Cloud Function enforces it yet (see
+  // firebase/functions/src/getKdfParams.ts's own comment on why: apps/mobile
+  // isn't wired up yet, and enforcing now would lock mobile out).
+  appCheck?: AppCheck | undefined;
+}
+
+export interface KryvexAppCheckOptions {
+  /** reCAPTCHA v3 site key from the Firebase Console. Omit to skip App
+   * Check entirely outside emulator mode (e.g. local dev with no key
+   * provisioned yet) — safe today since nothing enforces it server-side. */
+  siteKey?: string | undefined;
+  /** Set only when connecting to the emulator suite — lets App Check debug
+   * mode activate without a real site key. See docs/DEVELOPMENT.md §4. */
+  debug?: boolean | undefined;
 }
 
 /** Shared by app.ts and appNative.ts — safe to call repeatedly (HMR-safe). */
@@ -99,6 +120,44 @@ export function connectServicesToEmulator(
   }
 }
 
+/**
+ * Phase 9w: wires App Check on the web client. No Cloud Function enforces
+ * it yet (see KryvexFirebaseServices' doc comment on `appCheck`) — this
+ * only attaches a token to outgoing requests, in preparation for that
+ * enforcement being turned on once apps/mobile is wired up too. Never
+ * throws: an optional hardening layer failing to initialize (missing site
+ * key, HMR re-entry, ad blocker interference with the reCAPTCHA script,
+ * etc.) must not block the app from starting.
+ */
+function initializeKryvexAppCheck(
+  app: FirebaseApp,
+  options: KryvexAppCheckOptions | undefined,
+): AppCheck | undefined {
+  // Same "web-only, client-only call site" contract as the rest of this
+  // file (see initializeKryvexFirebase's own doc comment) — no separate
+  // SSR guard needed beyond what every other service getter here already
+  // assumes.
+  if (!options?.siteKey && !options?.debug) return undefined;
+
+  try {
+    if (options.debug) {
+      // https://firebase.google.com/docs/app-check/web/debug-provider —
+      // must be set before initializeAppCheck. A real site key still isn't
+      // used for network calls once this flag is set, so a placeholder is
+      // fine when running against the emulator without one configured.
+      (
+        globalThis as { FIREBASE_APPCHECK_DEBUG_TOKEN?: boolean | string }
+      ).FIREBASE_APPCHECK_DEBUG_TOKEN = true;
+    }
+    return initializeAppCheck(app, {
+      provider: new ReCaptchaV3Provider(options.siteKey ?? "debug-mode"),
+      isTokenAutoRefreshEnabled: true,
+    });
+  } catch {
+    return undefined;
+  }
+}
+
 // Module-scope cache: initializeApp/getAuth/connect*Emulator must each run
 // exactly once per app instance.
 let cached: KryvexFirebaseServices | null = null;
@@ -107,6 +166,7 @@ let cached: KryvexFirebaseServices | null = null;
 export function initializeKryvexFirebase(
   config: KryvexFirebaseConfig,
   emulatorEnv: ResolveFirebaseEmulatorConfigInput,
+  appCheckOptions?: KryvexAppCheckOptions,
 ): KryvexFirebaseServices {
   if (cached) return cached;
 
@@ -117,6 +177,7 @@ export function initializeKryvexFirebase(
     firestore: getFirestore(app),
     storage: getStorage(app),
     functions: getFunctions(app),
+    appCheck: initializeKryvexAppCheck(app, appCheckOptions),
   };
   connectServicesToEmulator(services, emulatorEnv);
 

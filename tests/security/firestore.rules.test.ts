@@ -61,6 +61,84 @@ describe("firestore.rules — users/{uid}", () => {
   });
 });
 
+describe("firestore.rules — users/{uid} kdfParams floor", () => {
+  const VALID_KDF_PARAMS = { memoryKiB: 65536, iterations: 3, parallelism: 1 };
+
+  function profile(kdfParams: Record<string, unknown>) {
+    return {
+      uid: "alice",
+      email: "alice@example.com",
+      kdfSalt: "x",
+      kdfParams,
+      createdAt: new Date(),
+      settings: {
+        autoLockMinutes: 5,
+        clipboardClearSeconds: 30,
+        biometricUnlockEnabled: false,
+      },
+    };
+  }
+
+  it("allows creating a profile with kdfParams at the documented floor", async () => {
+    const aliceDb = testEnv.authenticatedContext("alice").firestore();
+    await assertSucceeds(
+      aliceDb.doc("users/alice").set(profile(VALID_KDF_PARAMS)),
+    );
+  });
+
+  it("denies creating a profile with memoryKiB below the 64 MiB floor", async () => {
+    const aliceDb = testEnv.authenticatedContext("alice").firestore();
+    await assertFails(
+      aliceDb
+        .doc("users/alice")
+        .set(profile({ ...VALID_KDF_PARAMS, memoryKiB: 1024 })),
+    );
+  });
+
+  it("denies creating a profile with iterations below the floor", async () => {
+    const aliceDb = testEnv.authenticatedContext("alice").firestore();
+    await assertFails(
+      aliceDb
+        .doc("users/alice")
+        .set(profile({ ...VALID_KDF_PARAMS, iterations: 1 })),
+    );
+  });
+
+  it("denies creating a profile with parallelism other than 1", async () => {
+    const aliceDb = testEnv.authenticatedContext("alice").firestore();
+    await assertFails(
+      aliceDb
+        .doc("users/alice")
+        .set(profile({ ...VALID_KDF_PARAMS, parallelism: 4 })),
+    );
+  });
+
+  it("denies weakening kdfParams on update", async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await context.firestore().doc("users/alice").set(profile(VALID_KDF_PARAMS));
+    });
+    const aliceDb = testEnv.authenticatedContext("alice").firestore();
+    await assertFails(
+      aliceDb
+        .doc("users/alice")
+        .set(profile({ ...VALID_KDF_PARAMS, memoryKiB: 512 }), { merge: true }),
+    );
+  });
+
+  it("allows an update that doesn't touch kdfParams at all", async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await context.firestore().doc("users/alice").set(profile(VALID_KDF_PARAMS));
+    });
+    const aliceDb = testEnv.authenticatedContext("alice").firestore();
+    await assertSucceeds(
+      aliceDb.doc("users/alice").set(
+        { settings: { autoLockMinutes: 15, clipboardClearSeconds: 60, biometricUnlockEnabled: true } },
+        { merge: true },
+      ),
+    );
+  });
+});
+
 describe("firestore.rules — users/{uid}/items/{itemId}", () => {
   it("denies user A reading user B's items", async () => {
     const aliceDb = testEnv.authenticatedContext("alice").firestore();

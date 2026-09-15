@@ -16,6 +16,7 @@ import {
   decryptAttachmentFileName,
 } from "@kryvex/vault";
 import {
+  webFirebaseAppCheckOptions,
   webFirebaseConfig,
   webFirebaseEmulatorEnv,
 } from "@/lib/firebaseConfig";
@@ -24,7 +25,11 @@ import { useVault } from "@/providers/VaultProvider";
 // See useVaultItems.ts's own getServices() comment: lazy, client-only,
 // never called from render.
 function getServices() {
-  return initializeKryvexFirebase(webFirebaseConfig, webFirebaseEmulatorEnv);
+  return initializeKryvexFirebase(
+    webFirebaseConfig,
+    webFirebaseEmulatorEnv,
+    webFirebaseAppCheckOptions,
+  );
 }
 
 export interface AttachmentMetadata {

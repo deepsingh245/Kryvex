@@ -14,6 +14,8 @@ export {
   generateKey,
 } from "./aead";
 
+export { wipeBytes } from "./wipe";
+
 // Canonical byte<->hex encoding for anything stored as a string (e.g.
 // kdfSalt in UserProfileDocument) — re-exported so every call site uses the
 // same encoding instead of each reimplementing hex conversion.

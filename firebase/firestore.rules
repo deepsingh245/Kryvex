@@ -6,6 +6,19 @@ service cloud.firestore {
       return request.auth != null && request.auth.uid == uid;
     }
 
+    // Floor matches packages/crypto's DEFAULT_KDF_PARAMS (64 MiB / t=3 / p=1
+    // — see docs/CRYPTOGRAPHIC_ARCHITECTURE.md §6's stated web target).
+    // Without this, a compromised or buggy client could write arbitrarily
+    // weak Argon2id parameters into its own profile doc, cheapening any
+    // future offline attack against that account if the wrapped keys were
+    // also exfiltrated. A stronger client policy may still raise these
+    // values later; this only floors them, never caps them.
+    function isValidKdfParams(params) {
+      return params.memoryKiB is int && params.memoryKiB >= 65536
+        && params.iterations is int && params.iterations >= 3
+        && params.parallelism is int && params.parallelism == 1;
+    }
+
     // Keep this type list in sync by hand with packages/types/src/vaultItem.ts's
     // ITEM_TYPES — rules can't import a TS const, so this is an accepted,
     // manually-synced duplicate (see docs/DATA_MODEL.md §1).
@@ -35,8 +48,11 @@ service cloud.firestore {
     match /users/{uid} {
       allow read: if isOwner(uid);
       // profile is created once at signup, updated only for settings/key-rotation fields
-      allow create: if isOwner(uid);
-      allow update: if isOwner(uid) && request.resource.data.uid == uid;
+      allow create: if isOwner(uid)
+                    && (!('kdfParams' in request.resource.data) || isValidKdfParams(request.resource.data.kdfParams));
+      allow update: if isOwner(uid)
+                    && request.resource.data.uid == uid
+                    && (!('kdfParams' in request.resource.data) || isValidKdfParams(request.resource.data.kdfParams));
       allow delete: if false; // account deletion goes through the deletion flow (Cloud Function), not a direct client delete
 
       match /items/{itemId} {

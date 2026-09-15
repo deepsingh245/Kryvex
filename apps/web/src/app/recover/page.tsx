@@ -12,6 +12,7 @@ import { secureLogger } from "@kryvex/security";
 import { Button, Input, Label } from "@kryvex/ui";
 import { AuthCard } from "@/components/auth/AuthCard";
 import {
+  webFirebaseAppCheckOptions,
   webFirebaseConfig,
   webFirebaseEmulatorEnv,
 } from "@/lib/firebaseConfig";
@@ -20,7 +21,11 @@ import {
 // client-only. This page doesn't touch lock state, so it talks to
 // @kryvex/firebase directly rather than through VaultProvider.
 function getServices() {
-  return initializeKryvexFirebase(webFirebaseConfig, webFirebaseEmulatorEnv);
+  return initializeKryvexFirebase(
+    webFirebaseConfig,
+    webFirebaseEmulatorEnv,
+    webFirebaseAppCheckOptions,
+  );
 }
 
 export default function RecoverPage() {
