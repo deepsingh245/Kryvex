@@ -21,10 +21,34 @@ describe("masterPasswordSchema", () => {
     expect(masterPasswordSchema.safeParse("short").success).toBe(false);
   });
 
-  it("accepts a 12+ character password", () => {
+  it("accepts a 12+ character password meeting all requirements", () => {
     expect(
-      masterPasswordSchema.safeParse("correct horse battery").success,
+      masterPasswordSchema.safeParse("Correct-Horse9-Battery").success,
     ).toBe(true);
+  });
+
+  it("rejects a 12+ character password missing an uppercase letter", () => {
+    expect(
+      masterPasswordSchema.safeParse("correct-horse9-battery").success,
+    ).toBe(false);
+  });
+
+  it("rejects a 12+ character password missing a lowercase letter", () => {
+    expect(
+      masterPasswordSchema.safeParse("CORRECT-HORSE9-BATTERY").success,
+    ).toBe(false);
+  });
+
+  it("rejects a 12+ character password missing a number", () => {
+    expect(
+      masterPasswordSchema.safeParse("Correct-Horse-Battery").success,
+    ).toBe(false);
+  });
+
+  it("rejects a 12+ character password missing a special character", () => {
+    expect(
+      masterPasswordSchema.safeParse("Correct9Horse9Battery").success,
+    ).toBe(false);
   });
 });
 
@@ -32,8 +56,8 @@ describe("signUpFormSchema", () => {
   it("accepts matching passwords", () => {
     const result = signUpFormSchema.safeParse({
       email: "a@b.com",
-      masterPassword: "correct horse battery",
-      confirmMasterPassword: "correct horse battery",
+      masterPassword: "Correct-Horse9-Battery",
+      confirmMasterPassword: "Correct-Horse9-Battery",
     });
     expect(result.success).toBe(true);
   });
@@ -41,7 +65,7 @@ describe("signUpFormSchema", () => {
   it("rejects mismatched passwords", () => {
     const result = signUpFormSchema.safeParse({
       email: "a@b.com",
-      masterPassword: "correct horse battery",
+      masterPassword: "Correct-Horse9-Battery",
       confirmMasterPassword: "different password entirely",
     });
     expect(result.success).toBe(false);

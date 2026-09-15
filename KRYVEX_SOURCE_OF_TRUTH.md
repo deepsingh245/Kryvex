@@ -1,7 +1,8 @@
 # Kryvex — Source of Truth
 
-Status: **Phase 8w (UX polish, web) complete.** This is the primary project
-reference. Read this before any other file when picking up work on Kryvex.
+Status: **Phase 8v (visual design system, web) complete.** This is the
+primary project reference. Read this before any other file when picking up
+work on Kryvex.
 Detailed reasoning for each section lives in the linked `docs/*.md` file —
 this document summarizes and cross-references rather than duplicating.
 
@@ -642,5 +643,83 @@ performed this session — no issues found. **Not yet done:** a manual
 browser click-through of the settings screen and a viewport resize
 click-through of the four responsive-layout fixes (same no-automation
 caveat as every prior phase).
+
+Phase 8v (visual design system, web) is complete. `KRYVEX_UI_README.md`
+(added this session) is the visual source of truth — colors, typography,
+spacing/radius/shadow scale, component behavior, and the exact composition
+of the first 3 onboarding screens. None of it had been applied before this
+phase: `apps/web` was functionally complete through Phase 8w but still used
+default Next.js/Tailwind starter styling. Scope was deliberately narrow —
+apply the system to the 3 onboarding screens only, not a repo-wide
+component migration, and web-only (`apps/mobile` stays deferred per the
+Track A/Track B split above).
+
+**Foundation**: `apps/web/src/app/globals.css` is rewritten with the full
+Kryvex semantic token set as Tailwind v4 CSS variables (background/surface/
+surface-2/card/text-primary-secondary-muted/border/border-strong/primary
+(+hover/soft)/success/warning/error(destructive)/info), dark as the bare
+`:root` default (the primary identity) with a `prefers-color-scheme: light`
+override carrying the README's separate light palette — same token names in
+both, so no component hard-codes a color. Tailwind's default 4px-based
+spacing scale already matches the README's scale, so no custom spacing
+config was needed; `--radius-sm/md/lg/xl` are remapped to the README's 4/12/
+16/20px scale. `layout.tsx` swaps `Geist`/`Geist_Mono` for `Inter`/
+`JetBrains Mono` and wires a single Sonner `<Toaster>`. New dependencies in
+`apps/web/package.json`: `lucide-react`, `react-hook-form`,
+`@hookform/resolvers`, `sonner`, `class-variance-authority`, `clsx`,
+`tailwind-merge`, plus a direct `zod` dependency (was previously only
+indirect via `@kryvex/validation`). No Radix/Base UI/full shadcn CLI
+scaffold was pulled in — `apps/web/src/components/ui/` (`button`, `input`,
+`label`, `card`, `progress`) is a small set of hand-written shadcn-style
+primitives wired to the new tokens, deliberately avoiding an extra
+`@radix-ui/react-slot` dependency the 3 screens don't need (no `asChild`
+use case yet).
+
+**New components**: `components/brand/` (`Logo`, an SVG geometric-K mark;
+`FloatingVaultIllustration`, the Screen 1 decorative visual — no external
+images). `components/auth/` (`AuthCard`, the shared centered-card shell used
+by Screens 02/03; `PasswordInput`, a show/hide-toggle input; `passwordRequirements.ts`,
+`PasswordStrengthMeter`, `PasswordRequirementsList` — all three requirement-
+checking components derive from the same `evaluateMasterPassword()` helper
+so the strength meter and checklist can never disagree with each other or
+with `masterPasswordSchema`; `BiometricUnlockButton`, an honest "not
+available yet" affordance — there is no biometric implementation (the
+Settings screen's own toggle is a documented placeholder), so it surfaces a
+Sonner toast instead of a fake unlock, per `CLAUDE.md`'s "never create fake
+security indicators" rule).
+
+**Screens**: `apps/web/src/app/welcome/page.tsx` (new) is Screen 01. Screens
+02/03 (`sign-up/page.tsx`, `unlock/page.tsx`) are restyled in place —
+`signUp()`/`unlock()`/`EmergencyKit` flow logic is unchanged, only the
+visual layer and (for sign-up) the internal form-state mechanism moved from
+manual `useState` to `react-hook-form` + `zodResolver(signUpFormSchema)`.
+Sign-up deliberately stays one combined email + master-password screen
+(matching the app's existing architecture) rather than being split into two
+routes to literally match the Screen 02 mockup's password-only composition —
+an explicit product decision, not an oversight.
+
+**Master-password policy change**: `masterPasswordSchema`
+(`packages/validation/src/auth.ts`) previously enforced only a 12-character
+minimum (a Phase 2 decision explicitly deferring strength rules). The Screen
+02 checklist requires 4 things (length, upper+lower case, number, special
+character); rather than show checklist items the schema doesn't actually
+enforce, `masterPasswordSchema` now enforces all 4 — an explicit,
+deliberate decision (not a silent drift) to keep the visual checklist
+honest. `auth.test.ts` gained cases for each new rule.
+
+**`/welcome` navigation change**: `apps/web/src/app/page.tsx`'s `SIGNED_OUT`
+redirect target changed from `/sign-in` to `/welcome` so Screen 01 is
+reachable in the real flow — navigation-only, no change to `VaultProvider`,
+`LockState`, or any auth/crypto logic. `CLAUDE.md` §4 step 6 security
+review: no vault/plaintext exposure, no new attack surface, no change to
+which state gates `/unlock` vs `/`; it only changes which page an
+already-signed-out visitor lands on.
+
+**Deferred / recommended next**: `packages/ui`'s existing `Button`/
+`SecretField`/etc. (used by the item/generator/settings/recover screens)
+are still on the old un-tokened styling — migrating them onto the same
+token/shadcn foundation is a natural next pass, tracked as a follow-up, not
+done here. `apps/mobile` gets the same treatment once Track A reaches Phase
+10w, per the existing deferral.
 
 Phase 9w (security hardening) is the next scheduled step — see `PLAN.md`.

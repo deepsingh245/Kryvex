@@ -1,8 +1,11 @@
 # Kryvex — Build Plan
 
-Status: **Phase 8w (UX polish, web) complete.**
+Status: **Phase 8v (visual design system, web) complete.**
 `apps/web` is being taken to full completion before any `apps/mobile` work
 resumes (this session's strategy change — see §4's Track A/Track B split).
+Phase 8v applied the Kryvex visual system (`KRYVEX_UI_README.md`) to the
+first 3 onboarding screens — see "Current status" in
+`KRYVEX_SOURCE_OF_TRUTH.md` for the full decisions log.
 Phase 8w closed the concrete gaps found in a codebase audit: a real settings
 screen (`/settings`) that reads/writes `UserProfileSettings`
 (`autoLockMinutes`/`clipboardClearSeconds`/`biometricUnlockEnabled`) instead
@@ -163,6 +166,7 @@ port after every web phase as before. Phases already done on both platforms
 | 6     | **Done (web).** Attachments — encrypted image/PDF/file, Storage, secure previews.                                                                                                                                                                                                                                                                                                                                                                                   |
 | 7w    | **Done.** Web session security + Recovery Key — real `packages/security/autoLock.ts`/`clipboard.ts` implementations wired into `apps/web` (a "Lock" button, idle-timeout/tab-hidden auto-lock, clipboard-clear-after-timeout), plus the full Recovery Key/Emergency Kit flow (`docs/RECOVERY.md`) so a forgotten master password is actually recoverable. Biometric/Keychain-Keystore concerns stay mobile-only (Phase 7m below) — nothing analogous exists on web. |
 | 8w    | **Done.** UX polish (web) — settings screen (`/settings`) for `autoLockMinutes`/`clipboardClearSeconds`/`biometricUnlockEnabled`, accessibility fixes, error/loading-state gaps closed, responsive layout, focus management.                                                                                                                                                                                                                                        |
+| 8v    | **Done.** Visual design system (web) — Kryvex visual identity (`KRYVEX_UI_README.md`) applied: Tailwind v4 semantic tokens (color/radius/shadow), Inter/JetBrains Mono, a small shadcn-style component foundation (`lucide-react`, `react-hook-form`, `sonner`), and the first 3 screens restyled/built (Welcome, Create Master Password, Unlock Vault). Master-password policy strengthened to match the on-screen requirements checklist.                     |
 | 9w    | **Next.** Security hardening (web + shared packages) — dedicated review pass across XSS/CSRF/rules/crypto/logging/deps                                                                                                                                                                                                                                                                                                                                              |
 | 10w   | Release (web) — production Firebase project, web deploy, release checklist                                                                                                                                                                                                                                                                                                                                                                                          |
 
@@ -233,5 +237,9 @@ and a short "Changed / Tests / Security considerations / Files / Next step" repo
 14. ~~Phase 8w — UX polish (web).~~ Done — see "Current status" in
     `KRYVEX_SOURCE_OF_TRUTH.md` for the full decisions log (settings screen,
     accessibility, error-surfacing, responsive layout, focus management).
-15. **Next up:** Phase 9w — security hardening (web + shared packages):
+15. ~~Phase 8v — visual design system (web).~~ Done — see "Current status" in
+    `KRYVEX_SOURCE_OF_TRUTH.md` for the full decisions log (design tokens,
+    shadcn-style component foundation, first 3 screens, master-password
+    policy change).
+16. **Next up:** Phase 9w — security hardening (web + shared packages):
     dedicated review pass across XSS/CSRF/rules/crypto/logging/deps.

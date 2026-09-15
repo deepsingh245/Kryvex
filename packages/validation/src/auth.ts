@@ -1,7 +1,10 @@
 /**
  * Sign-up/sign-in form input validation. See docs/CRYPTOGRAPHIC_ARCHITECTURE.md
- * §6 for master-password guidance — this schema enforces only a minimum-length
- * floor, not a strength meter (out of scope for Phase 2).
+ * §6 for master-password guidance. As of the Kryvex visual system pass
+ * (see KRYVEX_UI_README.md §21 "Create Master Password"), masterPasswordSchema
+ * enforces the same 4 requirements shown to the user in the sign-up
+ * checklist (length, upper+lower case, number, special character) — this
+ * supersedes the earlier length-only floor from Phase 2.
  */
 
 import { z } from "zod";
@@ -17,6 +20,13 @@ export const emailSchema = z.preprocess(
 export const masterPasswordSchema = z
   .string()
   .min(12, "Master password must be at least 12 characters.")
+  .refine((v) => /[a-z]/.test(v), "Include a lowercase letter.")
+  .refine((v) => /[A-Z]/.test(v), "Include an uppercase letter.")
+  .refine((v) => /[0-9]/.test(v), "Include a number.")
+  .refine(
+    (v) => /[^A-Za-z0-9]/.test(v),
+    "Include a special character.",
+  )
   .refine((v) => v.trim().length > 0, "Master password cannot be blank.");
 
 export const signUpFormSchema = z
