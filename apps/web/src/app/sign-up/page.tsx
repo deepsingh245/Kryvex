@@ -8,14 +8,11 @@ import { useState } from "react";
 import { useForm, useWatch, type Resolver } from "react-hook-form";
 import { signUpFormSchema, type SignUpFormInput } from "@kryvex/validation";
 import { secureLogger } from "@kryvex/security";
-import { EmergencyKit } from "@kryvex/ui";
+import { Button, EmergencyKit, Input, Label } from "@kryvex/ui";
 import { AuthCard } from "@/components/auth/AuthCard";
 import { PasswordInput } from "@/components/auth/PasswordInput";
 import { PasswordRequirementsList } from "@/components/auth/PasswordRequirementsList";
 import { PasswordStrengthMeter } from "@/components/auth/PasswordStrengthMeter";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { useVault } from "@/providers/VaultProvider";
 
 /**

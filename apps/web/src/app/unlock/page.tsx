@@ -5,10 +5,10 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, type FormEvent } from "react";
 import { secureLogger } from "@kryvex/security";
+import { Button } from "@kryvex/ui";
 import { AuthCard } from "@/components/auth/AuthCard";
 import { BiometricUnlockButton } from "@/components/auth/BiometricUnlockButton";
 import { PasswordInput } from "@/components/auth/PasswordInput";
-import { Button } from "@/components/ui/button";
 import { useVault } from "@/providers/VaultProvider";
 
 /**

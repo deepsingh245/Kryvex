@@ -1,9 +1,14 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { LogIn } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useState, type FormEvent } from "react";
 import { signInFormSchema } from "@kryvex/validation";
 import { secureLogger } from "@kryvex/security";
+import { Button, Input, Label } from "@kryvex/ui";
+import { AuthCard } from "@/components/auth/AuthCard";
+import { PasswordInput } from "@/components/auth/PasswordInput";
 import { useVault } from "@/providers/VaultProvider";
 
 // Deliberately generic — never reveal whether the email or the password was
@@ -41,65 +46,61 @@ export default function SignInPage() {
   }
 
   return (
-    <main className="flex min-h-screen flex-1 flex-col items-center justify-center p-8">
-      <form
-        onSubmit={handleSubmit}
-        className="flex w-full max-w-sm flex-col gap-4"
+    <main className="flex min-h-screen flex-1 flex-col items-center justify-center p-6 sm:p-8">
+      <AuthCard
+        icon={LogIn}
+        title="Sign in to Kryvex"
+        description="Enter your email and master password to continue."
+        onBack={() => router.push("/welcome")}
       >
-        <h1 className="text-xl font-semibold">Sign in to Kryvex</h1>
+        <form onSubmit={handleSubmit} className="flex flex-col gap-5" noValidate>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="email">Email</Label>
+            <Input
+              id="email"
+              type="email"
+              autoComplete="email"
+              autoFocus
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+          </div>
 
-        <label className="flex flex-col gap-1 text-sm">
-          Email
-          <input
-            type="email"
-            autoComplete="email"
-            autoFocus
-            required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="rounded border px-3 py-2"
-          />
-        </label>
-
-        <label className="flex flex-col gap-1 text-sm">
-          Master password
-          <input
-            type="password"
+          <PasswordInput
+            label="Master password"
             autoComplete="current-password"
             required
             value={masterPassword}
             onChange={(e) => setMasterPassword(e.target.value)}
-            className="rounded border px-3 py-2"
           />
-        </label>
 
-        {error && (
-          <p role="alert" className="text-sm text-red-600">
-            {error}
-          </p>
-        )}
+          {error && (
+            <p role="alert" className="text-sm text-destructive">
+              {error}
+            </p>
+          )}
 
-        <button
-          type="submit"
-          disabled={submitting}
-          className="rounded bg-gray-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
-        >
-          {submitting ? "Signing in…" : "Sign in"}
-        </button>
+          <Button type="submit" size="lg" disabled={submitting}>
+            {submitting ? "Signing in…" : "Sign in"}
+          </Button>
 
-        <a
-          href="/sign-up"
-          className="text-center text-sm text-gray-500 underline"
-        >
-          Need a vault? Create one
-        </a>
-        <a
-          href="/recover"
-          className="text-center text-sm text-gray-500 underline"
-        >
-          Forgot your master password?
-        </a>
-      </form>
+          <div className="flex flex-col items-center gap-2">
+            <Link
+              href="/sign-up"
+              className="text-sm text-text-secondary underline-offset-4 hover:text-foreground hover:underline"
+            >
+              Need a vault? Create one
+            </Link>
+            <Link
+              href="/recover"
+              className="text-sm text-text-secondary underline-offset-4 hover:text-foreground hover:underline"
+            >
+              Forgot your master password?
+            </Link>
+          </div>
+        </form>
+      </AuthCard>
     </main>
   );
 }

@@ -1,11 +1,15 @@
 "use client";
 
+import { Plus, Trash2 } from "lucide-react";
 import type { CustomField, CustomFieldType } from "@kryvex/types";
 import { BooleanField } from "./BooleanField";
 import { DateField } from "./DateField";
 import { MultilineField } from "./MultilineField";
 import { SecretField } from "./SecretField";
 import { TextField } from "./TextField";
+import { Button } from "./ui/button";
+import { Input } from "./ui/input";
+import { Select } from "./ui/select";
 
 const CUSTOM_FIELD_TYPES: CustomFieldType[] = [
   "text",
@@ -55,38 +59,45 @@ export function CustomFieldsEditor({
 
   return (
     <div className="flex flex-col gap-3">
-      <span className="text-sm font-medium">Custom fields</span>
+      <span className="text-sm font-medium text-foreground">
+        Custom fields
+      </span>
       {fields.map((field, index) => (
-        <div key={field.id} className="flex flex-col gap-2 rounded border p-3">
+        <div
+          key={field.id}
+          className="flex flex-col gap-3 rounded-md border border-border bg-surface-2 p-3"
+        >
           <div className="flex items-center gap-2">
-            <input
+            <Input
               value={field.label}
               placeholder="Label"
               aria-label="Custom field label"
               onChange={(e) => update(index, { label: e.target.value })}
-              className="flex-1 rounded border px-2 py-1 text-sm"
+              className="h-9 flex-1 text-sm"
             />
-            <select
+            <Select
               value={field.type}
               aria-label="Custom field type"
               onChange={(e) =>
                 update(index, { type: e.target.value as CustomFieldType })
               }
-              className="rounded border px-2 py-1 text-sm"
+              className="h-9 w-auto min-w-28 text-sm"
             >
               {CUSTOM_FIELD_TYPES.map((type) => (
                 <option key={type} value={type}>
                   {type}
                 </option>
               ))}
-            </select>
-            <button
+            </Select>
+            <Button
               type="button"
+              variant="ghost"
+              size="sm"
               onClick={() => remove(index)}
-              className="rounded border px-2 py-1 text-xs"
             >
+              <Trash2 className="h-4 w-4" strokeWidth={1.75} />
               Remove
-            </button>
+            </Button>
           </div>
 
           {field.type === "secret" || field.type === "totp" ? (
@@ -132,13 +143,10 @@ export function CustomFieldsEditor({
           )}
         </div>
       ))}
-      <button
-        type="button"
-        onClick={add}
-        className="self-start rounded border px-3 py-1 text-sm"
-      >
-        + Add field
-      </button>
+      <Button type="button" variant="secondary" size="sm" onClick={add} className="self-start">
+        <Plus className="h-4 w-4" strokeWidth={1.75} />
+        Add field
+      </Button>
     </div>
   );
 }

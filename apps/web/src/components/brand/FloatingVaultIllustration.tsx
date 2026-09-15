@@ -1,5 +1,5 @@
 import { FileText, Image as ImageIcon, KeyRound, Lock } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn } from "@kryvex/ui";
 
 const FLOATING_ITEMS: {
   icon: typeof Lock;

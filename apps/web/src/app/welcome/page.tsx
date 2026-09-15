@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { buttonVariants } from "@/components/ui/button";
+import { buttonVariants } from "@kryvex/ui";
 import { FloatingVaultIllustration } from "@/components/brand/FloatingVaultIllustration";
 import { Logo } from "@/components/brand/Logo";
 

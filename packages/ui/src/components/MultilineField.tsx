@@ -1,3 +1,7 @@
+import { useId } from "react";
+import { Label } from "./ui/label";
+import { Textarea } from "./ui/textarea";
+
 export interface MultilineFieldProps {
   label: string;
   value: string;
@@ -11,15 +15,16 @@ export function MultilineField({
   onChange,
   rows = 4,
 }: MultilineFieldProps) {
+  const id = useId();
   return (
-    <label className="flex flex-col gap-1 text-sm">
-      {label}
-      <textarea
+    <div className="flex flex-col gap-1.5">
+      <Label htmlFor={id}>{label}</Label>
+      <Textarea
+        id={id}
         value={value}
         rows={rows}
         onChange={(e) => onChange(e.target.value)}
-        className="rounded border px-3 py-2"
       />
-    </label>
+    </div>
   );
 }

@@ -2,9 +2,7 @@
 
 import { Eye, EyeOff } from "lucide-react";
 import * as React from "react";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { cn } from "@/lib/utils";
+import { Input, Label, cn } from "@kryvex/ui";
 
 interface PasswordInputProps
   extends Omit<React.ComponentProps<"input">, "type"> {

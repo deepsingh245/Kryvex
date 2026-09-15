@@ -1,6 +1,8 @@
 "use client";
 
+import { X } from "lucide-react";
 import { useId, useState, type KeyboardEvent } from "react";
+import { Label } from "./ui/label";
 
 export interface TagsInputProps {
   label: string;
@@ -40,21 +42,22 @@ export function TagsInput({
   }
 
   return (
-    <div className="flex flex-col gap-1 text-sm">
-      <label htmlFor={inputId}>{label}</label>
-      <div className="flex flex-wrap items-center gap-2 rounded border px-3 py-2">
+    <div className="flex flex-col gap-1.5">
+      <Label htmlFor={inputId}>{label}</Label>
+      <div className="flex flex-wrap items-center gap-1.5 rounded-md border border-border-strong bg-surface px-3 py-2 shadow-sm focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/40">
         {values.map((value) => (
           <span
             key={value}
-            className="flex items-center gap-1 rounded bg-gray-100 px-2 py-1 text-xs"
+            className="flex items-center gap-1 rounded-full bg-surface-2 py-1 pl-2.5 pr-1.5 text-xs font-medium text-text-secondary"
           >
             {value}
             <button
               type="button"
               onClick={() => remove(value)}
               aria-label={`Remove ${value}`}
+              className="rounded-full p-0.5 text-text-muted transition-colors hover:bg-border-strong hover:text-foreground"
             >
-              ×
+              <X className="h-3 w-3" strokeWidth={2} />
             </button>
           </span>
         ))}
@@ -65,7 +68,7 @@ export function TagsInput({
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={handleKeyDown}
           onBlur={commit}
-          className="min-w-24 flex-1 outline-none"
+          className="min-w-24 flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-text-muted"
         />
       </div>
     </div>

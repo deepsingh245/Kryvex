@@ -1,7 +1,9 @@
 "use client";
 
+import { ShieldCheck } from "lucide-react";
 import { useState } from "react";
-import { Button } from "./Button";
+import { Button } from "./ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
 
 export interface EmergencyKitProps {
   recoveryKey: string;
@@ -41,39 +43,49 @@ export function EmergencyKit({ recoveryKey, onContinue }: EmergencyKitProps) {
   const [acknowledged, setAcknowledged] = useState(false);
 
   return (
-    <div className="flex flex-col gap-4">
-      <h2 className="text-lg font-semibold">Your Emergency Kit</h2>
-      <p className="text-sm text-gray-500">
-        This Recovery Key is the only way to get back into your vault if you
-        forget your master password. It will not be shown again.
-      </p>
+    <Card className="p-6 sm:p-8">
+      <CardHeader className="mb-6">
+        <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10">
+          <ShieldCheck className="h-7 w-7 text-primary" strokeWidth={1.75} />
+        </div>
+        <CardTitle as="h1">Your Emergency Kit</CardTitle>
+        <CardDescription>
+          This Recovery Key is the only way to get back into your vault if
+          you forget your master password. It will not be shown again.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <pre className="whitespace-pre-wrap break-all rounded-md border border-border-strong bg-surface-2 px-4 py-3 font-mono text-sm text-foreground">
+          {recoveryKey}
+        </pre>
 
-      <pre className="whitespace-pre-wrap break-all rounded border bg-gray-50 px-4 py-3 font-mono text-sm">
-        {recoveryKey}
-      </pre>
+        <Button
+          type="button"
+          variant="secondary"
+          onClick={() => downloadKitFile(recoveryKey)}
+        >
+          Download as file
+        </Button>
 
-      <Button type="button" onClick={() => downloadKitFile(recoveryKey)}>
-        Download as file
-      </Button>
+        <label className="flex items-start gap-2.5 text-sm text-text-secondary">
+          <input
+            type="checkbox"
+            checked={acknowledged}
+            onChange={(e) => setAcknowledged(e.target.checked)}
+            className="mt-0.5 h-4 w-4 shrink-0 rounded border-border-strong accent-primary"
+          />
+          <span>{ACKNOWLEDGMENT_TEXT}</span>
+        </label>
 
-      <label className="flex items-start gap-2 text-sm">
-        <input
-          type="checkbox"
-          checked={acknowledged}
-          onChange={(e) => setAcknowledged(e.target.checked)}
-          className="mt-1"
-        />
-        <span>{ACKNOWLEDGMENT_TEXT}</span>
-      </label>
-
-      <Button
-        type="button"
-        variant="primary"
-        disabled={!acknowledged}
-        onClick={onContinue}
-      >
-        Continue
-      </Button>
-    </div>
+        <Button
+          type="button"
+          variant="primary"
+          disabled={!acknowledged}
+          onClick={onContinue}
+        >
+          Continue
+        </Button>
+      </CardContent>
+    </Card>
   );
 }
