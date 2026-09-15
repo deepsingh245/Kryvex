@@ -25,7 +25,11 @@ export default function Home() {
   const [favoritesOnly, setFavoritesOnly] = useState(false);
 
   useEffect(() => {
-    if (state.status === "SIGNED_OUT") router.replace("/sign-in");
+    // Signed-out visitors land on the Welcome screen (Kryvex visual system
+    // Screen 1), not straight into the sign-in form — see
+    // KRYVEX_UI_README.md §20. Navigation-only change: no auth/vault logic
+    // moved, still gated by the same LockState.
+    if (state.status === "SIGNED_OUT") router.replace("/welcome");
     if (state.status === "AUTHENTICATED_LOCKED") router.replace("/unlock");
   }, [state.status, router]);
 

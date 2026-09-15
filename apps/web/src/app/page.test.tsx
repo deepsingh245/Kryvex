@@ -187,7 +187,7 @@ describe("Home", () => {
     expect(screen.queryByText(/unable to sync/i)).not.toBeInTheDocument();
   });
 
-  it("redirects to /sign-in when SIGNED_OUT", () => {
+  it("redirects to /welcome when SIGNED_OUT", () => {
     mockedUseVault.mockReturnValue({
       state: { status: "SIGNED_OUT" },
       signUp: vi.fn(),
@@ -201,7 +201,7 @@ describe("Home", () => {
     });
     mockVaultItems();
     render(<Home />);
-    expect(replace).toHaveBeenCalledWith("/sign-in");
+    expect(replace).toHaveBeenCalledWith("/welcome");
   });
 
   it("redirects to /unlock when AUTHENTICATED_LOCKED", () => {
