@@ -1,17 +1,19 @@
 # Kryvex — Build Plan
 
-Status: **Phase 7w (web session security + Recovery Key) complete.**
+Status: **Phase 8w (UX polish, web) complete.**
 `apps/web` is being taken to full completion before any `apps/mobile` work
 resumes (this session's strategy change — see §4's Track A/Track B split).
-Phase 7w closed three real gaps confirmed with the user beforehand: a full
-Recovery Key/Emergency Kit flow (`docs/RECOVERY.md`, including a new
-`getRecoveryEnvelope` Cloud Function and Firebase's own password-reset
-oobCode flow to rotate the Auth credential), auto-lock
-(`packages/security/src/autoLock.ts`, wired into `VaultProvider.tsx` with a
-new `lock()` method and a "Lock" button), and clipboard auto-clear
-(`packages/security/src/clipboard.ts`, wired into `SecretField.tsx`). See
-"Current status" in `KRYVEX_SOURCE_OF_TRUTH.md` for full detail and the
-decisions log. **Next up:** Phase 8w (UX polish).
+Phase 8w closed the concrete gaps found in a codebase audit: a real settings
+screen (`/settings`) that reads/writes `UserProfileSettings`
+(`autoLockMinutes`/`clipboardClearSeconds`/`biometricUnlockEnabled`) instead
+of those being hardcoded, with `clipboardClearSeconds` threaded all the way
+to every Copy button; accessibility fixes (label/input association,
+`aria-pressed`, an `aria-live` copy announcement, new `aria-label`s);
+error-surfacing for the previously-silent Firestore-listener and
+conflict-resolution failure paths; responsive-layout fixes to the four
+densest rows found; and `autoFocus` on every auth-flow page's first field.
+See "Current status" in `KRYVEX_SOURCE_OF_TRUTH.md` for full detail and the
+decisions log. **Next up:** Phase 9w (security hardening).
 Owner: lead architect/engineer (Claude), directed by project owner
 Last updated: 2026-09-13
 
@@ -160,8 +162,8 @@ port after every web phase as before. Phases already done on both platforms
 | 5     | **Done (web + mobile).** Sync — encrypted Firestore records, offline, versioning, conflicts, tombstones, on both platforms.                                                                                                                                                                                                                                                                                                                                         |
 | 6     | **Done (web).** Attachments — encrypted image/PDF/file, Storage, secure previews.                                                                                                                                                                                                                                                                                                                                                                                   |
 | 7w    | **Done.** Web session security + Recovery Key — real `packages/security/autoLock.ts`/`clipboard.ts` implementations wired into `apps/web` (a "Lock" button, idle-timeout/tab-hidden auto-lock, clipboard-clear-after-timeout), plus the full Recovery Key/Emergency Kit flow (`docs/RECOVERY.md`) so a forgotten master password is actually recoverable. Biometric/Keychain-Keystore concerns stay mobile-only (Phase 7m below) — nothing analogous exists on web. |
-| 8w    | **Next.** UX polish (web) — responsive UI, accessibility, empty/error/loading states, a settings screen to actually read/change `autoLockMinutes`/`clipboardClearSeconds` (hardcoded defaults for now)                                                                                                                                                                                                                                                              |
-| 9w    | Security hardening (web + shared packages) — dedicated review pass across XSS/CSRF/rules/crypto/logging/deps                                                                                                                                                                                                                                                                                                                                                        |
+| 8w    | **Done.** UX polish (web) — settings screen (`/settings`) for `autoLockMinutes`/`clipboardClearSeconds`/`biometricUnlockEnabled`, accessibility fixes, error/loading-state gaps closed, responsive layout, focus management.                                                                                                                                                                                                                                        |
+| 9w    | **Next.** Security hardening (web + shared packages) — dedicated review pass across XSS/CSRF/rules/crypto/logging/deps                                                                                                                                                                                                                                                                                                                                              |
 | 10w   | Release (web) — production Firebase project, web deploy, release checklist                                                                                                                                                                                                                                                                                                                                                                                          |
 
 ### Track B — Mobile completion (deferred until Track A is entirely done)
@@ -228,6 +230,8 @@ and a short "Changed / Tests / Security considerations / Files / Next step" repo
     "Current status" in `KRYVEX_SOURCE_OF_TRUTH.md` for the full decisions
     log (two-factor recovery, no-QR scope trim, hardcoded-defaults trim)
     and the flagged manual-click-through follow-up.
-14. **Next up:** Phase 8w — UX polish (web): responsive UI, accessibility,
-    empty/error/loading states, a settings screen for
-    `autoLockMinutes`/`clipboardClearSeconds`.
+14. ~~Phase 8w — UX polish (web).~~ Done — see "Current status" in
+    `KRYVEX_SOURCE_OF_TRUTH.md` for the full decisions log (settings screen,
+    accessibility, error-surfacing, responsive layout, focus management).
+15. **Next up:** Phase 9w — security hardening (web + shared packages):
+    dedicated review pass across XSS/CSRF/rules/crypto/logging/deps.

@@ -39,6 +39,7 @@ function mockVaultItems(createItem = vi.fn()) {
   mockedUseVaultItems.mockReturnValue({
     items: [],
     loading: false,
+    loadError: null,
     createItem,
     updateItem: vi.fn(),
     toggleFavorite: vi.fn(),
@@ -58,6 +59,8 @@ describe("NewItemPage", () => {
       unlock: vi.fn(),
       lock: vi.fn(),
       recoverVault: vi.fn(),
+      settings: undefined,
+      updateSettings: vi.fn(),
       signOut: vi.fn(),
     });
     mockVaultItems();
@@ -79,6 +82,8 @@ describe("NewItemPage", () => {
       unlock: vi.fn(),
       lock: vi.fn(),
       recoverVault: vi.fn(),
+      settings: undefined,
+      updateSettings: vi.fn(),
       signOut: vi.fn(),
     });
     mockVaultItems(createItem);
@@ -114,6 +119,8 @@ describe("NewItemPage", () => {
       unlock: vi.fn(),
       lock: vi.fn(),
       recoverVault: vi.fn(),
+      settings: undefined,
+      updateSettings: vi.fn(),
       signOut: vi.fn(),
     });
     mockVaultItems(createItem);

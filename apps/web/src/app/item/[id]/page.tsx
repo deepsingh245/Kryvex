@@ -41,7 +41,7 @@ function AttachmentSection({ attachmentId }: { attachmentId: string }) {
 }
 
 export default function ItemDetailPage() {
-  const { state } = useVault();
+  const { state, settings } = useVault();
   const router = useRouter();
   const params = useParams<{ id: string }>();
   const { items, loading, toggleFavorite, softDeleteItem } = useVaultItems();
@@ -158,6 +158,7 @@ export default function ItemDetailPage() {
                     label={field.label}
                     value={String(value)}
                     readOnly
+                    clipboardClearSeconds={settings?.clipboardClearSeconds}
                   />
                 );
               case "multiUrl":
@@ -213,6 +214,7 @@ export default function ItemDetailPage() {
                     label={field.label}
                     value={field.value}
                     readOnly
+                    clipboardClearSeconds={settings?.clipboardClearSeconds}
                   />
                 ) : (
                   <p key={field.id} className="text-sm">
@@ -231,7 +233,7 @@ export default function ItemDetailPage() {
         </p>
       )}
 
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2">
         <Link
           href={`/item/${item.id}/edit`}
           className="rounded border px-4 py-2 text-sm font-medium"

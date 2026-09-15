@@ -6,28 +6,44 @@ import {
   generatePassword,
   type GeneratePasswordOptions,
 } from "@kryvex/password-generator";
+import { clipboard as clipboardModule } from "@kryvex/security";
 import { Button } from "./Button";
 
 export interface PasswordGeneratorPanelProps {
   // Present when embedded (e.g. in the Login form's password SecretField);
   // omitted on the standalone /generator route.
   onUse?: (password: string) => void;
+  clipboardClearSeconds?: number | undefined;
 }
 
-export function PasswordGeneratorPanel({ onUse }: PasswordGeneratorPanelProps) {
+const browserClipboard: clipboardModule.ClipboardIO = {
+  write: (text) => navigator.clipboard.writeText(text),
+  read: () => navigator.clipboard.readText(),
+};
+
+const DEFAULT_CLIPBOARD_CLEAR_SECONDS = 30;
+
+export function PasswordGeneratorPanel({
+  onUse,
+  clipboardClearSeconds = DEFAULT_CLIPBOARD_CLEAR_SECONDS,
+}: PasswordGeneratorPanelProps) {
   const [options, setOptions] = useState<GeneratePasswordOptions>(
     DEFAULT_GENERATOR_OPTIONS,
   );
   const [password, setPassword] = useState(() =>
     generatePassword(DEFAULT_GENERATOR_OPTIONS),
   );
+  const [error, setError] = useState<string | null>(null);
 
   function regenerate(next: GeneratePasswordOptions = options) {
     try {
       setPassword(generatePassword(next));
+      setError(null);
     } catch {
       // Every character set disabled — leave the last valid password
-      // displayed rather than clearing it to an empty/invalid value.
+      // displayed rather than clearing it to an empty/invalid value, but
+      // tell the user why nothing changed.
+      setError("Enable at least one character set to generate a password.");
     }
   }
 
@@ -39,15 +55,19 @@ export function PasswordGeneratorPanel({ onUse }: PasswordGeneratorPanelProps) {
 
   async function handleCopy() {
     try {
-      await navigator.clipboard.writeText(password);
+      await clipboardModule.copyWithAutoClear(
+        browserClipboard,
+        password,
+        clipboardClearSeconds * 1000,
+      );
     } catch {
-      // Clipboard API can be unavailable/denied — no-op.
+      setError("Unable to copy to the clipboard.");
     }
   }
 
   return (
     <div className="flex flex-col gap-3 rounded border p-4">
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         <code className="flex-1 truncate rounded bg-gray-100 px-2 py-1 text-sm">
           {password}
         </code>
@@ -59,6 +79,12 @@ export function PasswordGeneratorPanel({ onUse }: PasswordGeneratorPanelProps) {
           </Button>
         )}
       </div>
+
+      {error && (
+        <p role="alert" className="text-sm text-red-600">
+          {error}
+        </p>
+      )}
 
       <label className="flex flex-col gap-1 text-sm">
         Length: {options.length}

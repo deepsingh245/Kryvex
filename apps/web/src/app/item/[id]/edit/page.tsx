@@ -10,7 +10,7 @@ import { useVaultItems } from "@/hooks/useVaultItems";
 import { useVault } from "@/providers/VaultProvider";
 
 export default function EditItemPage() {
-  const { state } = useVault();
+  const { state, settings } = useVault();
   const router = useRouter();
   const params = useParams<{ id: string }>();
   const { items, loading, updateItem } = useVaultItems();
@@ -72,6 +72,7 @@ export default function EditItemPage() {
         onSubmit={(content) => void handleSubmit(content)}
         onCancel={() => router.push(`/item/${item.id}`)}
         submitting={submitting}
+        clipboardClearSeconds={settings?.clipboardClearSeconds}
       />
       {error && (
         <p role="alert" className="text-sm text-red-600">

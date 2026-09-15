@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { secureLogger } from "@kryvex/security";
@@ -17,6 +17,7 @@ export default function ConflictsPage() {
   const { state } = useVault();
   const router = useRouter();
   const { conflicts, resolveConflict } = useVaultItems();
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (state.status === "SIGNED_OUT") router.replace("/sign-in");
@@ -32,16 +33,24 @@ export default function ConflictsPage() {
   }
 
   async function handleResolve(itemId: string, resolution: ConflictResolution) {
+    setError(null);
     try {
       await resolveConflict(itemId, resolution);
     } catch {
       secureLogger.error("Failed to resolve conflict", { itemId });
+      setError("Unable to resolve that conflict. Please try again.");
     }
   }
 
   return (
     <main className="flex min-h-screen flex-1 flex-col gap-6 p-8">
       <h1 className="text-xl font-semibold">Sync conflicts</h1>
+
+      {error && (
+        <p role="alert" className="text-sm text-red-600">
+          {error}
+        </p>
+      )}
 
       {conflicts.length === 0 && (
         <p className="text-sm text-gray-500">No conflicts to review.</p>

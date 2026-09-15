@@ -60,6 +60,7 @@ function mockVaultItems(
   mockedUseVaultItems.mockReturnValue({
     items: [],
     loading: false,
+    loadError: null,
     isOnline: true,
     conflicts: [],
     createItem: vi.fn(),
@@ -80,6 +81,8 @@ describe("Home", () => {
       unlock: vi.fn(),
       lock: vi.fn(),
       recoverVault: vi.fn(),
+      settings: undefined,
+      updateSettings: vi.fn(),
       signOut: vi.fn(),
     });
     mockVaultItems();
@@ -96,6 +99,8 @@ describe("Home", () => {
       unlock: vi.fn(),
       lock: vi.fn(),
       recoverVault: vi.fn(),
+      settings: undefined,
+      updateSettings: vi.fn(),
       signOut: vi.fn(),
     });
     mockVaultItems({ items: [loginItem()] });
@@ -111,6 +116,8 @@ describe("Home", () => {
       unlock: vi.fn(),
       lock: vi.fn(),
       recoverVault: vi.fn(),
+      settings: undefined,
+      updateSettings: vi.fn(),
       signOut: vi.fn(),
     });
     mockVaultItems({
@@ -130,11 +137,54 @@ describe("Home", () => {
       unlock: vi.fn(),
       lock: vi.fn(),
       recoverVault: vi.fn(),
+      settings: undefined,
+      updateSettings: vi.fn(),
       signOut: vi.fn(),
     });
     mockVaultItems();
     render(<Home />);
     expect(screen.queryByText(/sync conflict/i)).not.toBeInTheDocument();
+  });
+
+  it("shows a load-error banner when the item listener fails", () => {
+    mockedUseVault.mockReturnValue({
+      state: UNLOCKED_STATE,
+      signUp: vi.fn(),
+      signIn: vi.fn(),
+      unlock: vi.fn(),
+      lock: vi.fn(),
+      recoverVault: vi.fn(),
+      settings: undefined,
+      updateSettings: vi.fn(),
+      signOut: vi.fn(),
+    });
+    mockVaultItems({
+      loadError:
+        "Unable to sync your vault right now. Showing the last saved copy.",
+    });
+    render(<Home />);
+    expect(
+      screen.getByText(
+        "Unable to sync your vault right now. Showing the last saved copy.",
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it("does not show a load-error banner when there is none", () => {
+    mockedUseVault.mockReturnValue({
+      state: UNLOCKED_STATE,
+      signUp: vi.fn(),
+      signIn: vi.fn(),
+      unlock: vi.fn(),
+      lock: vi.fn(),
+      recoverVault: vi.fn(),
+      settings: undefined,
+      updateSettings: vi.fn(),
+      signOut: vi.fn(),
+    });
+    mockVaultItems();
+    render(<Home />);
+    expect(screen.queryByText(/unable to sync/i)).not.toBeInTheDocument();
   });
 
   it("redirects to /sign-in when SIGNED_OUT", () => {
@@ -145,6 +195,8 @@ describe("Home", () => {
       unlock: vi.fn(),
       lock: vi.fn(),
       recoverVault: vi.fn(),
+      settings: undefined,
+      updateSettings: vi.fn(),
       signOut: vi.fn(),
     });
     mockVaultItems();
@@ -163,6 +215,8 @@ describe("Home", () => {
       unlock: vi.fn(),
       lock: vi.fn(),
       recoverVault: vi.fn(),
+      settings: undefined,
+      updateSettings: vi.fn(),
       signOut: vi.fn(),
     });
     mockVaultItems();

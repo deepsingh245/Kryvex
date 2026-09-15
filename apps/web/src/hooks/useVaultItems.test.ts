@@ -134,6 +134,8 @@ beforeEach(() => {
     unlock: vi.fn(),
     lock: vi.fn(),
     recoverVault: vi.fn(),
+    settings: undefined,
+    updateSettings: vi.fn(),
     signOut: vi.fn(),
   });
   mockedCreateIndexedDbItemStore.mockReturnValue(createFakeLocalStore());
@@ -197,10 +199,33 @@ describe("useVaultItems — offline-first load", () => {
     expect(unsubscribe).toHaveBeenCalledTimes(1);
   });
 
-  it("does not throw when the listener reports an error", async () => {
-    renderHook(() => useVaultItems());
+  it("sets loadError when the listener reports an error", async () => {
+    const { result } = renderHook(() => useVaultItems());
     await waitFor(() => expect(capturedOnError).toBeDefined());
+
     expect(() => capturedOnError!(new Error("listener failed"))).not.toThrow();
+
+    await waitFor(() =>
+      expect(result.current.loadError).toBe(
+        "Unable to sync your vault right now. Showing the last saved copy.",
+      ),
+    );
+  });
+
+  it("clears loadError once the listener delivers a successful update", async () => {
+    const { result } = renderHook(() => useVaultItems());
+    await waitFor(() => expect(capturedOnNext).toBeDefined());
+
+    act(() => {
+      capturedOnError!(new Error("listener failed"));
+    });
+    await waitFor(() => expect(result.current.loadError).not.toBeNull());
+
+    act(() => {
+      capturedOnNext!([rawDocFor(LOGIN_CONTENT)]);
+    });
+
+    await waitFor(() => expect(result.current.loadError).toBeNull());
   });
 });
 

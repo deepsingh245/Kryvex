@@ -66,11 +66,14 @@ describe("EditItemPage", () => {
       unlock: vi.fn(),
       lock: vi.fn(),
       recoverVault: vi.fn(),
+      settings: undefined,
+      updateSettings: vi.fn(),
       signOut: vi.fn(),
     });
     mockedUseVaultItems.mockReturnValue({
       items: [loginItem()],
       loading: false,
+      loadError: null,
       createItem: vi.fn(),
       updateItem,
       toggleFavorite: vi.fn(),
@@ -129,11 +132,14 @@ describe("EditItemPage", () => {
       unlock: vi.fn(),
       lock: vi.fn(),
       recoverVault: vi.fn(),
+      settings: undefined,
+      updateSettings: vi.fn(),
       signOut: vi.fn(),
     });
     mockedUseVaultItems.mockReturnValue({
       items: [imageItem],
       loading: false,
+      loadError: null,
       createItem: vi.fn(),
       updateItem,
       toggleFavorite: vi.fn(),
@@ -171,11 +177,14 @@ describe("EditItemPage", () => {
       unlock: vi.fn(),
       lock: vi.fn(),
       recoverVault: vi.fn(),
+      settings: undefined,
+      updateSettings: vi.fn(),
       signOut: vi.fn(),
     });
     mockedUseVaultItems.mockReturnValue({
       items: [],
       loading: false,
+      loadError: null,
       createItem: vi.fn(),
       updateItem: vi.fn(),
       toggleFavorite: vi.fn(),

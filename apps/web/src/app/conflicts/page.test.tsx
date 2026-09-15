@@ -36,11 +36,14 @@ describe("ConflictsPage", () => {
       unlock: vi.fn(),
       lock: vi.fn(),
       recoverVault: vi.fn(),
+      settings: undefined,
+      updateSettings: vi.fn(),
       signOut: vi.fn(),
     });
     mockedUseVaultItems.mockReturnValue({
       items: [],
       loading: false,
+      loadError: null,
       isOnline: true,
       conflicts: [],
       createItem: vi.fn(),
@@ -62,11 +65,14 @@ describe("ConflictsPage", () => {
       unlock: vi.fn(),
       lock: vi.fn(),
       recoverVault: vi.fn(),
+      settings: undefined,
+      updateSettings: vi.fn(),
       signOut: vi.fn(),
     });
     mockedUseVaultItems.mockReturnValue({
       items: [],
       loading: false,
+      loadError: null,
       isOnline: true,
       conflicts: [
         {
@@ -110,5 +116,63 @@ describe("ConflictsPage", () => {
 
     fireEvent.click(screen.getByText("Keep both"));
     expect(resolveConflict).toHaveBeenCalledWith("item1", "keepBoth");
+  });
+
+  it("surfaces an error when resolving a conflict fails", async () => {
+    const resolveConflict = vi.fn().mockRejectedValue(new Error("boom"));
+    mockedUseVault.mockReturnValue({
+      state: UNLOCKED_STATE,
+      signUp: vi.fn(),
+      signIn: vi.fn(),
+      unlock: vi.fn(),
+      lock: vi.fn(),
+      recoverVault: vi.fn(),
+      settings: undefined,
+      updateSettings: vi.fn(),
+      signOut: vi.fn(),
+    });
+    mockedUseVaultItems.mockReturnValue({
+      items: [],
+      loading: false,
+      loadError: null,
+      isOnline: true,
+      conflicts: [
+        {
+          itemId: "item1",
+          localContent: {
+            type: "login",
+            title: "Mine",
+            tags: [],
+            customFields: [],
+            username: "u",
+            password: "p",
+            websites: [],
+          },
+          serverContent: {
+            type: "login",
+            title: "Server's",
+            tags: [],
+            customFields: [],
+            username: "u",
+            password: "p",
+            websites: [],
+          },
+        },
+      ],
+      createItem: vi.fn(),
+      updateItem: vi.fn(),
+      toggleFavorite: vi.fn(),
+      softDeleteItem: vi.fn(),
+      resolveConflict,
+    });
+    render(<ConflictsPage />);
+
+    fireEvent.click(screen.getByText("Keep mine"));
+
+    expect(
+      await screen.findByText(
+        "Unable to resolve that conflict. Please try again.",
+      ),
+    ).toBeInTheDocument();
   });
 });

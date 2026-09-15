@@ -51,3 +51,6 @@ export type { PasswordGeneratorOptionsInput } from "./passwordGenerator";
 
 export { attachmentDocumentSchema } from "./attachment";
 export type { AttachmentDocumentInput } from "./attachment";
+
+export { userProfileSettingsSchema } from "./userProfile";
+export type { UserProfileSettingsInput } from "./userProfile";
