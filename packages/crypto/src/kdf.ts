@@ -15,6 +15,7 @@ import { hkdf } from "@noble/hashes/hkdf.js";
 import { sha256 } from "@noble/hashes/sha2.js";
 import { bytesToHex, randomBytes } from "@noble/hashes/utils.js";
 import type { KdfParams } from "@kryvex/types";
+import { wipeBytes } from "./wipe";
 
 export type { KdfParams };
 
@@ -64,6 +65,13 @@ export interface AuthAndStretchedKey {
   stretchedMasterKey: Uint8Array;
 }
 
+// Deliberately does NOT wipe `masterKey` itself — mutating a caller's
+// input as a side effect would be surprising for what's otherwise a pure
+// derivation function (and this same masterKey may legitimately be
+// re-derived-from/reused by a caller, e.g. this file's own determinism
+// test). Callers that own a masterKey they're truly done with should call
+// wipeBytes(masterKey) themselves once they've called this — see
+// apps/web/src/providers/VaultProvider.tsx for the real call sites.
 export function deriveAuthAndStretchedKey(
   masterKey: Uint8Array,
 ): AuthAndStretchedKey {
@@ -75,5 +83,9 @@ export function deriveAuthAndStretchedKey(
     32,
   );
   const authKeyBytes = hkdf(sha256, masterKey, undefined, AUTH_INFO, 32);
-  return { authSecret: bytesToHex(authKeyBytes), stretchedMasterKey };
+  const authSecret = bytesToHex(authKeyBytes);
+  // The intermediate authKeyBytes buffer, unlike masterKey, is genuinely
+  // never needed again by anyone once hex-encoded — safe to wipe here.
+  wipeBytes(authKeyBytes);
+  return { authSecret, stretchedMasterKey };
 }

@@ -15,3 +15,12 @@ export const webFirebaseEmulatorEnv = {
   useEmulator: process.env.NEXT_PUBLIC_USE_FIREBASE_EMULATOR,
   host: process.env.NEXT_PUBLIC_FIREBASE_EMULATOR_HOST,
 };
+
+// Phase 9w — see docs/DEPLOYMENT.md's App Check checklist item: a real
+// reCAPTCHA v3 site key must be provisioned in Firebase Console before
+// production deploy. Undefined here just means App Check stays inactive
+// outside emulator mode — safe today since nothing enforces it yet.
+export const webFirebaseAppCheckOptions = {
+  siteKey: process.env.NEXT_PUBLIC_FIREBASE_APPCHECK_SITE_KEY,
+  debug: webFirebaseEmulatorEnv.useEmulator === "true",
+};

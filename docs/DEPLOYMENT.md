@@ -72,7 +72,19 @@ uncommitted edit.
 - [ ] Production Firebase project provisioned, rules/functions deployed and
       re-verified against the emulator test suite one more time against the
       exact rules being deployed.
-- [ ] App Check enforcement turned on for the production project.
+- [ ] Provision a reCAPTCHA v3 site key in Firebase Console and set
+      `NEXT_PUBLIC_FIREBASE_APPCHECK_SITE_KEY` for the production web
+      deploy (Phase 9w wired the client-side code; it's inert without a
+      real key — see `docs/FIREBASE_SECURITY.md` §4).
+- [ ] App Check enforcement (`enforceAppCheck: true`) turned on for
+      `getKdfParams`/`getRecoveryEnvelope` — only once `apps/mobile` also
+      has App Check wired (Play Integrity/App Attest), or mobile sign-up/
+      sign-in/recovery will start failing.
+- [ ] Firebase Auth's **Email Enumeration Protection** project setting
+      enabled (Identity Platform) — not turned on by default, and not
+      something code changes; may have cost/behavior implications the
+      project owner should confirm before enabling. See
+      `docs/SECURITY_THREAT_MODEL.md` §4 item #25.
 - [ ] Web security headers verified in the deployed environment (not just
       locally).
 - [ ] iOS/Android builds signed, tested on physical devices for biometric

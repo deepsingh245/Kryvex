@@ -7,6 +7,7 @@ import {
 } from "@kryvex/firebase";
 import { attachmentEnvelopeToBlob, encryptAttachment } from "@kryvex/vault";
 import {
+  webFirebaseAppCheckOptions,
   webFirebaseConfig,
   webFirebaseEmulatorEnv,
 } from "@/lib/firebaseConfig";
@@ -15,13 +16,30 @@ import { useVault } from "@/providers/VaultProvider";
 // See useVaultItems.ts's own getServices() comment: lazy, client-only,
 // never called from render.
 function getServices() {
-  return initializeKryvexFirebase(webFirebaseConfig, webFirebaseEmulatorEnv);
+  return initializeKryvexFirebase(
+    webFirebaseConfig,
+    webFirebaseEmulatorEnv,
+    webFirebaseAppCheckOptions,
+  );
+}
+
+// CSPRNG-backed fallback for the (practically unreachable on any modern
+// runtime) case where crypto.randomUUID is unavailable but
+// crypto.getRandomValues still is — never Math.random(), even for a
+// non-secret id, per CLAUDE.md's hard rule.
+function randomIdFallback(prefix: string): string {
+  const bytes = new Uint8Array(16);
+  crypto.getRandomValues(bytes);
+  const hex = Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join(
+    "",
+  );
+  return `${prefix}-${Date.now()}-${hex}`;
 }
 
 function newAttachmentId(): string {
   return typeof crypto !== "undefined" && "randomUUID" in crypto
     ? crypto.randomUUID()
-    : `att-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    : randomIdFallback("att");
 }
 
 /**

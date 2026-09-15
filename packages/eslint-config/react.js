@@ -18,6 +18,12 @@ export default [
       ...react.configs.recommended.rules,
       ...reactHooks.configs["recommended-latest"].rules,
       "react/react-in-jsx-scope": "off",
+      // Not in eslint-plugin-react's "recommended" set by default. Nothing
+      // in this codebase uses dangerouslySetInnerHTML today (confirmed via
+      // repo-wide grep, Phase 9w) — this locks that in defensively, since a
+      // vault app rendering decrypted user content is exactly the kind of
+      // place an XSS sink would matter most.
+      "react/no-danger": "error",
     },
   },
 ];

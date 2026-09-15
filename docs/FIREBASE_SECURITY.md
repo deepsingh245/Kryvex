@@ -1,9 +1,8 @@
 # Kryvex — Firebase Security
 
 Status: Rules validated by emulator-based tests (`tests/security`,
-`tests/auth`), extended through Phase 6 (`isValidAttachment` +
-`tests/security/storage.rules.test.ts`, new this phase). §2's rule listing
-below is illustrative — `firebase/firestore.rules` and
+`tests/auth`), extended through Phase 9w (`isValidKdfParams` — see below).
+§2's rule listing below is illustrative — `firebase/firestore.rules` and
 `firebase/storage.rules` are the deployed source of truth; this section is
 kept in sync by hand. See also: [DATA_MODEL.md](./DATA_MODEL.md),
 [SECURITY_THREAT_MODEL.md](./SECURITY_THREAT_MODEL.md).
@@ -32,6 +31,16 @@ service cloud.firestore {
       return request.auth != null && request.auth.uid == uid;
     }
 
+    // Phase 9w: floors Argon2id parameters at packages/crypto's
+    // DEFAULT_KDF_PARAMS (64 MiB / t=3 / p=1) so a compromised or buggy
+    // client can't write weaker-than-shipped kdfParams into its own
+    // profile — a stronger policy may still raise these values later.
+    function isValidKdfParams(params) {
+      return params.memoryKiB is int && params.memoryKiB >= 65536
+        && params.iterations is int && params.iterations >= 3
+        && params.parallelism is int && params.parallelism == 1;
+    }
+
     function isValidItem(data) {
       return data.keys().hasAll(['id','ownerId','type','revision','updatedAt','createdAt','deleted','favorite','wrappedItemKey','encryptedData','attachmentRefs'])
         && data.ownerId == request.auth.uid
@@ -56,8 +65,11 @@ service cloud.firestore {
     match /users/{uid} {
       allow read: if isOwner(uid);
       // profile is created once at signup, updated only for settings/key-rotation fields
-      allow create: if isOwner(uid);
-      allow update: if isOwner(uid) && request.resource.data.uid == uid;
+      allow create: if isOwner(uid)
+                    && (!('kdfParams' in request.resource.data) || isValidKdfParams(request.resource.data.kdfParams));
+      allow update: if isOwner(uid)
+                    && request.resource.data.uid == uid
+                    && (!('kdfParams' in request.resource.data) || isValidKdfParams(request.resource.data.kdfParams));
       allow delete: if false; // account deletion goes through the deletion flow (Cloud Function), not a direct client delete
 
       match /items/{itemId} {
@@ -118,12 +130,27 @@ the blob's deletion doesn't need conflict detection the way item content does.
 
 ## 4. App Check
 
-Firebase App Check is enabled for both Firestore and Storage to reject traffic
-that doesn't originate from a genuine Kryvex client build (web: reCAPTCHA
-Enterprise/v3 provider; mobile: Play Integrity / App Attest). This is a
-defense-in-depth measure against scripted abuse of the API surface — it is not
-a substitute for the ownership rules above, since App Check attests to "a real
-Kryvex client," not "this specific user."
+**Status as of Phase 9w: wired on the web client, not yet enforced
+anywhere.** This section previously overstated the state as "enabled" —
+corrected here. The intent is unchanged: App Check is meant to reject
+traffic that doesn't originate from a genuine Kryvex client build (web:
+reCAPTCHA v3 provider; mobile: Play Integrity / App Attest, once mobile is
+wired up). This is a defense-in-depth measure against scripted abuse of
+the API surface — it is not a substitute for the ownership rules above,
+since App Check attests to "a real Kryvex client," not "this specific
+user."
+
+`apps/web` now initializes App Check (`packages/firebase/src/app.ts`'s
+`initializeKryvexAppCheck`, via `webFirebaseAppCheckOptions` in
+`apps/web/src/lib/firebaseConfig.ts`) and attaches a token to outgoing
+Auth/Firestore/Storage/Functions requests when a reCAPTCHA site key is
+configured (production) or the emulator is in use (debug-token mode). No
+Cloud Function or Firestore/Storage rule actually **enforces** a valid
+token yet — `enforceAppCheck` stays off on `getKdfParams`/
+`getRecoveryEnvelope` (see their own code comments) because `apps/mobile`
+has no App Check wiring at all, and flipping enforcement on now would lock
+mobile users out. Enforcement is deferred until mobile is wired up too
+(Track B, per `PLAN.md`).
 
 ## 5. Authentication assumptions
 
@@ -188,6 +215,10 @@ Kept minimal, per the build spec (§46). Anticipated uses only:
 - Storage: User A cannot read/write/delete an object under User B's
   `attachments/` path.
 - Storage: an over-size upload is rejected.
+- A profile create/update writing `kdfParams` below the documented floor
+  (memory/iterations/parallelism) is rejected; at/above the floor is
+  allowed; an update that doesn't touch `kdfParams` at all still succeeds
+  (added Phase 9w).
 - App Check: a request without a valid App Check token is rejected once
   enforcement is turned on for the project.
 

@@ -1,9 +1,17 @@
 # Kryvex — Build Plan
 
-Status: **Phase 8v2 (visual design system rollout, rest of web app) complete.**
+Status: **Phase 9w (security hardening, web + shared packages) complete.**
 `apps/web` is being taken to full completion before any `apps/mobile` work
 resumes (this session's strategy change — see §4's Track A/Track B split).
-Phase 8v2 extended the Kryvex visual system to every remaining `apps/web`
+Phase 9w ran a dedicated review pass across XSS/CSRF/rules/crypto/logging/
+deps and found the security posture fundamentally solid, closing the small
+number of real gaps found: Firebase App Check wired on `apps/web` (not yet
+enforced — mobile isn't wired up), a new Firestore rule flooring
+`kdfParams` at the shipped Argon2id defaults, best-effort key-buffer
+wiping, a `Math.random()` fallback cleanup, and a defensive `react/no-danger`
+lint rule — see "Current status" in `KRYVEX_SOURCE_OF_TRUTH.md` for the
+full decisions log.
+Phase 8v2 (before it) extended the Kryvex visual system to every remaining `apps/web`
 page (sign-in, Vault Home, Item Detail/Edit/New, Generator, Settings,
 Recovery x2, Conflicts), consolidated the shared shadcn-style primitives
 into `packages/ui`, and added the desktop sidebar / mobile nav shell — see
@@ -173,8 +181,8 @@ port after every web phase as before. Phases already done on both platforms
 | 8w    | **Done.** UX polish (web) — settings screen (`/settings`) for `autoLockMinutes`/`clipboardClearSeconds`/`biometricUnlockEnabled`, accessibility fixes, error/loading-state gaps closed, responsive layout, focus management.                                                                                                                                                                                                                                        |
 | 8v    | **Done.** Visual design system (web) — Kryvex visual identity (`KRYVEX_UI_README.md`) applied: Tailwind v4 semantic tokens (color/radius/shadow), Inter/JetBrains Mono, a small shadcn-style component foundation (`lucide-react`, `react-hook-form`, `sonner`), and the first 3 screens restyled/built (Welcome, Create Master Password, Unlock Vault). Master-password policy strengthened to match the on-screen requirements checklist.                     |
 | 8v2   | **Done.** Visual design system rollout (rest of web app) — shared primitives consolidated into `packages/ui` (retiring the apps/web-local duplicate); every remaining `packages/ui` component restyled; a desktop sidebar + mobile nav shell (`(vault)/layout.tsx`) replacing Vault Home's ad hoc button row and consolidating the SIGNED_OUT/AUTHENTICATED_LOCKED redirect gate out of ~7 pages into one; Vault Home, Item Detail/Edit/New, sign-in, Generator, Settings, Recovery (x2), Conflicts all restyled. Item Detail's Delete now confirms via a real `Dialog` instead of `window.confirm`. Fixed a real bug found during verification: Tailwind wasn't scanning `packages/ui`'s source through its pnpm symlink, silently breaking any button styled via bare `buttonVariants()` (fixed with an `@source` directive).                                                                                                                                                              |
-| 9w    | **Next.** Security hardening (web + shared packages) — dedicated review pass across XSS/CSRF/rules/crypto/logging/deps                                                                                                                                                                                                                                                                                                                                              |
-| 10w   | Release (web) — production Firebase project, web deploy, release checklist                                                                                                                                                                                                                                                                                                                                                                                          |
+| 9w    | **Done.** Security hardening (web + shared packages) — dedicated review pass across XSS/CSRF/rules/crypto/logging/deps found the posture fundamentally solid (no XSS sinks, no weak hashes, no `Math.random()` in any crypto path, correct fail-closed AEAD). Closed the real gaps: App Check wired on web (not enforced — mobile isn't wired up), `firestore.rules`' new `isValidKdfParams` floor (6 new emulator tests), best-effort key-buffer wiping, the per-item-DEK-reuse question resolved (confirmed safe, documented), a `Math.random()` fallback cleanup, `react/no-danger` added defensively. `pnpm audit`: 4 advisories, all `apps/mobile`-toolchain-only, zero in scope. Email Enumeration Protection flagged as a manual Firebase Console action item, not code. |
+| 10w   | **Next.** Release (web) — production Firebase project, web deploy, release checklist                                                                                                                                                                                                                                                                                                                                                                                          |
 
 ### Track B — Mobile completion (deferred until Track A is entirely done)
 
@@ -252,5 +260,11 @@ and a short "Changed / Tests / Security considerations / Files / Next step" repo
     decisions log (primitives consolidation, nav shell, every remaining
     page restyled, the delete-confirm behavior change, the Tailwind
     `@source` fix).
-17. **Next up:** Phase 9w — security hardening (web + shared packages):
-    dedicated review pass across XSS/CSRF/rules/crypto/logging/deps.
+17. ~~Phase 9w — security hardening (web + shared packages).~~ Done — see
+    "Current status" in `KRYVEX_SOURCE_OF_TRUTH.md` for the full decisions
+    log (App Check wiring, `kdfParams` rule floor, buffer wiping, the
+    per-item-DEK question resolved, `Math.random()` cleanup, `react/no-danger`,
+    the dependency audit result, the Email Enumeration Protection
+    action item).
+18. **Next up:** Phase 10w — release (web): production Firebase project,
+    web deploy, release checklist.

@@ -35,8 +35,13 @@ export function encryptItemContent(
 /**
  * Edit-time only: unwraps the item's *existing* DEK and re-encrypts under
  * it rather than rotating per edit — keeps wrappedItemKey stable/unchanged
- * across edits, a deliberate key-management trade-off flagged for security
- * review (per-edit DEK rotation would need an explicit future flow).
+ * across edits. Reviewed in Phase 9w's security hardening pass and kept
+ * as-is (not a live gap): AES-256-GCM's safety depends on never reusing a
+ * nonce under a given key, not on how many times the key itself is used —
+ * encryptBytes always draws a fresh CSPRNG nonce per call (see
+ * packages/crypto/src/aead.ts), so repeated encryption under the same
+ * per-item DEK is safe. See KRYVEX_SOURCE_OF_TRUTH.md §12's decisions log
+ * for the full reasoning.
  */
 export function reencryptItemContent(
   vaultEncryptionKey: Uint8Array,

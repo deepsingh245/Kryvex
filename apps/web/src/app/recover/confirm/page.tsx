@@ -11,13 +11,18 @@ import { Button, EmergencyKit, Input, Label } from "@kryvex/ui";
 import { AuthCard } from "@/components/auth/AuthCard";
 import { PasswordInput } from "@/components/auth/PasswordInput";
 import {
+  webFirebaseAppCheckOptions,
   webFirebaseConfig,
   webFirebaseEmulatorEnv,
 } from "@/lib/firebaseConfig";
 import { useVault } from "@/providers/VaultProvider";
 
 function getServices() {
-  return initializeKryvexFirebase(webFirebaseConfig, webFirebaseEmulatorEnv);
+  return initializeKryvexFirebase(
+    webFirebaseConfig,
+    webFirebaseEmulatorEnv,
+    webFirebaseAppCheckOptions,
+  );
 }
 
 // useSearchParams() requires a Suspense boundary during static prerendering

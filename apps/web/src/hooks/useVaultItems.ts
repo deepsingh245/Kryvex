@@ -32,6 +32,7 @@ import {
   type DecryptedVaultItem,
 } from "@kryvex/vault";
 import {
+  webFirebaseAppCheckOptions,
   webFirebaseConfig,
   webFirebaseEmulatorEnv,
 } from "@/lib/firebaseConfig";
@@ -42,7 +43,24 @@ import { useOnlineStatus } from "./useOnlineStatus";
 // See providers/VaultProvider.tsx's own getServices() comment: lazy,
 // client-only, never called from render.
 function getServices() {
-  return initializeKryvexFirebase(webFirebaseConfig, webFirebaseEmulatorEnv);
+  return initializeKryvexFirebase(
+    webFirebaseConfig,
+    webFirebaseEmulatorEnv,
+    webFirebaseAppCheckOptions,
+  );
+}
+
+// CSPRNG-backed fallback for the (practically unreachable on any modern
+// runtime) case where crypto.randomUUID is unavailable but
+// crypto.getRandomValues still is — never Math.random(), even for a
+// non-secret id, per CLAUDE.md's hard rule.
+function randomIdFallback(prefix: string): string {
+  const bytes = new Uint8Array(16);
+  crypto.getRandomValues(bytes);
+  const hex = Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join(
+    "",
+  );
+  return `${prefix}-${Date.now()}-${hex}`;
 }
 
 // Exported so callers that need the id before the item is created (e.g. an
@@ -52,7 +70,7 @@ function getServices() {
 export function newItemId(): string {
   return typeof crypto !== "undefined" && "randomUUID" in crypto
     ? crypto.randomUUID()
-    : `item-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    : randomIdFallback("item");
 }
 
 // Firestore rejects a stale-revision write via the security rules, which

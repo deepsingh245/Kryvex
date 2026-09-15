@@ -19,6 +19,7 @@ import {
   generateKdfSalt,
   generateKey,
   hexToBytes,
+  wipeBytes,
   type KdfParams,
 } from "@kryvex/crypto";
 import {
@@ -47,6 +48,7 @@ import {
   type LockState,
 } from "@kryvex/vault";
 import {
+  webFirebaseAppCheckOptions,
   webFirebaseConfig,
   webFirebaseEmulatorEnv,
 } from "@/lib/firebaseConfig";
@@ -65,7 +67,11 @@ const MINUTES_TO_MS = 60_000;
 // before window/IndexedDB exist. Every call site below is inside an effect
 // or an async method invoked from a user action (both client-only).
 function getServices(): KryvexFirebaseServices {
-  return initializeKryvexFirebase(webFirebaseConfig, webFirebaseEmulatorEnv);
+  return initializeKryvexFirebase(
+    webFirebaseConfig,
+    webFirebaseEmulatorEnv,
+    webFirebaseAppCheckOptions,
+  );
 }
 
 interface KdfParamsRecord {
@@ -164,6 +170,10 @@ export function VaultProvider({ children }: { children: ReactNode }) {
   }, []);
 
   function lock(reason?: LockReason) {
+    // Key-buffer wiping on lock lives in packages/vault's lockStateReducer
+    // itself (LOCK_REQUESTED), not here — it always has the true current
+    // state as its own argument, so it can't go stale the way a value
+    // captured in this component closure could.
     dispatch(
       reason ? { type: "LOCK_REQUESTED", reason } : { type: "LOCK_REQUESTED" },
     );
@@ -220,6 +230,7 @@ export function VaultProvider({ children }: { children: ReactNode }) {
       );
       const { authSecret, stretchedMasterKey } =
         deriveAuthAndStretchedKey(masterKey);
+      wipeBytes(masterKey);
       const vaultEncryptionKey = generateKey();
       const protectedVaultKey = encryptBytes(
         stretchedMasterKey,
@@ -269,6 +280,7 @@ export function VaultProvider({ children }: { children: ReactNode }) {
       );
       const { authSecret, stretchedMasterKey } =
         deriveAuthAndStretchedKey(masterKey);
+      wipeBytes(masterKey);
       pendingUnlock.current = {
         stretchedMasterKey,
         resolveVaultKey: async (uid) => {
@@ -303,6 +315,7 @@ export function VaultProvider({ children }: { children: ReactNode }) {
           profile.kdfParams,
         );
         const { stretchedMasterKey } = deriveAuthAndStretchedKey(masterKey);
+        wipeBytes(masterKey);
         // Local AEAD unwrap is the authoritative "wrong password" signal —
         // a tag mismatch throws and is caught below. No need to
         // re-authenticate against Firebase on every unlock; the user is
@@ -357,6 +370,7 @@ export function VaultProvider({ children }: { children: ReactNode }) {
       );
       const { authSecret: newAuthSecret, stretchedMasterKey } =
         deriveAuthAndStretchedKey(masterKey);
+      wipeBytes(masterKey);
       const protectedVaultKey = encryptBytes(
         stretchedMasterKey,
         vaultEncryptionKey,

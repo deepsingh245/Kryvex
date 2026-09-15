@@ -10,7 +10,11 @@ export {
   getOrCreateFirebaseApp,
   initializeKryvexFirebase,
 } from "./app";
-export type { KryvexFirebaseConfig, KryvexFirebaseServices } from "./app";
+export type {
+  KryvexAppCheckOptions,
+  KryvexFirebaseConfig,
+  KryvexFirebaseServices,
+} from "./app";
 
 // apps/mobile only — see appNative.ts's top comment for why this can't be
 // folded into initializeKryvexFirebase above.

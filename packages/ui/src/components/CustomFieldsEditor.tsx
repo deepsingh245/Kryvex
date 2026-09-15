@@ -29,10 +29,23 @@ export interface CustomFieldsEditorProps {
   clipboardClearSeconds?: number | undefined;
 }
 
+// CSPRNG-backed fallback for the (practically unreachable on any modern
+// runtime) case where crypto.randomUUID is unavailable but
+// crypto.getRandomValues still is — never Math.random(), even for a
+// non-secret id, per CLAUDE.md's hard rule.
+function randomIdFallback(prefix: string): string {
+  const bytes = new Uint8Array(16);
+  crypto.getRandomValues(bytes);
+  const hex = Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join(
+    "",
+  );
+  return `${prefix}-${Date.now()}-${hex}`;
+}
+
 function newFieldId(): string {
   return typeof crypto !== "undefined" && "randomUUID" in crypto
     ? crypto.randomUUID()
-    : `field-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    : randomIdFallback("field");
 }
 
 export function CustomFieldsEditor({
