@@ -28,6 +28,8 @@ describe("GeneratorPage", () => {
       unlock: vi.fn(),
       lock: vi.fn(),
       recoverVault: vi.fn(),
+      settings: undefined,
+      updateSettings: vi.fn(),
       signOut: vi.fn(),
     });
     render(<GeneratorPage />);
@@ -44,6 +46,8 @@ describe("GeneratorPage", () => {
       unlock: vi.fn(),
       lock: vi.fn(),
       recoverVault: vi.fn(),
+      settings: undefined,
+      updateSettings: vi.fn(),
       signOut: vi.fn(),
     });
     render(<GeneratorPage />);

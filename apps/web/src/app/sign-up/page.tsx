@@ -84,6 +84,7 @@ export default function SignUpPage() {
           <input
             type="email"
             autoComplete="email"
+            autoFocus
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}

@@ -27,7 +27,8 @@ what's implemented today.
 | Recovery Key / Emergency Kit                                  | Done — web                       |
 | Session security (auto-lock, clipboard clear)                 | Done — web                       |
 | Biometric unlock / secure key storage                         | Mobile-only, deferred            |
-| UX polish, settings screen                                    | Next up (web)                    |
+| UX polish, settings screen                                    | Done — web                       |
+| Security hardening                                            | Next up (web)                    |
 | Release (production deploy)                                   | Not started                      |
 
 ## Tech stack

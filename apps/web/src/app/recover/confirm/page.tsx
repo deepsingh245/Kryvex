@@ -160,6 +160,7 @@ function RecoverConfirmInner() {
           <input
             type="text"
             autoComplete="off"
+            autoFocus
             required
             value={recoveryKeyInput}
             onChange={(e) => setRecoveryKeyInput(e.target.value)}

@@ -18,7 +18,8 @@ import { useVault } from "@/providers/VaultProvider";
 export default function Home() {
   const { state, lock, signOut } = useVault();
   const router = useRouter();
-  const { items, loading, toggleFavorite, conflicts } = useVaultItems();
+  const { items, loading, loadError, toggleFavorite, conflicts } =
+    useVaultItems();
   const [query, setQuery] = useState("");
   const [tagFilter, setTagFilter] = useState<string | undefined>(undefined);
   const [favoritesOnly, setFavoritesOnly] = useState(false);
@@ -46,19 +47,25 @@ export default function Home() {
   if (state.status === "UNLOCKED") {
     return (
       <main className="flex min-h-screen flex-1 flex-col gap-6 p-8">
-        <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <h1
             className="text-2xl font-semibold"
             style={{ color: KRYVEX_BRAND_COLOR }}
           >
             Your vault
           </h1>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Link
               href="/generator"
               className="rounded border px-4 py-2 text-sm font-medium"
             >
               Generator
+            </Link>
+            <Link
+              href="/settings"
+              className="rounded border px-4 py-2 text-sm font-medium"
+            >
+              Settings
             </Link>
             <Link
               href="/item/new"
@@ -82,6 +89,12 @@ export default function Home() {
             </button>
           </div>
         </div>
+
+        {loadError && (
+          <p role="alert" className="text-sm text-red-600">
+            {loadError}
+          </p>
+        )}
 
         {conflicts.length > 0 && (
           <Link

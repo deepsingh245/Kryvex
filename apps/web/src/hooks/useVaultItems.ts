@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useReducer, useTransition } from "react";
+import { useEffect, useMemo, useReducer, useState, useTransition } from "react";
 import {
   createVaultItem,
   fetchAttachmentDocument,
@@ -122,6 +122,7 @@ export interface DecryptedSyncConflict {
 export interface UseVaultItemsResult {
   items: DecryptedVaultItem[];
   loading: boolean;
+  loadError: string | null;
   isOnline: boolean;
   conflicts: DecryptedSyncConflict[];
   createItem: (
@@ -157,6 +158,7 @@ export function useVaultItems(): UseVaultItemsResult {
   // async transition, not a raw setState call synchronously in the effect
   // body.
   const [loading, startTransition] = useTransition();
+  const [loadError, setLoadError] = useState<string | null>(null);
   const isOnline = useOnlineStatus();
   const localStore = useMemo(() => createIndexedDbItemStore(), []);
 
@@ -213,6 +215,7 @@ export function useVaultItems(): UseVaultItemsResult {
         uid,
         (rawDocs) => {
           if (cancelled) return;
+          setLoadError(null);
           const validDocs: VaultItemDocument[] = [];
           for (const raw of rawDocs) {
             const parsed = vaultItemDocumentSchema.safeParse(raw);
@@ -237,6 +240,11 @@ export function useVaultItems(): UseVaultItemsResult {
           secureLogger.error("Vault item listener failed", {
             message: String(error),
           });
+          if (!cancelled) {
+            setLoadError(
+              "Unable to sync your vault right now. Showing the last saved copy.",
+            );
+          }
         },
       );
       if (cancelled) unsubscribe();
@@ -377,6 +385,7 @@ export function useVaultItems(): UseVaultItemsResult {
   const result: UseVaultItemsResult = {
     items: cache.items,
     loading,
+    loadError,
     isOnline,
     conflicts,
 

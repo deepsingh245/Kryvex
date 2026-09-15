@@ -83,6 +83,7 @@ export default function RecoverPage() {
           <input
             type="email"
             autoComplete="email"
+            autoFocus
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}

@@ -23,7 +23,7 @@ function isAttachmentType(type: ItemType): type is "image" | "pdf" | "file" {
 }
 
 export default function NewItemPage() {
-  const { state } = useVault();
+  const { state, settings } = useVault();
   const router = useRouter();
   const { createItem } = useVaultItems();
   const createAttachment = useCreateAttachment();
@@ -93,7 +93,7 @@ export default function NewItemPage() {
     return (
       <main className="flex min-h-screen flex-1 flex-col gap-4 p-8">
         <h1 className="text-xl font-semibold">Add an item</h1>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3">
           {ITEM_TYPES.filter((type) => ITEM_TYPE_ENABLED[type]).map((type) => (
             <button
               key={type}
@@ -132,6 +132,7 @@ export default function NewItemPage() {
           onSubmit={(content) => void handleSubmit(content)}
           onCancel={() => setSelectedType(null)}
           submitting={submitting}
+          clipboardClearSeconds={settings?.clipboardClearSeconds}
         />
       )}
       {error && (

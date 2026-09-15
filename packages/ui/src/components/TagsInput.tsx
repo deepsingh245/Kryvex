@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type KeyboardEvent } from "react";
+import { useId, useState, type KeyboardEvent } from "react";
 
 export interface TagsInputProps {
   label: string;
@@ -18,6 +18,7 @@ export function TagsInput({
   placeholder,
 }: TagsInputProps) {
   const [draft, setDraft] = useState("");
+  const inputId = useId();
 
   function commit() {
     const trimmed = draft.trim();
@@ -40,7 +41,7 @@ export function TagsInput({
 
   return (
     <div className="flex flex-col gap-1 text-sm">
-      <span>{label}</span>
+      <label htmlFor={inputId}>{label}</label>
       <div className="flex flex-wrap items-center gap-2 rounded border px-3 py-2">
         {values.map((value) => (
           <span
@@ -58,6 +59,7 @@ export function TagsInput({
           </span>
         ))}
         <input
+          id={inputId}
           value={draft}
           placeholder={placeholder}
           onChange={(e) => setDraft(e.target.value)}

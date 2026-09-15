@@ -22,6 +22,7 @@ const CUSTOM_FIELD_TYPES: CustomFieldType[] = [
 export interface CustomFieldsEditorProps {
   fields: CustomField[];
   onChange: (fields: CustomField[]) => void;
+  clipboardClearSeconds?: number | undefined;
 }
 
 function newFieldId(): string {
@@ -33,6 +34,7 @@ function newFieldId(): string {
 export function CustomFieldsEditor({
   fields,
   onChange,
+  clipboardClearSeconds,
 }: CustomFieldsEditorProps) {
   function update(index: number, patch: Partial<CustomField>) {
     const next = [...fields];
@@ -60,11 +62,13 @@ export function CustomFieldsEditor({
             <input
               value={field.label}
               placeholder="Label"
+              aria-label="Custom field label"
               onChange={(e) => update(index, { label: e.target.value })}
               className="flex-1 rounded border px-2 py-1 text-sm"
             />
             <select
               value={field.type}
+              aria-label="Custom field type"
               onChange={(e) =>
                 update(index, { type: e.target.value as CustomFieldType })
               }
@@ -90,6 +94,7 @@ export function CustomFieldsEditor({
               label="Value"
               value={field.value}
               onChange={(value) => update(index, { value })}
+              clipboardClearSeconds={clipboardClearSeconds}
             />
           ) : field.type === "multiline" ? (
             <MultilineField

@@ -6,6 +6,7 @@ import {
   useEffect,
   useReducer,
   useRef,
+  useState,
   type ReactNode,
 } from "react";
 import {
@@ -36,7 +37,8 @@ import {
   type KryvexFirebaseServices,
 } from "@kryvex/firebase";
 import { autoLock } from "@kryvex/security";
-import type { EncryptedEnvelope } from "@kryvex/types";
+import type { EncryptedEnvelope, UserProfileSettings } from "@kryvex/types";
+import { userProfileSettingsSchema } from "@kryvex/validation";
 import {
   formatRecoveryKey,
   initialLockState,
@@ -49,10 +51,13 @@ import {
   webFirebaseEmulatorEnv,
 } from "@/lib/firebaseConfig";
 
-// Matches the settings.autoLockMinutes value written at sign-up — not yet
-// read back from the profile document (an explicit MVP trim; a settings
-// screen to change it is Phase 8w).
-const AUTO_LOCK_TIMEOUT_MS = 5 * 60_000;
+const DEFAULT_SETTINGS: UserProfileSettings = {
+  autoLockMinutes: 5,
+  clipboardClearSeconds: 30,
+  biometricUnlockEnabled: false,
+};
+
+const MINUTES_TO_MS = 60_000;
 
 // Lazily initialized, client-only. Next.js still renders this "use client"
 // component once on the server for the initial HTML — calling
@@ -67,6 +72,17 @@ interface KdfParamsRecord {
   kdfSalt: string;
   kdfParams: KdfParams;
   protectedVaultKey?: EncryptedEnvelope;
+  settings?: unknown;
+}
+
+// Never trust the settings sub-object structurally — same precedent every
+// other Firestore read in this file already follows for kdfParams/
+// protectedVaultKey. A malformed/missing settings object just means the
+// caller's hardcoded DEFAULT_SETTINGS fallback stays in effect; it never
+// blocks sign-in/unlock.
+function parseSettings(raw: unknown): UserProfileSettings | undefined {
+  const parsed = userProfileSettingsSchema.safeParse(raw);
+  return parsed.success ? parsed.data : undefined;
 }
 
 interface RecoveryEnvelopeRecord {
@@ -77,6 +93,7 @@ export type LockReason = "manual" | "timeout" | "background";
 
 interface VaultContextValue {
   state: LockState;
+  settings: UserProfileSettings | undefined;
   signUp: (
     email: string,
     masterPassword: string,
@@ -89,6 +106,7 @@ interface VaultContextValue {
     recoveryKeyInput: string,
     newMasterPassword: string,
   ) => Promise<{ recoveryKey: string }>;
+  updateSettings: (patch: Partial<UserProfileSettings>) => Promise<void>;
   signOut: () => Promise<void>;
 }
 
@@ -96,6 +114,12 @@ const VaultContext = createContext<VaultContextValue | null>(null);
 
 export function VaultProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(lockStateReducer, initialLockState);
+  // Kept as local React state here, not part of the shared @kryvex/vault
+  // LockState — same reasoning as `lock()`: avoids touching the reducer
+  // apps/mobile also depends on.
+  const [settings, setSettings] = useState<UserProfileSettings | undefined>(
+    undefined,
+  );
 
   // Set synchronously (before the sign-up/sign-in await) so it's already
   // populated by the time onAuthStateChanged's listener fires below,
@@ -152,7 +176,10 @@ export function VaultProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (state.status !== "UNLOCKED") return;
 
-    const timer = autoLock.createInactivityTimer(AUTO_LOCK_TIMEOUT_MS, () => {
+    const timeoutMs =
+      (settings?.autoLockMinutes ?? DEFAULT_SETTINGS.autoLockMinutes) *
+      MINUTES_TO_MS;
+    const timer = autoLock.createInactivityTimer(timeoutMs, () => {
       lock("timeout");
     });
 
@@ -177,10 +204,11 @@ export function VaultProvider({ children }: { children: ReactNode }) {
       window.removeEventListener("touchstart", handleActivity);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, [state.status]);
+  }, [state.status, settings?.autoLockMinutes]);
 
   const value: VaultContextValue = {
     state,
+    settings,
 
     async signUp(email, masterPassword) {
       const services = getServices();
@@ -217,12 +245,9 @@ export function VaultProvider({ children }: { children: ReactNode }) {
         kdfParams: DEFAULT_KDF_PARAMS,
         protectedVaultKey,
         protectedVaultKeyByRecovery,
-        settings: {
-          autoLockMinutes: 5,
-          clipboardClearSeconds: 30,
-          biometricUnlockEnabled: false,
-        },
+        settings: DEFAULT_SETTINGS,
       });
+      setSettings(DEFAULT_SETTINGS);
       // onAuthStateChanged (registered above) picks this up and auto-unlocks.
       return { recoveryKey: formatRecoveryKey(recoveryKeyBytes) };
     },
@@ -254,6 +279,7 @@ export function VaultProvider({ children }: { children: ReactNode }) {
           if (!profile?.protectedVaultKey) {
             throw new Error("Unable to decrypt vault item.");
           }
+          setSettings(parseSettings(profile.settings));
           return decryptBytes(stretchedMasterKey, profile.protectedVaultKey);
         },
       };
@@ -285,6 +311,7 @@ export function VaultProvider({ children }: { children: ReactNode }) {
           stretchedMasterKey,
           profile.protectedVaultKey,
         );
+        setSettings(parseSettings(profile.settings));
         dispatch({
           type: "UNLOCK_SUCCEEDED",
           stretchedMasterKey,
@@ -366,6 +393,21 @@ export function VaultProvider({ children }: { children: ReactNode }) {
       });
 
       return { recoveryKey: formatRecoveryKey(newRecoveryKeyBytes) };
+    },
+
+    async updateSettings(patch) {
+      if (state.status !== "UNLOCKED") {
+        throw new Error("Vault is locked.");
+      }
+      const services = getServices();
+      const next: UserProfileSettings = {
+        ...(settings ?? DEFAULT_SETTINGS),
+        ...patch,
+      };
+      await updateUserProfileDocument(services.firestore, state.user.uid, {
+        settings: next,
+      });
+      setSettings(next);
     },
 
     async signOut() {

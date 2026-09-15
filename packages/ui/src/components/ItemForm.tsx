@@ -20,6 +20,7 @@ export interface ItemFormProps {
   onSubmit: (content: ItemContent) => void;
   onCancel: () => void;
   submitting?: boolean;
+  clipboardClearSeconds?: number | undefined;
 }
 
 interface RecoveryCode {
@@ -68,6 +69,7 @@ export function ItemForm({
   onSubmit,
   onCancel,
   submitting,
+  clipboardClearSeconds,
 }: ItemFormProps) {
   const [title, setTitle] = useState(initialContent?.title ?? "");
   const [tags, setTags] = useState<string[]>(initialContent?.tags ?? []);
@@ -129,6 +131,7 @@ export function ItemForm({
               value={stringValue}
               required={field.required}
               onChange={(v) => updateFixed(field.key, v)}
+              clipboardClearSeconds={clipboardClearSeconds}
             />
             {type === "login" && field.key === "password" && (
               <div className="flex flex-col gap-2">
@@ -141,6 +144,7 @@ export function ItemForm({
                       updateFixed(field.key, generated);
                       setShowGenerator(false);
                     }}
+                    clipboardClearSeconds={clipboardClearSeconds}
                   />
                 )}
               </div>
@@ -290,7 +294,11 @@ export function ItemForm({
 
       {config.map((field) => renderFixedField(field))}
 
-      <CustomFieldsEditor fields={customFields} onChange={setCustomFields} />
+      <CustomFieldsEditor
+        fields={customFields}
+        onChange={setCustomFields}
+        clipboardClearSeconds={clipboardClearSeconds}
+      />
 
       {error && (
         <p role="alert" className="text-sm text-red-600">
