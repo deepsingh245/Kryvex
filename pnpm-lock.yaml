@@ -390,9 +390,6 @@ importers:
 
   firebase/functions:
     dependencies:
-      '@kryvex/types':
-        specifier: workspace:*
-        version: link:../../packages/types
       firebase-admin:
         specifier: ^14.3.0
         version: 14.3.0(@firebase/app-compat@0.5.17)(@firebase/app@0.16.1)(supports-color@8.1.1)
@@ -400,23 +397,17 @@ importers:
         specifier: ^7.3.2
         version: 7.3.2(firebase-admin@14.3.0(@firebase/app-compat@0.5.17)(@firebase/app@0.16.1)(supports-color@8.1.1))(supports-color@8.1.1)
     devDependencies:
-      '@kryvex/eslint-config':
-        specifier: workspace:*
-        version: link:../../packages/eslint-config
-      '@kryvex/tsconfig':
-        specifier: workspace:*
-        version: link:../../packages/tsconfig
       '@types/node':
         specifier: ^22
         version: 22.20.1
       eslint:
-        specifier: 'catalog:'
+        specifier: ^10.10.0
         version: 10.10.0(jiti@2.7.0)(supports-color@8.1.1)
       typescript:
-        specifier: 'catalog:'
+        specifier: ~6.0.3
         version: 6.0.3
       vitest:
-        specifier: 'catalog:'
+        specifier: ^5.0.0
         version: 5.0.0(@opentelemetry/api@1.9.1)(@types/node@22.20.1)(jsdom@30.0.1(@noble/hashes@2.4.0))(vite@8.2.2(@types/node@22.20.1)(esbuild@0.27.7)(jiti@2.7.0)(terser@5.51.2)(yaml@2.9.0))
 
   packages/crypto:

@@ -15,7 +15,7 @@
 import { onCall, HttpsError } from "firebase-functions/v2/https";
 import { getAuth } from "firebase-admin/auth";
 import { getFirestore } from "firebase-admin/firestore";
-import type { UserProfileDocument } from "@kryvex/types";
+import type { UserProfileDocument } from "./userProfileShape";
 
 interface GetKdfParamsRequest {
   email?: unknown;

@@ -13,16 +13,13 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@kryvex/types": "workspace:*",
     "firebase-admin": "^14.3.0",
     "firebase-functions": "^7.3.2"
   },
   "devDependencies": {
-    "@kryvex/eslint-config": "workspace:*",
-    "@kryvex/tsconfig": "workspace:*",
     "@types/node": "^22",
-    "eslint": "catalog:",
-    "typescript": "catalog:",
-    "vitest": "catalog:"
+    "eslint": "^10.10.0",
+    "typescript": "~6.0.3",
+    "vitest": "^5.0.0"
   }
 }
