@@ -7,7 +7,7 @@ import { useVault } from "@/providers/VaultProvider";
 
 const replace = vi.fn();
 const push = vi.fn();
-const searchParamsGet = vi.fn((_key: string): string | null => null);
+const searchParamsGet = vi.fn<(key: string) => string | null>(() => null);
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ replace, push }),
   useSearchParams: () => ({ get: searchParamsGet }),

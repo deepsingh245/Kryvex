@@ -8,8 +8,12 @@ phase number) landed: the standalone "Notes" field was dropped from the
 Add/Edit Item form across all item types (kept in the schema/Item Detail —
 see the decisions log), and a new minimal "Email" item type
 (email/password only) plus a `CopyableTextField`/`"copyText"` field kind
-were added, web-only — see "Current status" in `KRYVEX_SOURCE_OF_TRUTH.md`
-for the full decisions log.
+were added, web-only. A second UX pass followed the same day: the Add flow
+now skips the type picker when the URL already implies a category, Tags/
+Custom Fields collapse behind reveal buttons on the Add/Edit form, and the
+Email category gained a dense list view (Email/Password shown inline,
+defaulting on) toggled against the normal one-by-one list — see "Current
+status" in `KRYVEX_SOURCE_OF_TRUTH.md` for the full decisions log.
 Phase 9w ran a dedicated review pass across XSS/CSRF/rules/crypto/logging/
 deps and found the security posture fundamentally solid, closing the small
 number of real gaps found: Firebase App Check wired on `apps/web` (not yet

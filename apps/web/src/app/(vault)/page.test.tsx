@@ -4,7 +4,7 @@ import type { DecryptedVaultItem } from "@kryvex/vault";
 import Home from "./page";
 import { useVaultItems } from "@/hooks/useVaultItems";
 
-const searchParamsGet = vi.fn((_key: string): string | null => null);
+const searchParamsGet = vi.fn<(key: string) => string | null>(() => null);
 vi.mock("next/navigation", () => ({
   useSearchParams: () => ({ get: searchParamsGet }),
 }));
