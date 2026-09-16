@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { secureLogger } from "@kryvex/security";
 import { ITEM_TYPES, type ItemContent, type ItemType } from "@kryvex/types";
 import {
@@ -21,6 +21,17 @@ const ATTACHMENT_TYPES = new Set<ItemType>(["image", "pdf", "file"]);
 
 function isAttachmentType(type: ItemType): type is "image" | "pdf" | "file" {
   return ATTACHMENT_TYPES.has(type);
+}
+
+// A concrete, enabled ItemType in the URL skips the picker entirely;
+// "files" (the aggregate Image/PDF/File bucket) and anything else fall
+// back to null, which still shows a picker (see NewItemPage below).
+function initialTypeFromParam(param: string | null): ItemType | null {
+  if (!param || param === "files") return null;
+  return (ITEM_TYPES as readonly string[]).includes(param) &&
+    ITEM_TYPE_ENABLED[param as ItemType]
+    ? (param as ItemType)
+    : null;
 }
 
 function TypeTile({
@@ -55,11 +66,21 @@ function TypeTile({
 export default function NewItemPage() {
   const { settings } = useVault();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const typeParam = searchParams.get("type");
   const { createItem } = useVaultItems();
   const createAttachment = useCreateAttachment();
-  const [selectedType, setSelectedType] = useState<ItemType | null>(null);
+  const [selectedType, setSelectedType] = useState<ItemType | null>(() =>
+    initialTypeFromParam(typeParam),
+  );
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Only true when we skipped the picker via the URL — Cancel then needs
+  // to return to where the user actually came from (the filtered
+  // category), not fall back to a picker screen they never saw.
+  const skippedPicker = initialTypeFromParam(typeParam) !== null;
+  const backHref = typeParam ? `/?type=${typeParam}` : "/";
 
   async function handleSubmit(content: ItemContent) {
     setError(null);
@@ -107,16 +128,23 @@ export default function NewItemPage() {
   }
 
   if (!selectedType) {
+    // "files" is an aggregate category (Image/PDF/File), not one concrete
+    // ItemType, so it can't skip the picker outright — it narrows the
+    // tile grid down to just those 3 instead of every enabled type.
+    const tileTypes: readonly ItemType[] =
+      typeParam === "files"
+        ? (["image", "pdf", "file"] as const)
+        : ITEM_TYPES.filter((type) => ITEM_TYPE_ENABLED[type]);
     return (
       <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-5 px-4 py-6 sm:px-8 sm:py-8">
         <h1 className="text-xl font-semibold text-foreground">Add an item</h1>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
-          {ITEM_TYPES.filter((type) => ITEM_TYPE_ENABLED[type]).map((type) => (
+          {tileTypes.map((type) => (
             <TypeTile key={type} type={type} onSelect={() => setSelectedType(type)} />
           ))}
         </div>
         <Link
-          href="/"
+          href={backHref}
           className="text-sm text-text-secondary underline-offset-4 hover:text-foreground hover:underline"
         >
           Cancel
@@ -136,14 +164,18 @@ export default function NewItemPage() {
           onSubmit={(values) =>
             void handleAttachmentSubmit(selectedType, values)
           }
-          onCancel={() => setSelectedType(null)}
+          onCancel={() =>
+            skippedPicker ? router.push(backHref) : setSelectedType(null)
+          }
           submitting={submitting}
         />
       ) : (
         <ItemForm
           type={selectedType}
           onSubmit={(content) => void handleSubmit(content)}
-          onCancel={() => setSelectedType(null)}
+          onCancel={() =>
+            skippedPicker ? router.push(backHref) : setSelectedType(null)
+          }
           submitting={submitting}
           clipboardClearSeconds={settings?.clipboardClearSeconds}
         />

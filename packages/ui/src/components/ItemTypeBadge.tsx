@@ -7,6 +7,7 @@ import {
   Image as ImageIcon,
   KeyRound,
   type LucideIcon,
+  Mail,
   Shield,
   SlidersHorizontal,
   StickyNote,
@@ -21,6 +22,7 @@ import { Badge } from "./ui/badge";
 // importable by a future React Native UI without pulling in a web icon lib.
 const ICON_BY_NAME: Record<string, LucideIcon> = {
   key: KeyRound,
+  mail: Mail,
   note: StickyNote,
   user: User,
   "credit-card": CreditCard,

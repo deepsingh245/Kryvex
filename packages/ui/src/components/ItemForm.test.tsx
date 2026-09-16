@@ -7,7 +7,54 @@ describe("ItemForm", () => {
     render(<ItemForm type="login" onSubmit={vi.fn()} onCancel={vi.fn()} />);
     expect(screen.getByLabelText("Title")).toBeInTheDocument();
     expect(screen.getByText("Password")).toBeInTheDocument();
-    expect(screen.getByLabelText("Notes")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Notes")).not.toBeInTheDocument();
+  });
+
+  it("starts with Tags and Custom Fields collapsed behind reveal buttons for a new item", () => {
+    render(<ItemForm type="login" onSubmit={vi.fn()} onCancel={vi.fn()} />);
+    expect(screen.queryByLabelText("Tags")).not.toBeInTheDocument();
+    expect(screen.queryByText("Custom fields")).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Add tags" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Add custom field" }),
+    ).toBeInTheDocument();
+  });
+
+  it("reveals Tags and Custom Fields when their reveal buttons are clicked", () => {
+    render(<ItemForm type="login" onSubmit={vi.fn()} onCancel={vi.fn()} />);
+    fireEvent.click(screen.getByRole("button", { name: "Add tags" }));
+    expect(screen.getByLabelText("Tags")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Add custom field" }));
+    expect(screen.getByText("Custom fields")).toBeInTheDocument();
+  });
+
+  it("auto-expands Tags and Custom Fields when editing an item that already has them", () => {
+    render(
+      <ItemForm
+        type="login"
+        initialContent={{
+          type: "login",
+          title: "Existing",
+          tags: ["work"],
+          customFields: [{ id: "f1", label: "Field", type: "text", value: "x" }],
+          username: "",
+          password: "",
+          websites: [],
+        }}
+        onSubmit={vi.fn()}
+        onCancel={vi.fn()}
+      />,
+    );
+    expect(screen.getByLabelText("Tags")).toBeInTheDocument();
+    expect(screen.getByText("Custom fields")).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Add tags" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Add custom field" }),
+    ).not.toBeInTheDocument();
   });
 
   it("submits valid content matching itemContentSchema", () => {

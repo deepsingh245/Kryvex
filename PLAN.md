@@ -3,6 +3,13 @@
 Status: **Phase 9w (security hardening, web + shared packages) complete.**
 `apps/web` is being taken to full completion before any `apps/mobile` work
 resumes (this session's strategy change — see §4's Track A/Track B split).
+Between Phase 9w and Phase 10w, a scoped UX/ergonomics fix (not its own
+phase number) landed: the standalone "Notes" field was dropped from the
+Add/Edit Item form across all item types (kept in the schema/Item Detail —
+see the decisions log), and a new minimal "Email" item type
+(email/password only) plus a `CopyableTextField`/`"copyText"` field kind
+were added, web-only — see "Current status" in `KRYVEX_SOURCE_OF_TRUTH.md`
+for the full decisions log.
 Phase 9w ran a dedicated review pass across XSS/CSRF/rules/crypto/logging/
 deps and found the security posture fundamentally solid, closing the small
 number of real gaps found: Firebase App Check wired on `apps/web` (not yet

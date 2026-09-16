@@ -34,7 +34,7 @@ track** (deferred until the web track reaches release).
 
 Sign up (with a one-time Emergency Kit shown), sign in, sign out, lock
 (manual button, idle timeout, or tab-hidden — now configurable via
-`/settings`), unlock, full vault CRUD (all 11 item types including
+`/settings`), unlock, full vault CRUD (all 12 item types including
 image/PDF/file attachments), offline-first sync with conflict resolution
 (now surfaced on failure), encrypted file upload/preview/download,
 clipboard auto-clear on copied secrets (delay configurable via `/settings`),

@@ -4,6 +4,7 @@ import type {
   AttachmentItemContent,
   CardContent,
   CustomItemContent,
+  EmailContent,
   IdentityContent,
   ItemContent,
   LoginContent,
@@ -28,6 +29,7 @@ const DECRYPT_FAILURE_MESSAGE = "Unable to decrypt vault item.";
 // "image" alone. Spelling out each key's concrete type sidesteps that.
 const SAMPLE_CONTENT: {
   login: LoginContent;
+  email: EmailContent;
   secureNote: SecureNoteContent;
   identity: IdentityContent;
   card: CardContent;
@@ -47,6 +49,14 @@ const SAMPLE_CONTENT: {
     username: "alice",
     password: "hunter2",
     websites: ["https://example.com"],
+  },
+  email: {
+    type: "email",
+    title: "Personal email",
+    tags: [],
+    customFields: [],
+    email: "alice@example.com",
+    password: "hunter2",
   },
   secureNote: {
     type: "secureNote",

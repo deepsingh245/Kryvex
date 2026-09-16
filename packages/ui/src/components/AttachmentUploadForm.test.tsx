@@ -14,7 +14,7 @@ function sampleFile(
 }
 
 describe("AttachmentUploadForm", () => {
-  it("renders title/tags/notes and a file input", () => {
+  it("renders title and a file input, with Tags/Custom Fields collapsed and no Notes field", () => {
     render(
       <AttachmentUploadForm
         type="image"
@@ -23,9 +23,28 @@ describe("AttachmentUploadForm", () => {
       />,
     );
     expect(screen.getByLabelText("Title")).toBeInTheDocument();
-    expect(screen.getByText("Tags")).toBeInTheDocument();
-    expect(screen.getByLabelText("Notes")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Tags")).not.toBeInTheDocument();
+    expect(screen.queryByText("Custom fields")).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Add tags" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Add custom field" }),
+    ).toBeInTheDocument();
+    expect(screen.queryByLabelText("Notes")).not.toBeInTheDocument();
     expect(screen.getByLabelText("File")).toBeInTheDocument();
+  });
+
+  it("reveals Tags when its reveal button is clicked", () => {
+    render(
+      <AttachmentUploadForm
+        type="image"
+        onSubmit={vi.fn()}
+        onCancel={vi.fn()}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Add tags" }));
+    expect(screen.getByLabelText("Tags")).toBeInTheDocument();
   });
 
   it("does not submit without a title", () => {

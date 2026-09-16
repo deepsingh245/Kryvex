@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import NewItemPage from "./page";
 import { useCreateAttachment } from "@/hooks/useCreateAttachment";
 import { useVaultItems } from "@/hooks/useVaultItems";
@@ -7,8 +7,10 @@ import { useVault } from "@/providers/VaultProvider";
 
 const replace = vi.fn();
 const push = vi.fn();
+const searchParamsGet = vi.fn((_key: string): string | null => null);
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ replace, push }),
+  useSearchParams: () => ({ get: searchParamsGet }),
 }));
 
 vi.mock("@/providers/VaultProvider", () => ({
@@ -50,7 +52,26 @@ function mockVaultItems(createItem = vi.fn()) {
   });
 }
 
+function mockUseVault() {
+  mockedUseVault.mockReturnValue({
+    state: UNLOCKED_STATE,
+    signUp: vi.fn(),
+    signIn: vi.fn(),
+    unlock: vi.fn(),
+    lock: vi.fn(),
+    recoverVault: vi.fn(),
+    settings: undefined,
+    updateSettings: vi.fn(),
+    signOut: vi.fn(),
+  });
+}
+
 describe("NewItemPage", () => {
+  beforeEach(() => {
+    searchParamsGet.mockReset();
+    searchParamsGet.mockImplementation(() => null);
+  });
+
   it("shows the type picker including image/pdf/file (Phase 6)", () => {
     mockedUseVault.mockReturnValue({
       state: UNLOCKED_STATE,
@@ -157,5 +178,59 @@ describe("NewItemPage", () => {
     await vi.waitFor(() => {
       expect(push).toHaveBeenCalledWith("/item/generated-item-id");
     });
+  });
+
+  it("skips the type picker and goes straight to the form when ?type= is a concrete type", () => {
+    searchParamsGet.mockImplementation((key) => (key === "type" ? "email" : null));
+    mockUseVault();
+    mockVaultItems();
+    mockedUseCreateAttachment.mockReturnValue(vi.fn());
+    render(<NewItemPage />);
+
+    expect(screen.getByLabelText("Title")).toBeInTheDocument();
+    expect(screen.queryByText("Add an item")).not.toBeInTheDocument();
+  });
+
+  it("restricts the picker to Image/PDF/File when ?type=files", () => {
+    searchParamsGet.mockImplementation((key) => (key === "type" ? "files" : null));
+    mockUseVault();
+    mockVaultItems();
+    mockedUseCreateAttachment.mockReturnValue(vi.fn());
+    render(<NewItemPage />);
+
+    expect(screen.getByText("Image")).toBeInTheDocument();
+    expect(screen.getByText("PDF")).toBeInTheDocument();
+    expect(screen.getByText("File")).toBeInTheDocument();
+    expect(screen.queryByText("Login")).not.toBeInTheDocument();
+    expect(screen.queryByText("Custom")).not.toBeInTheDocument();
+    expect(screen.getByText("Cancel").closest("a")).toHaveAttribute(
+      "href",
+      "/?type=files",
+    );
+  });
+
+  it("Cancel from a skipped-picker form returns to the filtered category, not the picker", () => {
+    searchParamsGet.mockImplementation((key) => (key === "type" ? "email" : null));
+    mockUseVault();
+    mockVaultItems();
+    mockedUseCreateAttachment.mockReturnValue(vi.fn());
+    render(<NewItemPage />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(push).toHaveBeenCalledWith("/?type=email");
+    expect(screen.queryByText("Add an item")).not.toBeInTheDocument();
+  });
+
+  it("Cancel from a manually-selected type (no ?type=) returns to the picker", () => {
+    mockUseVault();
+    mockVaultItems();
+    mockedUseCreateAttachment.mockReturnValue(vi.fn());
+    render(<NewItemPage />);
+
+    fireEvent.click(screen.getByText("Secure Note"));
+    expect(screen.getByLabelText("Title")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(screen.getByText("Add an item")).toBeInTheDocument();
   });
 });

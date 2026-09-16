@@ -1,11 +1,16 @@
-import { render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { fireEvent, render, screen } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { DecryptedVaultItem } from "@kryvex/vault";
 import Home from "./page";
 import { useVaultItems } from "@/hooks/useVaultItems";
 
+const searchParamsGet = vi.fn((_key: string): string | null => null);
 vi.mock("next/navigation", () => ({
-  useSearchParams: () => new URLSearchParams(),
+  useSearchParams: () => ({ get: searchParamsGet }),
+}));
+
+vi.mock("@/providers/VaultProvider", () => ({
+  useVault: () => ({ settings: undefined }),
 }));
 
 vi.mock("@/hooks/useVaultItems", () => ({
@@ -58,9 +63,39 @@ function mockVaultItems(
   });
 }
 
+function emailItem(): DecryptedVaultItem {
+  return {
+    id: "item2",
+    ownerId: "1",
+    type: "email",
+    revision: 0,
+    updatedAt: null,
+    createdAt: null,
+    deleted: false,
+    favorite: false,
+    wrappedItemKey: { v: 1, alg: "AES-256-GCM", nonce: "n", ciphertext: "c" },
+    encryptedData: { v: 1, alg: "AES-256-GCM", nonce: "n", ciphertext: "c" },
+    attachmentRefs: [],
+    decryptFailed: false,
+    content: {
+      type: "email",
+      title: "Personal email",
+      tags: [],
+      customFields: [],
+      email: "alice@example.com",
+      password: "hunter2",
+    },
+  };
+}
+
 // SIGNED_OUT/AUTHENTICATED_LOCKED redirect gating is exercised once in
 // (vault)/layout.test.tsx — this page no longer has that logic itself.
 describe("Home", () => {
+  beforeEach(() => {
+    searchParamsGet.mockReset();
+    searchParamsGet.mockImplementation(() => null);
+  });
+
   it("shows the empty-vault message with no items", () => {
     mockVaultItems();
     render(<Home />);
@@ -107,5 +142,50 @@ describe("Home", () => {
     mockVaultItems();
     render(<Home />);
     expect(screen.queryByText(/unable to sync/i)).not.toBeInTheDocument();
+  });
+
+  it("Add link points at plain /item/new with no active category", () => {
+    mockVaultItems();
+    render(<Home />);
+    expect(screen.getByText("Add").closest("a")).toHaveAttribute(
+      "href",
+      "/item/new",
+    );
+  });
+
+  it("Add link carries the active category through to /item/new", () => {
+    searchParamsGet.mockImplementation((key) => (key === "type" ? "email" : null));
+    mockVaultItems({ items: [emailItem()] });
+    render(<Home />);
+    expect(screen.getByText("Add").closest("a")).toHaveAttribute(
+      "href",
+      "/item/new?type=email",
+    );
+  });
+
+  it("defaults the Email category to the dense view, showing Email/Password inline", () => {
+    searchParamsGet.mockImplementation((key) => (key === "type" ? "email" : null));
+    mockVaultItems({ items: [emailItem()] });
+    render(<Home />);
+    expect(screen.getByLabelText("Email")).toHaveValue("alice@example.com");
+    expect(screen.getByLabelText("Password")).toBeInTheDocument();
+  });
+
+  it("switches to the one-by-one list when toggled", () => {
+    searchParamsGet.mockImplementation((key) => (key === "type" ? "email" : null));
+    mockVaultItems({ items: [emailItem()] });
+    render(<Home />);
+    fireEvent.click(screen.getByRole("button", { name: "One by one" }));
+    expect(screen.queryByLabelText("Email")).not.toBeInTheDocument();
+    expect(screen.getByText("Personal email")).toBeInTheDocument();
+  });
+
+  it("does not show the Email view toggle for other categories", () => {
+    searchParamsGet.mockImplementation((key) => (key === "type" ? "login" : null));
+    mockVaultItems({ items: [loginItem()] });
+    render(<Home />);
+    expect(
+      screen.queryByRole("button", { name: "One by one" }),
+    ).not.toBeInTheDocument();
   });
 });

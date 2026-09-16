@@ -12,11 +12,14 @@ import {
   Skeleton,
 } from "@kryvex/ui";
 import { selectVisibleItems } from "@kryvex/vault";
+import { EmailDenseList } from "@/components/vault/EmailDenseList";
 import { ItemCard } from "@/components/vault/ItemCard";
 import { useVaultItems } from "@/hooks/useVaultItems";
+import { useVault } from "@/providers/VaultProvider";
 
 const CATEGORY_HEADINGS: Record<string, string> = {
   login: "Logins",
+  email: "Emails",
   secureNote: "Secure Notes",
   card: "Cards",
   identity: "Identities",
@@ -34,6 +37,7 @@ const CATEGORY_HEADINGS: Record<string, string> = {
  * state. Gating now lives once in ../layout.tsx.
  */
 export default function Home() {
+  const { settings } = useVault();
   const { items, loading, loadError, toggleFavorite, conflicts } =
     useVaultItems();
   const searchParams = useSearchParams();
@@ -42,6 +46,9 @@ export default function Home() {
 
   const [query, setQuery] = useState("");
   const [tagFilter, setTagFilter] = useState<string | undefined>(undefined);
+  // Only relevant for the Email category — defaults to the dense view so
+  // users can scan every email/password without clicking into each item.
+  const [emailView, setEmailView] = useState<"dense" | "list">("dense");
 
   const visible = useMemo(() => {
     const base = selectVisibleItems(
@@ -86,7 +93,7 @@ export default function Home() {
             className="w-full sm:w-64"
           />
           <Link
-            href="/item/new"
+            href={typeFilter ? `/item/new?type=${typeFilter}` : "/item/new"}
             className={buttonVariants({ variant: "primary" })}
           >
             <Plus className="h-4 w-4" strokeWidth={2} />
@@ -94,6 +101,33 @@ export default function Home() {
           </Link>
         </div>
       </div>
+
+      {typeFilter === "email" && (
+        <div className="flex items-center gap-1 self-start rounded-md border border-border p-0.5">
+          <button
+            type="button"
+            onClick={() => setEmailView("dense")}
+            className={
+              emailView === "dense"
+                ? "rounded-sm bg-primary px-2.5 py-1 text-xs font-medium text-primary-foreground"
+                : "rounded-sm px-2.5 py-1 text-xs font-medium text-text-secondary transition-colors hover:text-foreground"
+            }
+          >
+            All at once
+          </button>
+          <button
+            type="button"
+            onClick={() => setEmailView("list")}
+            className={
+              emailView === "list"
+                ? "rounded-sm bg-primary px-2.5 py-1 text-xs font-medium text-primary-foreground"
+                : "rounded-sm px-2.5 py-1 text-xs font-medium text-text-secondary transition-colors hover:text-foreground"
+            }
+          >
+            One by one
+          </button>
+        </div>
+      )}
 
       {loadError && <Alert variant="destructive">{loadError}</Alert>}
 
@@ -147,15 +181,23 @@ export default function Home() {
         />
       )}
 
-      <ul className="flex flex-col gap-2">
-        {visible.map((item) => (
-          <ItemCard
-            key={item.id}
-            item={item}
-            onToggleFavorite={() => void toggleFavorite(item.id)}
-          />
-        ))}
-      </ul>
+      {typeFilter === "email" && emailView === "dense" ? (
+        <EmailDenseList
+          items={visible}
+          onToggleFavorite={(id) => void toggleFavorite(id)}
+          clipboardClearSeconds={settings?.clipboardClearSeconds}
+        />
+      ) : (
+        <ul className="flex flex-col gap-2">
+          {visible.map((item) => (
+            <ItemCard
+              key={item.id}
+              item={item}
+              onToggleFavorite={() => void toggleFavorite(item.id)}
+            />
+          ))}
+        </ul>
+      )}
     </main>
   );
 }

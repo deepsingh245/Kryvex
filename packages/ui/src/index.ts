@@ -73,6 +73,9 @@ export type { BooleanFieldProps } from "./components/BooleanField";
 export { EmergencyKit } from "./components/EmergencyKit";
 export type { EmergencyKitProps } from "./components/EmergencyKit";
 
+export { CopyableTextField } from "./components/CopyableTextField";
+export type { CopyableTextFieldProps } from "./components/CopyableTextField";
+
 export { CustomFieldsEditor } from "./components/CustomFieldsEditor";
 export type { CustomFieldsEditorProps } from "./components/CustomFieldsEditor";
 

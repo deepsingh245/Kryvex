@@ -44,6 +44,7 @@ interface VaultItemDocument {
 
 type ItemType =
   | "login"
+  | "email"
   | "secureNote"
   | "identity"
   | "card"
@@ -79,7 +80,9 @@ after successful client-side decryption. All variants share a common base:
 interface ItemContentBase {
   title: string;
   tags: string[];
-  notes?: string;
+  notes?: string; // no longer editable via the Add/Edit form (Custom Fields'
+  // multiline option covers free text instead) — stays in the schema so
+  // items that already have notes keep displaying them
   customFields: CustomField[];
 }
 
@@ -109,6 +112,21 @@ interface LoginContent extends ItemContentBase {
   password: string;
   websites: string[]; // supports multiple URLs for autofill matching (see AUTOFILL_ARCHITECTURE.md)
   totp?: { secret: string; issuer?: string; account?: string }; // v1.5, schema reserved now
+}
+```
+
+### Email
+
+Deliberately minimal — just the two fields users asked for. The `email`
+field is not sensitive the way `password` is: the UI renders it as a
+visible, copy-button field (`CopyableTextField`) rather than masking it like
+a secret.
+
+```ts
+interface EmailContent extends ItemContentBase {
+  type: "email";
+  email: string;
+  password: string;
 }
 ```
 

@@ -8,7 +8,7 @@ import {
 } from "./fieldConfig";
 
 describe("field config completeness", () => {
-  it("has an entry in every record for all 11 ItemTypes", () => {
+  it("has an entry in every record for all 12 ItemTypes", () => {
     for (const type of ITEM_TYPES) {
       expect(ITEM_TYPE_LABELS[type]).toBeTruthy();
       expect(ITEM_TYPE_ICON_NAMES[type]).toBeTruthy();

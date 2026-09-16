@@ -7,6 +7,7 @@ import { itemContentSchema } from "@kryvex/validation";
 import { ITEM_TYPE_FIELD_CONFIG, type ItemFieldConfig } from "../fieldConfig";
 import { BooleanField } from "./BooleanField";
 import { Button } from "./ui/button";
+import { CopyableTextField } from "./CopyableTextField";
 import { CustomFieldsEditor } from "./CustomFieldsEditor";
 import { DateField } from "./DateField";
 import { Input } from "./ui/input";
@@ -75,7 +76,6 @@ export function ItemForm({
 }: ItemFormProps) {
   const [title, setTitle] = useState(initialContent?.title ?? "");
   const [tags, setTags] = useState<string[]>(initialContent?.tags ?? []);
-  const [notes, setNotes] = useState(initialContent?.notes ?? "");
   const [customFields, setCustomFields] = useState<CustomField[]>(
     initialContent?.customFields ?? [],
   );
@@ -83,6 +83,15 @@ export function ItemForm({
     initFixedFields(type, initialContent),
   );
   const [showGenerator, setShowGenerator] = useState(false);
+  // Tags/Custom Fields start collapsed behind a button for a quick empty
+  // entry, but auto-expand when editing an item that already has data —
+  // never hide existing content behind an extra click.
+  const [showTags, setShowTags] = useState(
+    () => (initialContent?.tags?.length ?? 0) > 0,
+  );
+  const [showCustomFields, setShowCustomFields] = useState(
+    () => (initialContent?.customFields?.length ?? 0) > 0,
+  );
   const [error, setError] = useState<string | null>(null);
 
   const config = ITEM_TYPE_FIELD_CONFIG[type];
@@ -99,15 +108,19 @@ export function ItemForm({
     // type's ItemContent but aren't part of ITEM_TYPE_FIELD_CONFIG at all
     // (e.g. AttachmentItemContent.attachmentId, since image/pdf/file items
     // have an empty fixed-field list — it's an internal reference, never
-    // user-edited — see fieldConfig.ts's header comment). Every field this
-    // form actually edits (title/tags/notes/customFields/fixedFields) is
-    // spread after, so it always wins over whatever initialContent had.
+    // user-edited — see fieldConfig.ts's header comment). This is also why
+    // an existing item's `notes` survives untouched even though this form
+    // no longer has a Notes field of its own (removed per product
+    // feedback — Custom Fields' multiline option already covers free
+    // text): notes just isn't part of the fields spread after, so it's
+    // never overwritten. Every field this form actually edits
+    // (title/tags/customFields/fixedFields) is spread after, so it always
+    // wins over whatever initialContent had.
     const candidate = {
       ...(initialContent ?? {}),
       type,
       title,
       tags,
-      notes: notes || undefined,
       customFields,
       ...fixedFields,
     };
@@ -167,6 +180,16 @@ export function ItemForm({
             key={field.key}
             label={field.label}
             value={typeof value === "string" ? value : ""}
+            onChange={(v) => updateFixed(field.key, v)}
+          />
+        );
+      case "copyText":
+        return (
+          <CopyableTextField
+            key={field.key}
+            label={field.label}
+            value={typeof value === "string" ? value : ""}
+            required={field.required}
             onChange={(v) => updateFixed(field.key, v)}
           />
         );
@@ -296,26 +319,46 @@ export function ItemForm({
     // submit event before handleSubmit (and our error message) ever runs.
     <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-5">
       <TextField label="Title" value={title} required onChange={setTitle} />
-      <TagsInput
-        label="Tags"
-        values={tags}
-        onChange={setTags}
-        placeholder="Add a tag and press Enter"
-      />
-      <MultilineField
-        label="Notes"
-        value={notes}
-        onChange={setNotes}
-        rows={3}
-      />
+      {showTags ? (
+        <TagsInput
+          label="Tags"
+          values={tags}
+          onChange={setTags}
+          placeholder="Add a tag and press Enter"
+        />
+      ) : (
+        <Button
+          type="button"
+          variant="secondary"
+          size="sm"
+          className="self-start"
+          onClick={() => setShowTags(true)}
+        >
+          <Plus className="h-4 w-4" strokeWidth={1.75} />
+          Add tags
+        </Button>
+      )}
 
       {config.map((field) => renderFixedField(field))}
 
-      <CustomFieldsEditor
-        fields={customFields}
-        onChange={setCustomFields}
-        clipboardClearSeconds={clipboardClearSeconds}
-      />
+      {showCustomFields ? (
+        <CustomFieldsEditor
+          fields={customFields}
+          onChange={setCustomFields}
+          clipboardClearSeconds={clipboardClearSeconds}
+        />
+      ) : (
+        <Button
+          type="button"
+          variant="secondary"
+          size="sm"
+          className="self-start"
+          onClick={() => setShowCustomFields(true)}
+        >
+          <Plus className="h-4 w-4" strokeWidth={1.75} />
+          Add custom field
+        </Button>
+      )}
 
       {error && (
         <p role="alert" className="text-sm text-destructive">

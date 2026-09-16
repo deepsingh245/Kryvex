@@ -240,7 +240,7 @@ describe("firestore.rules — users/{uid}/items/{itemId}", () => {
 
   it("allows creating items of other recognized types (not just login)", async () => {
     const aliceDb = testEnv.authenticatedContext("alice").firestore();
-    for (const type of ["secureNote", "custom"]) {
+    for (const type of ["secureNote", "custom", "email"]) {
       await assertSucceeds(
         aliceDb.doc(`users/alice/items/${type}-item`).set({
           id: `${type}-item`,

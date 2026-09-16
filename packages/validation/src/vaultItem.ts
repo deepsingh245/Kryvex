@@ -67,6 +67,13 @@ export const loginContentSchema = z.object({
     .optional(),
 });
 
+export const emailContentSchema = z.object({
+  ...itemContentBaseShape,
+  type: z.literal("email"),
+  email: z.string(),
+  password: z.string(),
+});
+
 export const secureNoteContentSchema = z.object({
   ...itemContentBaseShape,
   type: z.literal("secureNote"),
@@ -139,6 +146,7 @@ export const customContentSchema = z.object({
 
 export const itemContentSchema = z.discriminatedUnion("type", [
   loginContentSchema,
+  emailContentSchema,
   secureNoteContentSchema,
   identityContentSchema,
   cardContentSchema,

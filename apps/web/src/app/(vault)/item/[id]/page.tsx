@@ -11,6 +11,7 @@ import {
   Button,
   buttonVariants,
   cn,
+  CopyableTextField,
   Dialog,
   ITEM_TYPE_FIELD_CONFIG,
   ItemTypeBadge,
@@ -158,6 +159,15 @@ export default function ItemDetailPage() {
                     value={String(value)}
                     readOnly
                     clipboardClearSeconds={settings?.clipboardClearSeconds}
+                  />
+                );
+              case "copyText":
+                return (
+                  <CopyableTextField
+                    key={field.key}
+                    label={field.label}
+                    value={String(value)}
+                    readOnly
                   />
                 );
               case "multiUrl":

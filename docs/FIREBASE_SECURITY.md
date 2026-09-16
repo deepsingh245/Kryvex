@@ -44,7 +44,7 @@ service cloud.firestore {
     function isValidItem(data) {
       return data.keys().hasAll(['id','ownerId','type','revision','updatedAt','createdAt','deleted','favorite','wrappedItemKey','encryptedData','attachmentRefs'])
         && data.ownerId == request.auth.uid
-        && data.type in ['login','secureNote','identity','card','pin','apiKey','recoveryCodes','image','pdf','file','custom']
+        && data.type in ['login','email','secureNote','identity','card','pin','apiKey','recoveryCodes','image','pdf','file','custom']
         && data.revision is int
         && data.revision >= 0
         && data.favorite is bool;

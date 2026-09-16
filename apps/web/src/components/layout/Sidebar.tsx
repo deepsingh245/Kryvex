@@ -8,6 +8,7 @@ import {
   Layers,
   Lock,
   LogOut,
+  Mail,
   Settings as SettingsIcon,
   Shield,
   Star,
@@ -24,6 +25,7 @@ import { useVault } from "@/providers/VaultProvider";
 
 const CATEGORIES: { label: string; type: string; icon: LucideIcon }[] = [
   { label: "Logins", type: "login", icon: KeyRound },
+  { label: "Emails", type: "email", icon: Mail },
   { label: "Secure Notes", type: "secureNote", icon: StickyNote },
   { label: "Cards", type: "card", icon: CreditCard },
   { label: "Identities", type: "identity", icon: User },

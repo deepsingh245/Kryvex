@@ -1,10 +1,10 @@
 "use client";
 
+import { Plus } from "lucide-react";
 import { useId, useState, type ChangeEvent, type FormEvent } from "react";
 import type { CustomField } from "@kryvex/types";
 import { CustomFieldsEditor } from "./CustomFieldsEditor";
 import { Label } from "./ui/label";
-import { MultilineField } from "./MultilineField";
 import { TagsInput } from "./TagsInput";
 import { TextField } from "./TextField";
 import { Button } from "./ui/button";
@@ -21,6 +21,10 @@ const ACCEPT_BY_TYPE: Record<"image" | "pdf" | "file", string | undefined> = {
 export interface AttachmentUploadFormValues {
   title: string;
   tags: string[];
+  // No Notes field in this form (removed per product feedback — Custom
+  // Fields' multiline option already covers free text) — always undefined.
+  // Kept in the shape rather than removed outright since it flows straight
+  // into ItemContentBase.notes, which stays optional.
   notes: string | undefined;
   customFields: CustomField[];
   file: File;
@@ -50,10 +54,13 @@ export function AttachmentUploadForm({
   const fileInputId = useId();
   const [title, setTitle] = useState("");
   const [tags, setTags] = useState<string[]>([]);
-  const [notes, setNotes] = useState("");
   const [customFields, setCustomFields] = useState<CustomField[]>([]);
   const [file, setFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Always starts empty (this form has no initialContent) — collapsed
+  // behind a button, same as ItemForm.tsx.
+  const [showTags, setShowTags] = useState(false);
+  const [showCustomFields, setShowCustomFields] = useState(false);
 
   function handleFileChange(e: ChangeEvent<HTMLInputElement>) {
     const selected = e.target.files?.[0];
@@ -86,7 +93,7 @@ export function AttachmentUploadForm({
     onSubmit({
       title,
       tags,
-      notes: notes || undefined,
+      notes: undefined,
       customFields,
       file,
     });
@@ -95,18 +102,25 @@ export function AttachmentUploadForm({
   return (
     <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-5">
       <TextField label="Title" value={title} required onChange={setTitle} />
-      <TagsInput
-        label="Tags"
-        values={tags}
-        onChange={setTags}
-        placeholder="Add a tag and press Enter"
-      />
-      <MultilineField
-        label="Notes"
-        value={notes}
-        onChange={setNotes}
-        rows={3}
-      />
+      {showTags ? (
+        <TagsInput
+          label="Tags"
+          values={tags}
+          onChange={setTags}
+          placeholder="Add a tag and press Enter"
+        />
+      ) : (
+        <Button
+          type="button"
+          variant="secondary"
+          size="sm"
+          className="self-start"
+          onClick={() => setShowTags(true)}
+        >
+          <Plus className="h-4 w-4" strokeWidth={1.75} />
+          Add tags
+        </Button>
+      )}
 
       <div className="flex flex-col gap-1.5">
         <Label htmlFor={fileInputId}>File</Label>
@@ -119,7 +133,20 @@ export function AttachmentUploadForm({
         />
       </div>
 
-      <CustomFieldsEditor fields={customFields} onChange={setCustomFields} />
+      {showCustomFields ? (
+        <CustomFieldsEditor fields={customFields} onChange={setCustomFields} />
+      ) : (
+        <Button
+          type="button"
+          variant="secondary"
+          size="sm"
+          className="self-start"
+          onClick={() => setShowCustomFields(true)}
+        >
+          <Plus className="h-4 w-4" strokeWidth={1.75} />
+          Add custom field
+        </Button>
+      )}
 
       {error && (
         <p role="alert" className="text-sm text-destructive">

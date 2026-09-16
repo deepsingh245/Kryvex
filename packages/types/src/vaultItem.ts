@@ -8,6 +8,7 @@ import type { EncryptedEnvelope } from "./userProfile";
 
 export const ITEM_TYPES = [
   "login",
+  "email",
   "secureNote",
   "identity",
   "card",
@@ -82,6 +83,12 @@ export interface LoginContent extends ItemContentBase {
     | undefined;
 }
 
+export interface EmailContent extends ItemContentBase {
+  type: "email";
+  email: string;
+  password: string;
+}
+
 export interface SecureNoteContent extends ItemContentBase {
   type: "secureNote";
   body: string;
@@ -141,6 +148,7 @@ export interface CustomItemContent extends ItemContentBase {
 
 export type ItemContent =
   | LoginContent
+  | EmailContent
   | SecureNoteContent
   | IdentityContent
   | CardContent

@@ -50,9 +50,9 @@ diagram: [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) §5.
 
 ## 5. Data model
 
-Envelope/`ItemContent` split, all 11 item types (Login, Secure Note, Identity,
-Card, PIN, API Key, Recovery Codes, Image, PDF, File, Custom), attachment
-model, field-level encryption rationale table:
+Envelope/`ItemContent` split, all 12 item types (Login, Email, Secure Note,
+Identity, Card, PIN, API Key, Recovery Codes, Image, PDF, File, Custom),
+attachment model, field-level encryption rationale table:
 [docs/DATA_MODEL.md](./docs/DATA_MODEL.md).
 
 ## 6. Encryption model
@@ -155,6 +155,8 @@ build spec §18.
 | `firestore.rules`' `users/{uid}` create/update rules gained `isValidKdfParams` (floors `kdfParams` at the shipped Argon2id defaults), Phase 9w                                                                                           | No validation existed at all before — a compromised or buggy client could write arbitrarily weak Argon2id parameters into its own profile doc, cheapening a future offline attack if the wrapped keys were also exfiltrated. Only floors the values; a stronger future policy can still raise them                        | firebase/firestore.rules, tests/security/firestore.rules.test.ts                    |
 | Five non-cryptographic ID-generation `Math.random()` fallbacks (used only when `crypto.randomUUID` is unavailable) replaced with a CSPRNG-backed fallback in `apps/web`/`packages/ui`; `apps/mobile`'s two mirrors left as-is, Phase 9w   | Not exploitable (worst case is an ID collision, not a confidentiality/integrity break), but a literal violation of CLAUDE.md's absolute "never `Math.random()`" wording — closed for policy consistency where in scope; mobile is frozen per the Track A/B split                                                            | apps/web/src/hooks/useVaultItems.ts, useCreateAttachment.ts, packages/ui/src/components/CustomFieldsEditor.tsx |
 | `react/no-danger` added to the shared ESLint config, Phase 9w                                                                                                                                                                            | Nothing in the codebase uses `dangerouslySetInnerHTML` today (confirmed repo-wide) — this locks that state in defensively rather than fixing a live bug, since a vault app rendering decrypted user content is exactly where an XSS sink would matter most                                                                 | packages/eslint-config/react.js                                                     |
+| Standalone "Notes" field removed from the Add/Edit Item form (all types), but `ItemContentBase.notes` kept in the type/schema and still shown on Item Detail (web-only, post-9w)                                                        | User feedback: too many fields for a quick entry; Custom Fields' multiline option already covers free text, making a dedicated Notes input redundant — a pure UI change, no data loss for existing items                                                                                                                    | packages/ui/src/components/ItemForm.tsx, AttachmentUploadForm.tsx                    |
+| New "Email" item type (just `email`/`password`) plus a new `"copyText"` field kind/`CopyableTextField` component (visible-by-default, Copy button, no reveal toggle, no clipboard auto-clear) — web-only, `apps/mobile` deferred (post-9w) | User feedback: wanted a minimal email-only entry, distinct from Login's fuller field set; email isn't sensitive the way a password is, so it shouldn't be masked like `SecretField`. `apps/mobile`'s field-kind/item-type switches are non-exhaustive and degrade gracefully, so this is safe to ship web-only under the Track A/B split | packages/ui/src/fieldConfig.ts, CopyableTextField.tsx, packages/types/src/vaultItem.ts |
 
 ## 13. Known limitations
 
@@ -191,7 +193,7 @@ storage, sync, key management, or attachments: build spec §41–§43,
 
 ## 17. Future roadmap
 
-- **V1** (current target): auth, encrypted vault, all 11 item types, password
+- **V1** (current target): auth, encrypted vault, all 12 item types, password
   generator, search, tags, favorites, attachments, Firebase sync, offline
   support, biometric unlock, auto-lock, clipboard protection.
 - **V1.5**: TOTP generation, improved recovery options, encrypted
