@@ -91,8 +91,8 @@ export function CustomFieldsEditor({
             <Select
               value={field.type}
               aria-label="Custom field type"
-              onChange={(e) =>
-                update(index, { type: e.target.value as CustomFieldType })
+              onChange={(value) =>
+                update(index, { type: value as CustomFieldType })
               }
               className="h-9 w-auto min-w-28 text-sm"
             >

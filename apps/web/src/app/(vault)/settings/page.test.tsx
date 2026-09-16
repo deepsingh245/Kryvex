@@ -44,8 +44,12 @@ describe("SettingsPage", () => {
   it("loads the current settings into the form", () => {
     mockVault();
     render(<SettingsPage />);
-    expect(screen.getByLabelText(/lock after inactivity/i)).toHaveValue("5");
-    expect(screen.getByLabelText(/clear clipboard after/i)).toHaveValue("30");
+    expect(screen.getByLabelText(/lock after inactivity/i)).toHaveTextContent(
+      "5 minutes",
+    );
+    expect(
+      screen.getByLabelText(/clear clipboard after/i),
+    ).toHaveTextContent("30 seconds");
   });
 
   it("saves changes via updateSettings", async () => {
@@ -53,9 +57,8 @@ describe("SettingsPage", () => {
     mockVault({ updateSettings });
     render(<SettingsPage />);
 
-    fireEvent.change(screen.getByLabelText(/lock after inactivity/i), {
-      target: { value: "1" },
-    });
+    fireEvent.click(screen.getByLabelText(/lock after inactivity/i));
+    fireEvent.click(screen.getByRole("option", { name: "1 minute" }));
     fireEvent.click(screen.getByRole("button", { name: /save/i }));
 
     expect(await screen.findByText("Settings saved.")).toBeInTheDocument();

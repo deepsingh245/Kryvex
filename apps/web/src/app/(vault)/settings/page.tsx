@@ -62,7 +62,7 @@ export default function SettingsPage() {
           <Select
             id={autoLockId}
             value={autoLockMinutes}
-            onChange={(e) => setAutoLockMinutes(Number(e.target.value))}
+            onChange={(value) => setAutoLockMinutes(Number(value))}
           >
             {AUTO_LOCK_OPTIONS.map((minutes) => (
               <option key={minutes} value={minutes}>
@@ -77,7 +77,7 @@ export default function SettingsPage() {
           <Select
             id={clipboardId}
             value={clipboardClearSeconds}
-            onChange={(e) => setClipboardClearSeconds(Number(e.target.value))}
+            onChange={(value) => setClipboardClearSeconds(Number(value))}
           >
             {CLIPBOARD_CLEAR_OPTIONS.map((seconds) => (
               <option key={seconds} value={seconds}>

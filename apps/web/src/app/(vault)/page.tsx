@@ -109,8 +109,8 @@ export default function Home() {
             onClick={() => setEmailView("dense")}
             className={
               emailView === "dense"
-                ? "rounded-sm bg-primary px-2.5 py-1 text-xs font-medium text-primary-foreground"
-                : "rounded-sm px-2.5 py-1 text-xs font-medium text-text-secondary transition-colors hover:text-foreground"
+                ? "rounded-md bg-primary px-2.5 py-1 text-xs font-medium text-primary-foreground"
+                : "rounded-md px-2.5 py-1 text-xs font-medium text-text-secondary transition-colors hover:text-foreground"
             }
           >
             All at once
@@ -120,8 +120,8 @@ export default function Home() {
             onClick={() => setEmailView("list")}
             className={
               emailView === "list"
-                ? "rounded-sm bg-primary px-2.5 py-1 text-xs font-medium text-primary-foreground"
-                : "rounded-sm px-2.5 py-1 text-xs font-medium text-text-secondary transition-colors hover:text-foreground"
+                ? "rounded-md bg-primary px-2.5 py-1 text-xs font-medium text-primary-foreground"
+                : "rounded-md px-2.5 py-1 text-xs font-medium text-text-secondary transition-colors hover:text-foreground"
             }
           >
             One by one

@@ -11,7 +11,9 @@ describe("CustomFieldsEditor", () => {
       />,
     );
     expect(screen.getByLabelText("Custom field label")).toHaveValue("API Key");
-    expect(screen.getByLabelText("Custom field type")).toHaveValue("text");
+    expect(screen.getByLabelText("Custom field type")).toHaveTextContent(
+      "text",
+    );
   });
 
   it("renders a labeled row for each field", () => {
