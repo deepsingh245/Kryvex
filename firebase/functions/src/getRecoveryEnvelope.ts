@@ -32,9 +32,10 @@ interface GetRecoveryEnvelopeResponse {
 }
 
 // Same "future hardening, not yet enabled" App Check note as getKdfParams.ts
-// — see its own header comment for why (tracked for Phase 9).
+// — see its own header comment for why (tracked for Phase 9). Same
+// invoker: "public" requirement too — see getKdfParams.ts's comment.
 export const getRecoveryEnvelope = onCall<GetRecoveryEnvelopeRequest>(
-  {},
+  { invoker: "public" },
   async (request): Promise<GetRecoveryEnvelopeResponse | null> => {
     const email = normalizeEmail(request.data?.email);
     if (!isValidEmail(email)) {

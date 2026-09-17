@@ -45,8 +45,13 @@ export function isValidEmail(email: string): boolean {
 // it broke this function's own emulator tests during development. Add it
 // once both clients are wired up to attach tokens (see build spec §69's
 // broader App Check rollout, tracked for Phase 9).
+// invoker: "public" is required for a genuinely unauthenticated onCall
+// function — without it, Cloud Run's default IAM invoker policy rejects
+// the request (including the SDK's CORS preflight) before this function's
+// own code ever runs, which browsers surface as a missing
+// Access-Control-Allow-Origin header rather than the real 403/IAM cause.
 export const getKdfParams = onCall<GetKdfParamsRequest>(
-  {},
+  { invoker: "public" },
   async (request): Promise<GetKdfParamsResponse | null> => {
     const email = normalizeEmail(request.data?.email);
     if (!isValidEmail(email)) {

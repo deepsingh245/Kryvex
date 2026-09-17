@@ -137,6 +137,14 @@ firebase deploy --only firestore --project <your-project-id>
 #    to exist (UserProfileDocument from @kryvex/types) was replaced with a
 #    small hand-synced local mirror (src/userProfileShape.ts) rather than
 #    a package.json dependency at all.
+#    Second gotcha already hit and fixed: getKdfParams/getRecoveryEnvelope
+#    are deliberately unauthenticated (called before the user has any
+#    credential), but v2 onCall functions still need an explicit
+#    `invoker: "public"` option — without it, Cloud Run's default IAM
+#    invoker policy rejects the request (including the client SDK's CORS
+#    preflight) before the function's own code runs, which the browser
+#    reports as a missing Access-Control-Allow-Origin header rather than
+#    the real 403/IAM cause. Both functions now set it explicitly.
 firebase deploy --only functions --project <your-project-id>
 
 # 3. Storage rules — plain `--only storage`, NOT `--only storage:rules`.
