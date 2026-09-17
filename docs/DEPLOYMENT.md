@@ -3,13 +3,13 @@
 Status: Firestore rules, Storage rules, and Cloud Functions are
 code-complete, pass the emulator-based security/auth test suites (see
 `pnpm test:security`/`pnpm test:auth`), and are deployed to the real
-Firebase project. Web Hosting (Firebase Hosting's Next.js framework
-integration — the "Firebase Hosting or Vercel" choice flagged as TBD in
-earlier drafts of this doc is now decided, so the whole stack stays on one
-platform) is being set up now too — see §6. No `production` alias in
-`.firebaserc` yet (deliberately deferred — see §3); deploy commands below
-pass `--project <your-project-id>` explicitly instead. See also:
-[FIREBASE_SECURITY.md](./FIREBASE_SECURITY.md).
+Firebase project. Web hosting is still being set up (§6) — classic
+Firebase Hosting's Next.js framework integration was tried first and
+abandoned (see §6's note); **Firebase App Hosting** is the current plan
+instead, driven by a `dev`/`main`/`prod` git branch strategy (§7). No
+`production` alias in `.firebaserc` yet (deliberately deferred — see §3);
+deploy commands below pass `--project <your-project-id>` explicitly
+instead. See also: [FIREBASE_SECURITY.md](./FIREBASE_SECURITY.md).
 
 ## 1. Environments
 
@@ -104,7 +104,7 @@ gets committed) with the real project's values, all read in
 | `NEXT_PUBLIC_FIREBASE_APP_ID` | same SDK config block |
 | `NEXT_PUBLIC_USE_FIREBASE_EMULATOR` | set to `false` (or omit) |
 | `NEXT_PUBLIC_FIREBASE_EMULATOR_HOST` | omit — only used in emulator mode |
-| `NEXT_PUBLIC_FIREBASE_APPCHECK_SITE_KEY` | Firebase Console → App Check → your web app → reCAPTCHA v3 site key (provision one first if it doesn't exist yet — see §8's checklist item; the client wiring is already in place and simply stays inert without this) |
+| `NEXT_PUBLIC_FIREBASE_APPCHECK_SITE_KEY` | Firebase Console → App Check → your web app → reCAPTCHA v3 site key (provision one first if it doesn't exist yet — see §12's checklist item; the client wiring is already in place and simply stays inert without this) |
 
 If the Console doesn't show a web app under this project yet, add one first
 (Project Settings → General → "Add app" → Web) — that's what generates the
@@ -170,65 +170,93 @@ Doing these three separately (rather than one `firebase deploy` with no
 `--only`) is deliberate for this first deploy — it's easier to confirm
 each one individually in the Console (§8) before moving to the next.
 
-## 6. Deploying the web app (Firebase Hosting)
+## 6. Deploying the web app
 
-`firebase.json` needs a `hosting` entry (Firebase's Next.js framework
-integration detects the App Router build and provisions the SSR backend —
-Cloud Functions/Cloud Run — for you; this is not a static export):
+### Classic Firebase Hosting — tried, abandoned
 
-```json
-{
-  "hosting": {
-    "source": "apps/web"
-  }
-}
-```
+`firebase.json`'s `hosting: { "source": "apps/web" }` entry plus
+`firebase experiments:enable webframeworks` (Firebase's Next.js framework
+integration, auto-provisioning an SSR backend via Cloud Functions/Cloud
+Run) got as far as a successful Next.js build, then failed bundling the
+Cloud Function needed for this app's two dynamic routes
+(`/(vault)/item/[id]`, `/(vault)/item/[id]/edit`): its bundler shells out
+to plain `npm install` to fetch `esbuild`, and — like the Cloud Functions
+gotcha in §5 — every `package.json` in this pnpm-catalog monorepo has
+`workspace:*`/`catalog:` entries plain `npm` can't parse. Installing
+`esbuild`/`which` globally (§2) worked around the *first* instance of this
+(bundling `next.config.ts`), but the same problem recurs for the actual
+server bundle, and unlike `firebase/functions` (a small package with only
+type-only cross-package imports), `apps/web` has real, necessary
+`@kryvex/*` runtime dependencies that can't be stripped or locally
+mirrored the same way. Conclusion: classic Hosting's Next.js integration
+isn't a good fit for this repo's pnpm workspace as it stands today.
 
-One-time CLI setup on this device (a local CLI config flag, not a repo or
-project setting — needed on every machine that runs this deploy): Next.js
-Hosting support is still behind an experiment flag, so a bare
-`firebase deploy --only hosting` fails with "Cannot deploy a web framework
-from source because the experiment webframeworks is not enabled" until you
-run:
+### Firebase App Hosting — current plan
 
-```bash
-firebase experiments:enable webframeworks
-```
+Firebase App Hosting is a separate, newer product built specifically
+around framework monorepos (documented pnpm-workspace support, unlike
+classic Hosting's older integration above) — and unlike classic Hosting's
+local `firebase deploy`, it's GitHub-connected: a backend watches one
+branch of this repo and builds+deploys automatically on push to it. That
+GitHub connection is exactly why the branch strategy in §7 exists — each
+branch maps to one App Hosting backend/environment.
 
-Then, with the production values from §4 in
-`apps/web/.env.production.local`:
+Setting up the actual App Hosting backend (Console → **App Hosting** →
+create a backend, connect this GitHub repo, pick the branch, configure
+`apphosting.yaml` for env vars) hasn't been done yet — to be filled in
+here once that's set up, rather than documented speculatively ahead of
+actually running it.
 
-```bash
-firebase deploy --only hosting --project <your-project-id>
-```
+## 7. Branching strategy: `dev` / `main` / `prod`
 
-This builds `apps/web` (`pnpm build` under the hood) and deploys it — the
-CLI prints the live Hosting URL when it finishes. Security headers (CSP,
-HSTS, X-Content-Type-Options, Referrer-Policy, Permissions-Policy, frame
-protections — build spec §39) are configured via `firebase.json`'s
-`hosting.headers` and verified against the deployed URL before each
-release, not just locally; any CSP exception is documented inline with a
-reason.
+Three long-lived branches, each mapped to one deploy destination — this is
+what App Hosting's per-branch backends (§6) actually deploy from, and the
+main reason App Hosting was preferred here over a manual local deploy:
 
-## 7. Deploying everything at once (once Hosting is set up too)
+- **`dev`** — active development; latest code lands here first (this is
+  today's default working branch). Nothing auto-deploys from `dev`.
+- **`main`** — pre-release staging. A staging App Hosting backend (or a
+  separate Firebase project — §1's optional Staging environment) watches
+  `main` and auto-deploys on push, so a change gets verified against real
+  Firebase infrastructure before it can reach real users.
+- **`prod`** — production. The production App Hosting backend watches
+  `prod`; merging/fast-forwarding into it is what actually ships. Nothing
+  is "deployed" by running a local command here the way §5's Firestore/
+  Functions/Storage commands are — it's deployed by the branch itself
+  advancing.
 
-Later, once §6's `hosting` entry exists in `firebase.json` and a
-`production` alias has been added (§3, deferred for now):
+Flow: commit to `dev` → merge to `main` when ready to verify → check it on
+staging → once confirmed, merge/fast-forward `main` into `prod` → App
+Hosting builds and deploys automatically. Firestore rules, Storage rules,
+and Cloud Functions (§5) aren't branch-triggered the same way yet — those
+stay manual `firebase deploy --only ...` commands regardless of which
+branch, so a rules/functions change should be verified on `demo-kryvex`
+(emulator) before being run against the real project by hand, same as
+today.
+
+**Repo visibility**: this GitHub repo is currently public; the plan is to
+make it private once things settle (tracked as a follow-up, not blocking
+anything above — App Hosting's GitHub App connection works identically
+against a private repo, it just needs the App granted install access).
+
+## 8. Deploying Firestore/Functions/Storage together
+
+Once a `production` alias exists in `.firebaserc` (§3, deferred for now):
 
 ```bash
 firebase deploy --project production
 ```
 
-deploys every configured target (`firestore`, `storage`, `functions`,
-`hosting`) in one pass. Prefer the scoped `--only` commands in §5/§6 for a
-routine single-area change — `firebase deploy` with no `--only` is for a
-coordinated release, not a quick rules tweak. Today, with no `hosting`
-entry yet, `firebase deploy --project <your-project-id>` (no `--only`)
-would already cover the same three targets as §5's three commands
-combined — running them separately is just for clearer confirmation on
-this first deploy.
+deploys every `firebase.json`-configured target — today that's
+`firestore`, `storage`, and `functions` (§5's three commands combined into
+one). This does **not** include Hosting: App Hosting (§6) deploys by a
+branch advancing (§7), not by anything in this command, so — unlike
+classic Hosting — there's no single `firebase deploy` that covers
+everything including the web app. Prefer §5's scoped `--only` commands for
+a routine single-area change; this combined form is for a coordinated
+Firestore+Functions+Storage release.
 
-## 8. Verifying a deploy
+## 9. Verifying a deploy
 
 - `firebase deploy` (and each `--only` variant) prints a Console link —
   open it and confirm nothing errored.
@@ -239,9 +267,9 @@ this first deploy.
 - Once Hosting is set up (§6, later): sign up / sign in against the real
   deployed URL once, end to end, before calling a release done — the
   emulator suite passing doesn't guarantee the real project's Auth/App
-  Check configuration (§4, §10) is also correct.
+  Check configuration (§4, §11) is also correct.
 
-## 9. Mobile deployment
+## 10. Mobile deployment
 
 - **Build tooling**: Expo Application Services (EAS Build) for both iOS and
   Android, given the Expo/React Native stack chosen in ARCHITECTURE.md.
@@ -256,7 +284,7 @@ this first deploy.
   are configured per build spec §58 as part of the native build profile, not
   left to default Expo config.
 
-## 10. CI
+## 11. CI
 
 - Lint, typecheck, unit tests, and Firestore/Storage rule tests run on every
   PR (build spec §44/§68 workflow).
@@ -266,10 +294,10 @@ this first deploy.
   steps, never triggered automatically by merging to the main branch, given
   the sensitivity of rules/functions changes.
 
-## 11. Release checklist (Phase 10)
+## 12. Release checklist (Phase 10)
 
 - [ ] Real Firebase project linked on the release device (§3), rules/
-      functions/hosting deployed (§5–§7) and re-verified against the
+      functions/hosting deployed (§5, §6, §8) and re-verified against the
       emulator test suite one more time against the exact rules being
       deployed.
 - [ ] Provision a reCAPTCHA v3 site key in Firebase Console and set
@@ -285,7 +313,7 @@ this first deploy.
       something code changes; may have cost/behavior implications the
       project owner should confirm before enabling. See
       `docs/SECURITY_THREAT_MODEL.md` §4 item #25.
-- [ ] Web security headers verified in the deployed environment (§6, §8 —
+- [ ] Web security headers verified in the deployed environment (§6, §9 —
       not just locally).
 - [ ] iOS/Android builds signed, tested on physical devices for biometric
       unlock, auto-lock, and clipboard behavior (build spec §71 — do not fake
