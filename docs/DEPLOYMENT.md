@@ -1,17 +1,14 @@
 # Kryvex — Deployment
 
 Status: Firestore rules, Storage rules, and Cloud Functions are
-code-complete and pass the emulator-based security/auth test suites (see
-`pnpm test:security`/`pnpm test:auth`). The first real deploy is happening
-now, directly against the existing Firebase project (which already has a
-default Firestore database provisioned in the Console) — Firestore rules,
-Functions, and Storage rules, in that order. No `production` alias in
+code-complete, pass the emulator-based security/auth test suites (see
+`pnpm test:security`/`pnpm test:auth`), and are deployed to the real
+Firebase project. Web Hosting (Firebase Hosting's Next.js framework
+integration — the "Firebase Hosting or Vercel" choice flagged as TBD in
+earlier drafts of this doc is now decided, so the whole stack stays on one
+platform) is being set up now too — see §6. No `production` alias in
 `.firebaserc` yet (deliberately deferred — see §3); deploy commands below
-pass `--project <your-project-id>` explicitly instead. Web hosting deploys
-via Firebase Hosting's Next.js framework integration (the "Firebase
-Hosting or Vercel" choice flagged as TBD in earlier drafts of this doc is
-now decided — Firebase Hosting, so the whole stack stays on one platform),
-but that's a later step, not part of today's deploy — see §6. See also:
+pass `--project <your-project-id>` explicitly instead. See also:
 [FIREBASE_SECURITY.md](./FIREBASE_SECURITY.md).
 
 ## 1. Environments
@@ -51,6 +48,22 @@ avoid accidentally shipping emulator-pointing code to production.
   ```
   (`pnpm dlx firebase-tools@latest <command>` also works per-command
   without a global install, if preferred.)
+- **Windows only**, for the Hosting deploy (§6): `esbuild` and `which`,
+  both globally:
+  ```bash
+  npm install -g which
+  npm install -g esbuild@0.19.12
+  ```
+  Firebase's Next.js bundler locates `esbuild` via `npx which esbuild`,
+  which fails outright on Windows without a `which` shim (`'node-which' is
+  not recognized...`) — and its fallback for "esbuild not found" is an
+  ad-hoc `npm install esbuild --no-save` run directly in whatever
+  directory the tool happens to be in, which fails too: every
+  `package.json` in this pnpm-catalog monorepo (root included) has
+  `workspace:*`/`catalog:` entries plain `npm` can't parse, even for an
+  unrelated ad-hoc install. Installing both globally makes the tool find
+  them directly and never reach that broken fallback at all. Not needed
+  on macOS/Linux, where `which` is already a shell builtin.
 
 ## 3. One-time device setup
 
@@ -155,20 +168,13 @@ straight from a local uncommitted edit.
 
 Doing these three separately (rather than one `firebase deploy` with no
 `--only`) is deliberate for this first deploy — it's easier to confirm
-each one individually in the Console (§8) before moving to the next,
-and Hosting isn't configured yet anyway (§6), so an un-scoped
-`firebase deploy` would just cover these same three today regardless.
+each one individually in the Console (§8) before moving to the next.
 
-## 6. Deploying the web app (Firebase Hosting) — later, not today
+## 6. Deploying the web app (Firebase Hosting)
 
-Skip this section for the current deploy — §5 (Firestore, Functions,
-Storage) is the whole scope of today's pass. Come back here once that's
-verified and web hosting is ready to set up.
-
-`firebase.json` doesn't have a `hosting` entry yet — add one before the
-first deploy (Firebase's Next.js framework integration detects the App
-Router build and provisions the SSR backend — Cloud Functions/Cloud Run —
-for you; this is not a static export):
+`firebase.json` needs a `hosting` entry (Firebase's Next.js framework
+integration detects the App Router build and provisions the SSR backend —
+Cloud Functions/Cloud Run — for you; this is not a static export):
 
 ```json
 {
@@ -176,6 +182,17 @@ for you; this is not a static export):
     "source": "apps/web"
   }
 }
+```
+
+One-time CLI setup on this device (a local CLI config flag, not a repo or
+project setting — needed on every machine that runs this deploy): Next.js
+Hosting support is still behind an experiment flag, so a bare
+`firebase deploy --only hosting` fails with "Cannot deploy a web framework
+from source because the experiment webframeworks is not enabled" until you
+run:
+
+```bash
+firebase experiments:enable webframeworks
 ```
 
 Then, with the production values from §4 in

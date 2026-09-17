@@ -20,3 +20,4 @@ pubsub-debug.log
 android/
 ios/
 graphify-out/
+.firebase/
