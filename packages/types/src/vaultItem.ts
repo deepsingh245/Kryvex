@@ -18,6 +18,7 @@ export const ITEM_TYPES = [
   "image",
   "pdf",
   "file",
+  "governmentId",
   "custom",
 ] as const;
 
@@ -141,6 +142,19 @@ export interface AttachmentItemContent extends ItemContentBase {
   attachmentId: string; // references AttachmentDocument (Phase 6)
 }
 
+// Front is required (a passport's single page, a one-sided ID); back is
+// optional (many license/ID cards are double-sided). Unlike
+// AttachmentItemContent, this type also keeps a dedicated `notes` field
+// visible in the form — a deliberate, one-off exception to every other
+// type's "no standalone Notes field" (see fieldConfig.ts's header
+// comment) since a government ID's free-text context (renewal reminders,
+// etc.) doesn't fit neatly into a single Custom Field.
+export interface GovernmentIdContent extends ItemContentBase {
+  type: "governmentId";
+  frontAttachmentId: string;
+  backAttachmentId?: string | undefined;
+}
+
 export interface CustomItemContent extends ItemContentBase {
   type: "custom";
   // fully composed from customFields — no type-specific fixed fields
@@ -156,6 +170,7 @@ export type ItemContent =
   | ApiKeyContent
   | RecoveryCodesContent
   | AttachmentItemContent
+  | GovernmentIdContent
   | CustomItemContent;
 
 export interface VaultItemDocument {

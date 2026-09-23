@@ -8,10 +8,12 @@ import { ITEM_TYPES, type ItemContent, type ItemType } from "@kryvex/types";
 import {
   AttachmentUploadForm,
   getItemTypeIcon,
+  GovernmentIdUploadForm,
   ITEM_TYPE_ENABLED,
   ITEM_TYPE_LABELS,
   ItemForm,
   type AttachmentUploadFormValues,
+  type GovernmentIdUploadFormValues,
 } from "@kryvex/ui";
 import { useCreateAttachment } from "@/hooks/useCreateAttachment";
 import { newItemId, useVaultItems } from "@/hooks/useVaultItems";
@@ -127,6 +129,41 @@ export default function NewItemPage() {
     }
   }
 
+  async function handleGovernmentIdSubmit(values: GovernmentIdUploadFormValues) {
+    setError(null);
+    setSubmitting(true);
+    try {
+      const id = newItemId();
+      const frontAttachmentId = await createAttachment(values.frontFile, id);
+      const backAttachmentId = values.backFile
+        ? await createAttachment(values.backFile, id)
+        : undefined;
+      const attachmentRefs = backAttachmentId
+        ? [frontAttachmentId, backAttachmentId]
+        : [frontAttachmentId];
+      await createItem(
+        "governmentId",
+        {
+          type: "governmentId",
+          title: values.title,
+          tags: values.tags,
+          notes: values.notes,
+          customFields: values.customFields,
+          frontAttachmentId,
+          backAttachmentId,
+        },
+        attachmentRefs,
+        id,
+      );
+      router.push(`/item/${id}`);
+    } catch (err) {
+      secureLogger.error("Failed to create government ID item");
+      setError(err instanceof Error ? err.message : "Failed to save item.");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
   if (!selectedType) {
     // "files" is an aggregate category (Image/PDF/File), not one concrete
     // ItemType, so it can't skip the picker outright — it narrows the
@@ -164,6 +201,14 @@ export default function NewItemPage() {
           onSubmit={(values) =>
             void handleAttachmentSubmit(selectedType, values)
           }
+          onCancel={() =>
+            skippedPicker ? router.push(backHref) : setSelectedType(null)
+          }
+          submitting={submitting}
+        />
+      ) : selectedType === "governmentId" ? (
+        <GovernmentIdUploadForm
+          onSubmit={(values) => void handleGovernmentIdSubmit(values)}
           onCancel={() =>
             skippedPicker ? router.push(backHref) : setSelectedType(null)
           }

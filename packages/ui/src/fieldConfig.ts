@@ -62,6 +62,7 @@ export const ITEM_TYPE_LABELS: Record<ItemType, string> = {
   image: "Image",
   pdf: "PDF",
   file: "File",
+  governmentId: "Government ID",
   custom: "Custom",
 };
 
@@ -77,6 +78,7 @@ export const ITEM_TYPE_ICON_NAMES: Record<ItemType, string> = {
   image: "image",
   pdf: "file-text",
   file: "file",
+  governmentId: "id-card",
   custom: "sliders",
 };
 
@@ -92,6 +94,7 @@ export const ITEM_TYPE_ENABLED: Record<ItemType, boolean> = {
   image: true,
   pdf: true,
   file: true,
+  governmentId: true,
   custom: true,
 };
 
@@ -135,5 +138,12 @@ export const ITEM_TYPE_FIELD_CONFIG: Record<ItemType, ItemFieldConfig[]> = {
   image: [],
   pdf: [],
   file: [],
+  // No ItemForm-managed fixed fields — Title/Front/Back/Notes are handled
+  // by the dedicated GovernmentIdUploadForm (Add flow) instead, same
+  // precedent as image/pdf/file above. Notes is the one exception to this
+  // file's "no standalone Notes field" rule (see GovernmentIdContent's own
+  // doc comment in @kryvex/types) — that's handled directly in
+  // ItemForm.tsx/GovernmentIdUploadForm.tsx, not via this config.
+  governmentId: [],
   custom: [],
 };

@@ -26,6 +26,7 @@ const CATEGORY_HEADINGS: Record<string, string> = {
   apiKey: "API Keys",
   recoveryCodes: "Recovery Codes",
   files: "Files",
+  governmentId: "Government IDs",
 };
 
 /**

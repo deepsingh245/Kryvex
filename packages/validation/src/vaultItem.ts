@@ -139,6 +139,13 @@ export const imageContentSchema = attachmentContentSchema("image");
 export const pdfContentSchema = attachmentContentSchema("pdf");
 export const fileContentSchema = attachmentContentSchema("file");
 
+export const governmentIdContentSchema = z.object({
+  ...itemContentBaseShape,
+  type: z.literal("governmentId"),
+  frontAttachmentId: z.string().min(1),
+  backAttachmentId: z.string().min(1).optional(),
+});
+
 export const customContentSchema = z.object({
   ...itemContentBaseShape,
   type: z.literal("custom"),
@@ -156,6 +163,7 @@ export const itemContentSchema = z.discriminatedUnion("type", [
   imageContentSchema,
   pdfContentSchema,
   fileContentSchema,
+  governmentIdContentSchema,
   customContentSchema,
 ]);
 
