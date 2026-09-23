@@ -60,8 +60,8 @@ function initFixedFields(
 }
 
 /**
- * Generic, data-driven Add/Edit form — one implementation shared by all 11
- * ItemTypes rather than 11 hand-built forms, driven by
+ * Generic, data-driven Add/Edit form — one implementation shared by every
+ * ItemType rather than a hand-built form per type, driven by
  * ITEM_TYPE_FIELD_CONFIG (see ../fieldConfig.ts). Validates the assembled
  * content against @kryvex/validation's itemContentSchema on submit; the
  * caller (apps/web) is responsible for encryption/persistence.
@@ -75,6 +75,10 @@ export function ItemForm({
   clipboardClearSeconds,
 }: ItemFormProps) {
   const [title, setTitle] = useState(initialContent?.title ?? "");
+  // Only rendered/submitted for type === "governmentId" — the one
+  // deliberate exception to every other type's "no standalone Notes
+  // field" rule (see GovernmentIdContent's doc comment in @kryvex/types).
+  const [notes, setNotes] = useState(initialContent?.notes ?? "");
   const [tags, setTags] = useState<string[]>(initialContent?.tags ?? []);
   const [customFields, setCustomFields] = useState<CustomField[]>(
     initialContent?.customFields ?? [],
@@ -122,6 +126,7 @@ export function ItemForm({
       title,
       tags,
       customFields,
+      ...(type === "governmentId" ? { notes: notes || undefined } : {}),
       ...fixedFields,
     };
 
@@ -319,6 +324,9 @@ export function ItemForm({
     // submit event before handleSubmit (and our error message) ever runs.
     <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-5">
       <TextField label="Title" value={title} required onChange={setTitle} />
+      {type === "governmentId" && (
+        <MultilineField label="Notes" value={notes} onChange={setNotes} rows={3} />
+      )}
       {showTags ? (
         <TagsInput
           label="Tags"

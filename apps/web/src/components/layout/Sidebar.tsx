@@ -4,6 +4,7 @@ import {
   Code2,
   CreditCard,
   Files,
+  IdCard,
   KeyRound,
   Layers,
   Lock,
@@ -32,6 +33,7 @@ const CATEGORIES: { label: string; type: string; icon: LucideIcon }[] = [
   { label: "API Keys", type: "apiKey", icon: Code2 },
   { label: "Recovery Codes", type: "recoveryCodes", icon: Shield },
   { label: "Files", type: "files", icon: Files },
+  { label: "Government IDs", type: "governmentId", icon: IdCard },
 ];
 
 function NavLink({

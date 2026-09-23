@@ -70,6 +70,12 @@ export type {
 export { BooleanField } from "./components/BooleanField";
 export type { BooleanFieldProps } from "./components/BooleanField";
 
+export { GovernmentIdUploadForm } from "./components/GovernmentIdUploadForm";
+export type {
+  GovernmentIdUploadFormProps,
+  GovernmentIdUploadFormValues,
+} from "./components/GovernmentIdUploadForm";
+
 export { EmergencyKit } from "./components/EmergencyKit";
 export type { EmergencyKitProps } from "./components/EmergencyKit";
 
