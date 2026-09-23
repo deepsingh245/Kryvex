@@ -19,8 +19,8 @@ describe("@kryvex/types placeholder", () => {
 });
 
 describe("vault item types", () => {
-  it("declares all 12 item types from docs/DATA_MODEL.md §1", () => {
-    expect(ITEM_TYPES.length).toBe(12);
+  it("declares all 13 item types from docs/DATA_MODEL.md §1", () => {
+    expect(ITEM_TYPES.length).toBe(13);
     expect(ITEM_TYPES).toContain("login");
     expect(ITEM_TYPES).toContain("custom");
   });

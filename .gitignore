@@ -1,5 +1,11 @@
 node_modules/
 dist/
+# Compiled output accidentally emitted alongside .ts sources (e.g. a bare
+# `tsc` run without --noEmit, instead of the intended dist/ build output) —
+# guards against a repeat of the packages/types/src/*.js pollution.
+**/src/**/*.js
+**/src/**/*.d.ts
+**/src/**/*.d.ts.map
 .next/
 .turbo/
 .expo/
