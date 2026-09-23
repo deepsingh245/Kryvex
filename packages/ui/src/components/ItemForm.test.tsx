@@ -38,7 +38,9 @@ describe("ItemForm", () => {
           type: "login",
           title: "Existing",
           tags: ["work"],
-          customFields: [{ id: "f1", label: "Field", type: "text", value: "x" }],
+          customFields: [
+            { id: "f1", label: "Field", type: "text", value: "x" },
+          ],
           username: "",
           password: "",
           websites: [],

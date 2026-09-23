@@ -89,7 +89,10 @@ export function SecretField({
             className="mr-1 flex h-10 w-10 items-center justify-center rounded-md text-text-secondary transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             {justCopied ? (
-              <Check className="h-[18px] w-[18px] text-success" strokeWidth={2} />
+              <Check
+                className="h-[18px] w-[18px] text-success"
+                strokeWidth={2}
+              />
             ) : (
               <Copy className="h-[18px] w-[18px]" strokeWidth={1.75} />
             )}

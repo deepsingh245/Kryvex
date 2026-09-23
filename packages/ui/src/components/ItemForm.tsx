@@ -325,7 +325,12 @@ export function ItemForm({
     <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-5">
       <TextField label="Title" value={title} required onChange={setTitle} />
       {type === "governmentId" && (
-        <MultilineField label="Notes" value={notes} onChange={setNotes} rows={3} />
+        <MultilineField
+          label="Notes"
+          value={notes}
+          onChange={setNotes}
+          rows={3}
+        />
       )}
       {showTags ? (
         <TagsInput
@@ -378,7 +383,12 @@ export function ItemForm({
         <Button type="submit" variant="primary" disabled={submitting}>
           {submitting ? "Saving…" : "Save"}
         </Button>
-        <Button type="button" variant="secondary" onClick={onCancel} disabled={submitting}>
+        <Button
+          type="button"
+          variant="secondary"
+          onClick={onCancel}
+          disabled={submitting}
+        >
           Cancel
         </Button>
       </div>

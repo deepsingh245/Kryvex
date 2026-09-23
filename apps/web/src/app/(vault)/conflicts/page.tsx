@@ -88,7 +88,9 @@ export default function ConflictsPage() {
                   type="button"
                   variant="primary"
                   size="sm"
-                  onClick={() => void handleResolve(conflict.itemId, "keepMine")}
+                  onClick={() =>
+                    void handleResolve(conflict.itemId, "keepMine")
+                  }
                 >
                   Keep mine
                 </Button>
@@ -106,7 +108,9 @@ export default function ConflictsPage() {
                   type="button"
                   variant="secondary"
                   size="sm"
-                  onClick={() => void handleResolve(conflict.itemId, "keepBoth")}
+                  onClick={() =>
+                    void handleResolve(conflict.itemId, "keepBoth")
+                  }
                 >
                   Keep both
                 </Button>

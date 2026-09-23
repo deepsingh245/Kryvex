@@ -77,7 +77,9 @@ describe("UnlockPage", () => {
   });
 
   it("redirects to /sign-in when SIGNED_OUT", () => {
-    mockedUseVault.mockReturnValue(baseVault({ state: { status: "SIGNED_OUT" } }));
+    mockedUseVault.mockReturnValue(
+      baseVault({ state: { status: "SIGNED_OUT" } }),
+    );
     render(<UnlockPage />);
     expect(replace).toHaveBeenCalledWith("/sign-in");
   });

@@ -4,8 +4,10 @@ import { Eye, EyeOff } from "lucide-react";
 import * as React from "react";
 import { Input, Label, cn } from "@kryvex/ui";
 
-interface PasswordInputProps
-  extends Omit<React.ComponentProps<"input">, "type"> {
+interface PasswordInputProps extends Omit<
+  React.ComponentProps<"input">,
+  "type"
+> {
   label: string;
   error?: string | undefined;
 }

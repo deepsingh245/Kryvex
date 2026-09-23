@@ -22,7 +22,10 @@ export function MobileTopBar() {
       </button>
 
       <Sheet open={open} onOpenChange={setOpen} title="Menu">
-        <nav className="flex flex-1 flex-col gap-6" onClick={() => setOpen(false)}>
+        <nav
+          className="flex flex-1 flex-col gap-6"
+          onClick={() => setOpen(false)}
+        >
           <SidebarNav />
         </nav>
       </Sheet>

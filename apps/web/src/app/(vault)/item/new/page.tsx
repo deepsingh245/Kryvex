@@ -129,7 +129,9 @@ export default function NewItemPage() {
     }
   }
 
-  async function handleGovernmentIdSubmit(values: GovernmentIdUploadFormValues) {
+  async function handleGovernmentIdSubmit(
+    values: GovernmentIdUploadFormValues,
+  ) {
     setError(null);
     setSubmitting(true);
     try {
@@ -177,7 +179,11 @@ export default function NewItemPage() {
         <h1 className="text-xl font-semibold text-foreground">Add an item</h1>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
           {tileTypes.map((type) => (
-            <TypeTile key={type} type={type} onSelect={() => setSelectedType(type)} />
+            <TypeTile
+              key={type}
+              type={type}
+              onSelect={() => setSelectedType(type)}
+            />
           ))}
         </div>
         <Link

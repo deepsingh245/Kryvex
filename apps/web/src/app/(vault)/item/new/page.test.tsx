@@ -181,7 +181,9 @@ describe("NewItemPage", () => {
   });
 
   it("skips the type picker and goes straight to the form when ?type= is a concrete type", () => {
-    searchParamsGet.mockImplementation((key) => (key === "type" ? "email" : null));
+    searchParamsGet.mockImplementation((key) =>
+      key === "type" ? "email" : null,
+    );
     mockUseVault();
     mockVaultItems();
     mockedUseCreateAttachment.mockReturnValue(vi.fn());
@@ -192,7 +194,9 @@ describe("NewItemPage", () => {
   });
 
   it("restricts the picker to Image/PDF/File when ?type=files", () => {
-    searchParamsGet.mockImplementation((key) => (key === "type" ? "files" : null));
+    searchParamsGet.mockImplementation((key) =>
+      key === "type" ? "files" : null,
+    );
     mockUseVault();
     mockVaultItems();
     mockedUseCreateAttachment.mockReturnValue(vi.fn());
@@ -210,7 +214,9 @@ describe("NewItemPage", () => {
   });
 
   it("Cancel from a skipped-picker form returns to the filtered category, not the picker", () => {
-    searchParamsGet.mockImplementation((key) => (key === "type" ? "email" : null));
+    searchParamsGet.mockImplementation((key) =>
+      key === "type" ? "email" : null,
+    );
     mockUseVault();
     mockVaultItems();
     mockedUseCreateAttachment.mockReturnValue(vi.fn());

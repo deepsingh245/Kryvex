@@ -75,10 +75,18 @@ export function SidebarNav() {
   return (
     <>
       <div className="flex flex-col gap-1">
-        <NavLink href="/" active={onHome && !favoritesOnly && !typeFilter} icon={Layers}>
+        <NavLink
+          href="/"
+          active={onHome && !favoritesOnly && !typeFilter}
+          icon={Layers}
+        >
           All Items
         </NavLink>
-        <NavLink href="/?favorites=true" active={onHome && favoritesOnly} icon={Star}>
+        <NavLink
+          href="/?favorites=true"
+          active={onHome && favoritesOnly}
+          icon={Star}
+        >
           Favorites
         </NavLink>
       </div>

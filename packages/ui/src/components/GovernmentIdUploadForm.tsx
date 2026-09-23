@@ -126,7 +126,12 @@ export function GovernmentIdUploadForm({
         />
       </div>
 
-      <MultilineField label="Notes" value={notes} onChange={setNotes} rows={3} />
+      <MultilineField
+        label="Notes"
+        value={notes}
+        onChange={setNotes}
+        rows={3}
+      />
 
       {showTags ? (
         <TagsInput
@@ -173,7 +178,12 @@ export function GovernmentIdUploadForm({
         <Button type="submit" variant="primary" disabled={submitting}>
           {submitting ? "Uploading…" : "Upload"}
         </Button>
-        <Button type="button" variant="secondary" onClick={onCancel} disabled={submitting}>
+        <Button
+          type="button"
+          variant="secondary"
+          onClick={onCancel}
+          disabled={submitting}
+        >
           Cancel
         </Button>
       </div>

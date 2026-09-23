@@ -57,7 +57,9 @@ export default function SignUpPage() {
     } catch (err) {
       secureLogger.error("Sign-up failed", { email: data.email });
       setFormError(
-        err instanceof Error ? err.message : "Sign-up failed. Please try again.",
+        err instanceof Error
+          ? err.message
+          : "Sign-up failed. Please try again.",
       );
     } finally {
       setSubmitting(false);
@@ -102,7 +104,11 @@ export default function SignUpPage() {
               {...register("email")}
             />
             {errors.email && (
-              <p id="email-error" role="alert" className="text-sm text-destructive">
+              <p
+                id="email-error"
+                role="alert"
+                className="text-sm text-destructive"
+              >
                 {errors.email.message}
               </p>
             )}
@@ -131,7 +137,12 @@ export default function SignUpPage() {
             </p>
           )}
 
-          <Button type="submit" size="lg" disabled={submitting} className="mt-1">
+          <Button
+            type="submit"
+            size="lg"
+            disabled={submitting}
+            className="mt-1"
+          >
             {submitting ? "Creating vault…" : "Continue"}
           </Button>
 

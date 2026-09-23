@@ -27,7 +27,10 @@ export function ItemCard({ item, onToggleFavorite }: ItemCardProps) {
       >
         <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-surface-2">
           {/* eslint-disable-next-line react-hooks/static-components */}
-          <Icon className="h-4.5 w-4.5 text-text-secondary" strokeWidth={1.75} />
+          <Icon
+            className="h-4.5 w-4.5 text-text-secondary"
+            strokeWidth={1.75}
+          />
         </span>
         <span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">
           {item.decryptFailed ? "Unable to decrypt" : item.content.title}

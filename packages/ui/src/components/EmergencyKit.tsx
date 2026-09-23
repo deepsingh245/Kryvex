@@ -3,7 +3,13 @@
 import { ShieldCheck } from "lucide-react";
 import { useState } from "react";
 import { Button } from "./ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "./ui/card";
 
 export interface EmergencyKitProps {
   recoveryKey: string;
@@ -50,8 +56,8 @@ export function EmergencyKit({ recoveryKey, onContinue }: EmergencyKitProps) {
         </div>
         <CardTitle as="h1">Your Emergency Kit</CardTitle>
         <CardDescription>
-          This Recovery Key is the only way to get back into your vault if
-          you forget your master password. It will not be shown again.
+          This Recovery Key is the only way to get back into your vault if you
+          forget your master password. It will not be shown again.
         </CardDescription>
       </CardHeader>
       <CardContent>

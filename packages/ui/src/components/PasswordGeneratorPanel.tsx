@@ -113,7 +113,11 @@ export function PasswordGeneratorPanel({
           )}
         </Button>
         {onUse && (
-          <Button type="button" variant="primary" onClick={() => onUse(password)}>
+          <Button
+            type="button"
+            variant="primary"
+            onClick={() => onUse(password)}
+          >
             Use
           </Button>
         )}
