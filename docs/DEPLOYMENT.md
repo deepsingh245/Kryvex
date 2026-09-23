@@ -56,7 +56,7 @@ avoid accidentally shipping emulator-pointing code to production.
   ```
   Firebase's Next.js bundler locates `esbuild` via `npx which esbuild`,
   which fails outright on Windows without a `which` shim (`'node-which' is
-  not recognized...`) — and its fallback for "esbuild not found" is an
+not recognized...`) — and its fallback for "esbuild not found" is an
   ad-hoc `npm install esbuild --no-save` run directly in whatever
   directory the tool happens to be in, which fails too: every
   `package.json` in this pnpm-catalog monorepo (root included) has
@@ -95,15 +95,15 @@ covered by the repo's `.gitignore` `.env*.local` pattern, so this never
 gets committed) with the real project's values, all read in
 `apps/web/src/lib/firebaseConfig.ts`:
 
-| Variable | Where to get it |
-| --- | --- |
-| `NEXT_PUBLIC_FIREBASE_API_KEY` | Firebase Console → Project Settings → General → Your apps → Web app → SDK config |
-| `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN` | same SDK config block |
-| `NEXT_PUBLIC_FIREBASE_PROJECT_ID` | same SDK config block (the real project ID, not `demo-kryvex`) |
-| `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET` | same SDK config block |
-| `NEXT_PUBLIC_FIREBASE_APP_ID` | same SDK config block |
-| `NEXT_PUBLIC_USE_FIREBASE_EMULATOR` | set to `false` (or omit) |
-| `NEXT_PUBLIC_FIREBASE_EMULATOR_HOST` | omit — only used in emulator mode |
+| Variable                                 | Where to get it                                                                                                                                                                                                         |
+| ---------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `NEXT_PUBLIC_FIREBASE_API_KEY`           | Firebase Console → Project Settings → General → Your apps → Web app → SDK config                                                                                                                                        |
+| `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN`       | same SDK config block                                                                                                                                                                                                   |
+| `NEXT_PUBLIC_FIREBASE_PROJECT_ID`        | same SDK config block (the real project ID, not `demo-kryvex`)                                                                                                                                                          |
+| `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET`    | same SDK config block                                                                                                                                                                                                   |
+| `NEXT_PUBLIC_FIREBASE_APP_ID`            | same SDK config block                                                                                                                                                                                                   |
+| `NEXT_PUBLIC_USE_FIREBASE_EMULATOR`      | set to `false` (or omit)                                                                                                                                                                                                |
+| `NEXT_PUBLIC_FIREBASE_EMULATOR_HOST`     | omit — only used in emulator mode                                                                                                                                                                                       |
 | `NEXT_PUBLIC_FIREBASE_APPCHECK_SITE_KEY` | Firebase Console → App Check → your web app → reCAPTCHA v3 site key (provision one first if it doesn't exist yet — see §12's checklist item; the client wiring is already in place and simply stays inert without this) |
 
 If the Console doesn't show a web app under this project yet, add one first
@@ -191,7 +191,7 @@ Cloud Function needed for this app's two dynamic routes
 to plain `npm install` to fetch `esbuild`, and — like the Cloud Functions
 gotcha in §5 — every `package.json` in this pnpm-catalog monorepo has
 `workspace:*`/`catalog:` entries plain `npm` can't parse. Installing
-`esbuild`/`which` globally (§2) worked around the *first* instance of this
+`esbuild`/`which` globally (§2) worked around the _first_ instance of this
 (bundling `next.config.ts`), but the same problem recurs for the actual
 server bundle, and unlike `firebase/functions` (a small package with only
 type-only cross-package imports), `apps/web` has real, necessary

@@ -17,7 +17,9 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-function emailItem(overrides: Partial<DecryptedVaultItem> = {}): DecryptedVaultItem {
+function emailItem(
+  overrides: Partial<DecryptedVaultItem> = {},
+): DecryptedVaultItem {
   return {
     id: "item1",
     ownerId: "1",
@@ -46,9 +48,7 @@ function emailItem(overrides: Partial<DecryptedVaultItem> = {}): DecryptedVaultI
 describe("EmailDenseList", () => {
   it("renders each item's Email and Password inline with working Copy buttons", async () => {
     stubClipboard();
-    render(
-      <EmailDenseList items={[emailItem()]} onToggleFavorite={vi.fn()} />,
-    );
+    render(<EmailDenseList items={[emailItem()]} onToggleFavorite={vi.fn()} />);
     expect(screen.getByLabelText("Email")).toHaveValue("alice@example.com");
     expect(screen.getByLabelText("Password")).toHaveValue("hunter2");
     expect(screen.getByText("Personal email")).toBeInTheDocument();
@@ -63,7 +63,9 @@ describe("EmailDenseList", () => {
   it("falls back to the normal item row for a decrypt-failed item", () => {
     render(
       <EmailDenseList
-        items={[emailItem({ decryptFailed: true, content: undefined } as never)]}
+        items={[
+          emailItem({ decryptFailed: true, content: undefined } as never),
+        ]}
         onToggleFavorite={vi.fn()}
       />,
     );

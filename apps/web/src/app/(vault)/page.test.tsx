@@ -154,7 +154,9 @@ describe("Home", () => {
   });
 
   it("Add link carries the active category through to /item/new", () => {
-    searchParamsGet.mockImplementation((key) => (key === "type" ? "email" : null));
+    searchParamsGet.mockImplementation((key) =>
+      key === "type" ? "email" : null,
+    );
     mockVaultItems({ items: [emailItem()] });
     render(<Home />);
     expect(screen.getByText("Add").closest("a")).toHaveAttribute(
@@ -164,7 +166,9 @@ describe("Home", () => {
   });
 
   it("defaults the Email category to the dense view, showing Email/Password inline", () => {
-    searchParamsGet.mockImplementation((key) => (key === "type" ? "email" : null));
+    searchParamsGet.mockImplementation((key) =>
+      key === "type" ? "email" : null,
+    );
     mockVaultItems({ items: [emailItem()] });
     render(<Home />);
     expect(screen.getByLabelText("Email")).toHaveValue("alice@example.com");
@@ -172,7 +176,9 @@ describe("Home", () => {
   });
 
   it("switches to the one-by-one list when toggled", () => {
-    searchParamsGet.mockImplementation((key) => (key === "type" ? "email" : null));
+    searchParamsGet.mockImplementation((key) =>
+      key === "type" ? "email" : null,
+    );
     mockVaultItems({ items: [emailItem()] });
     render(<Home />);
     fireEvent.click(screen.getByRole("button", { name: "One by one" }));
@@ -181,7 +187,9 @@ describe("Home", () => {
   });
 
   it("does not show the Email view toggle for other categories", () => {
-    searchParamsGet.mockImplementation((key) => (key === "type" ? "login" : null));
+    searchParamsGet.mockImplementation((key) =>
+      key === "type" ? "login" : null,
+    );
     mockVaultItems({ items: [loginItem()] });
     render(<Home />);
     expect(

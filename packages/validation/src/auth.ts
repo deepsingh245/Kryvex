@@ -23,10 +23,7 @@ export const masterPasswordSchema = z
   .refine((v) => /[a-z]/.test(v), "Include a lowercase letter.")
   .refine((v) => /[A-Z]/.test(v), "Include an uppercase letter.")
   .refine((v) => /[0-9]/.test(v), "Include a number.")
-  .refine(
-    (v) => /[^A-Za-z0-9]/.test(v),
-    "Include a special character.",
-  )
+  .refine((v) => /[^A-Za-z0-9]/.test(v), "Include a special character.")
   .refine((v) => v.trim().length > 0, "Master password cannot be blank.");
 
 export const signUpFormSchema = z

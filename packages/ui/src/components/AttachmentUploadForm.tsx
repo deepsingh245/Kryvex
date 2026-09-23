@@ -158,7 +158,12 @@ export function AttachmentUploadForm({
         <Button type="submit" variant="primary" disabled={submitting}>
           {submitting ? "Uploading…" : "Upload"}
         </Button>
-        <Button type="button" variant="secondary" onClick={onCancel} disabled={submitting}>
+        <Button
+          type="button"
+          variant="secondary"
+          onClick={onCancel}
+          disabled={submitting}
+        >
           Cancel
         </Button>
       </div>

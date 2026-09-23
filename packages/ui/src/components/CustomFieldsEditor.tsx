@@ -72,9 +72,7 @@ export function CustomFieldsEditor({
 
   return (
     <div className="flex flex-col gap-3">
-      <span className="text-sm font-medium text-foreground">
-        Custom fields
-      </span>
+      <span className="text-sm font-medium text-foreground">Custom fields</span>
       {fields.map((field, index) => (
         <div
           key={field.id}
@@ -156,7 +154,13 @@ export function CustomFieldsEditor({
           )}
         </div>
       ))}
-      <Button type="button" variant="secondary" size="sm" onClick={add} className="self-start">
+      <Button
+        type="button"
+        variant="secondary"
+        size="sm"
+        onClick={add}
+        className="self-start"
+      >
         <Plus className="h-4 w-4" strokeWidth={1.75} />
         Add field
       </Button>

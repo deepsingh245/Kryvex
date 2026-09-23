@@ -47,9 +47,9 @@ describe("SettingsPage", () => {
     expect(screen.getByLabelText(/lock after inactivity/i)).toHaveTextContent(
       "5 minutes",
     );
-    expect(
-      screen.getByLabelText(/clear clipboard after/i),
-    ).toHaveTextContent("30 seconds");
+    expect(screen.getByLabelText(/clear clipboard after/i)).toHaveTextContent(
+      "30 seconds",
+    );
   });
 
   it("saves changes via updateSettings", async () => {
