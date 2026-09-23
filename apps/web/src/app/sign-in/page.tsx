@@ -53,7 +53,11 @@ export default function SignInPage() {
         description="Enter your email and master password to continue."
         onBack={() => router.push("/welcome")}
       >
-        <form onSubmit={handleSubmit} className="flex flex-col gap-5" noValidate>
+        <form
+          onSubmit={handleSubmit}
+          className="flex flex-col gap-5"
+          noValidate
+        >
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="email">Email</Label>
             <Input

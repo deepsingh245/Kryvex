@@ -77,7 +77,9 @@ describe("SignUpPage", () => {
   });
 
   it("calls signUp and shows the Emergency Kit on success", async () => {
-    const signUp = vi.fn().mockResolvedValue({ recoveryKey: "recovery-key-123" });
+    const signUp = vi
+      .fn()
+      .mockResolvedValue({ recoveryKey: "recovery-key-123" });
     mockedUseVault.mockReturnValue({
       state: { status: "SIGNED_OUT" },
       signUp,
@@ -107,7 +109,9 @@ describe("SignUpPage", () => {
   });
 
   it("shows an error message when signUp fails", async () => {
-    const signUp = vi.fn().mockRejectedValue(new Error("Email already in use."));
+    const signUp = vi
+      .fn()
+      .mockRejectedValue(new Error("Email already in use."));
     mockedUseVault.mockReturnValue({
       state: { status: "SIGNED_OUT" },
       signUp,

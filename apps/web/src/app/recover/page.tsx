@@ -63,9 +63,9 @@ export default function RecoverPage() {
       <main className="flex min-h-screen flex-1 flex-col items-center justify-center p-6 sm:p-8">
         <AuthCard icon={MailCheck} title="Check your email">
           <p className="text-sm text-text-secondary">
-            If an account exists for {email}, we&apos;ve sent a link to
-            continue recovering your vault. Follow it to enter your Recovery
-            Key and set a new master password.
+            If an account exists for {email}, we&apos;ve sent a link to continue
+            recovering your vault. Follow it to enter your Recovery Key and set
+            a new master password.
           </p>
           <Link
             href="/sign-in"
@@ -86,7 +86,11 @@ export default function RecoverPage() {
         description="Enter your account email. We'll send a link to continue — you'll need your Emergency Kit's Recovery Key on the next step."
         onBack={() => router.push("/sign-in")}
       >
-        <form onSubmit={handleSubmit} className="flex flex-col gap-5" noValidate>
+        <form
+          onSubmit={handleSubmit}
+          className="flex flex-col gap-5"
+          noValidate
+        >
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="email">Email</Label>
             <Input

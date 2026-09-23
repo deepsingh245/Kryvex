@@ -24,8 +24,8 @@ export default function WelcomePage() {
             Store everything that matters
           </h1>
           <p className="text-base leading-relaxed text-text-secondary">
-            Passwords, credentials, secure notes, files, and more — all in
-            one encrypted vault, accessible only by you.
+            Passwords, credentials, secure notes, files, and more — all in one
+            encrypted vault, accessible only by you.
           </p>
         </div>
       </div>
@@ -33,7 +33,11 @@ export default function WelcomePage() {
       <div className="flex w-full max-w-sm flex-col items-center gap-4">
         <Link
           href="/sign-up"
-          className={buttonVariants({ variant: "primary", size: "lg", className: "w-full" })}
+          className={buttonVariants({
+            variant: "primary",
+            size: "lg",
+            className: "w-full",
+          })}
         >
           Get Started
         </Link>

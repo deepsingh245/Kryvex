@@ -26,24 +26,38 @@ interface RecoveryCode {
   used: boolean;
 }
 
-function AttachmentSection({ attachmentId }: { attachmentId: string }) {
+function AttachmentSection({
+  attachmentId,
+  label,
+}: {
+  attachmentId: string;
+  label?: string;
+}) {
   const { metadata, loading, error, loadContent } = useAttachment(attachmentId);
 
-  if (loading) return <p className="text-sm text-text-secondary">Loading…</p>;
-  if (error || !metadata)
-    return (
-      <p role="alert" className="text-sm text-destructive">
-        {error ?? "Unable to load this attachment."}
-      </p>
-    );
-
-  return (
+  const body = loading ? (
+    <p className="text-sm text-text-secondary">Loading…</p>
+  ) : error || !metadata ? (
+    <p role="alert" className="text-sm text-destructive">
+      {error ?? "Unable to load this attachment."}
+    </p>
+  ) : (
     <AttachmentPreview
       fileName={metadata.fileName}
       mimeType={metadata.mimeType}
       sizeBytes={metadata.sizeBytes}
       onRequestContent={loadContent}
     />
+  );
+
+  if (!label) return body;
+  return (
+    <div className="flex flex-col gap-1.5">
+      <span className="text-xs font-medium uppercase tracking-wide text-text-secondary">
+        {label}
+      </span>
+      {body}
+    </div>
   );
 }
 
@@ -138,6 +152,21 @@ export default function ItemDetailPage() {
             item.content.type === "pdf" ||
             item.content.type === "file") && (
             <AttachmentSection attachmentId={item.content.attachmentId} />
+          )}
+
+          {item.content.type === "governmentId" && (
+            <div className="flex flex-col gap-4">
+              <AttachmentSection
+                label="Front"
+                attachmentId={item.content.frontAttachmentId}
+              />
+              {item.content.backAttachmentId && (
+                <AttachmentSection
+                  label="Back"
+                  attachmentId={item.content.backAttachmentId}
+                />
+              )}
+            </div>
           )}
 
           {/* Reuses ITEM_TYPE_FIELD_CONFIG (the same source that drives

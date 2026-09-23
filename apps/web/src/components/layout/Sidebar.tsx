@@ -4,6 +4,7 @@ import {
   Code2,
   CreditCard,
   Files,
+  IdCard,
   KeyRound,
   Layers,
   Lock,
@@ -32,6 +33,7 @@ const CATEGORIES: { label: string; type: string; icon: LucideIcon }[] = [
   { label: "API Keys", type: "apiKey", icon: Code2 },
   { label: "Recovery Codes", type: "recoveryCodes", icon: Shield },
   { label: "Files", type: "files", icon: Files },
+  { label: "Government IDs", type: "governmentId", icon: IdCard },
 ];
 
 function NavLink({
@@ -73,10 +75,18 @@ export function SidebarNav() {
   return (
     <>
       <div className="flex flex-col gap-1">
-        <NavLink href="/" active={onHome && !favoritesOnly && !typeFilter} icon={Layers}>
+        <NavLink
+          href="/"
+          active={onHome && !favoritesOnly && !typeFilter}
+          icon={Layers}
+        >
           All Items
         </NavLink>
-        <NavLink href="/?favorites=true" active={onHome && favoritesOnly} icon={Star}>
+        <NavLink
+          href="/?favorites=true"
+          active={onHome && favoritesOnly}
+          icon={Star}
+        >
           Favorites
         </NavLink>
       </div>

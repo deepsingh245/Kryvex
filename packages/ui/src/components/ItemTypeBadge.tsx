@@ -4,6 +4,7 @@ import {
   File,
   FileText,
   Grid3x3,
+  IdCard,
   Image as ImageIcon,
   KeyRound,
   type LucideIcon,
@@ -32,6 +33,7 @@ const ICON_BY_NAME: Record<string, LucideIcon> = {
   image: ImageIcon,
   "file-text": FileText,
   file: File,
+  "id-card": IdCard,
   sliders: SlidersHorizontal,
 };
 

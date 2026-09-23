@@ -115,7 +115,10 @@ describe("firestore.rules — users/{uid} kdfParams floor", () => {
 
   it("denies weakening kdfParams on update", async () => {
     await testEnv.withSecurityRulesDisabled(async (context) => {
-      await context.firestore().doc("users/alice").set(profile(VALID_KDF_PARAMS));
+      await context
+        .firestore()
+        .doc("users/alice")
+        .set(profile(VALID_KDF_PARAMS));
     });
     const aliceDb = testEnv.authenticatedContext("alice").firestore();
     await assertFails(
@@ -127,12 +130,21 @@ describe("firestore.rules — users/{uid} kdfParams floor", () => {
 
   it("allows an update that doesn't touch kdfParams at all", async () => {
     await testEnv.withSecurityRulesDisabled(async (context) => {
-      await context.firestore().doc("users/alice").set(profile(VALID_KDF_PARAMS));
+      await context
+        .firestore()
+        .doc("users/alice")
+        .set(profile(VALID_KDF_PARAMS));
     });
     const aliceDb = testEnv.authenticatedContext("alice").firestore();
     await assertSucceeds(
       aliceDb.doc("users/alice").set(
-        { settings: { autoLockMinutes: 15, clipboardClearSeconds: 60, biometricUnlockEnabled: true } },
+        {
+          settings: {
+            autoLockMinutes: 15,
+            clipboardClearSeconds: 60,
+            biometricUnlockEnabled: true,
+          },
+        },
         { merge: true },
       ),
     );

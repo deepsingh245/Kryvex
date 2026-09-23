@@ -35,7 +35,8 @@ const ICON_COLOR_BY_VARIANT = {
 } as const;
 
 export interface AlertProps
-  extends React.HTMLAttributes<HTMLDivElement>,
+  extends
+    React.HTMLAttributes<HTMLDivElement>,
     VariantProps<typeof alertVariants> {}
 
 function Alert({ className, variant, children, ...props }: AlertProps) {
@@ -48,7 +49,10 @@ function Alert({ className, variant, children, ...props }: AlertProps) {
       {...props}
     >
       <Icon
-        className={cn("mt-0.5 h-4 w-4 shrink-0", ICON_COLOR_BY_VARIANT[resolved])}
+        className={cn(
+          "mt-0.5 h-4 w-4 shrink-0",
+          ICON_COLOR_BY_VARIANT[resolved],
+        )}
         strokeWidth={1.75}
         aria-hidden="true"
       />

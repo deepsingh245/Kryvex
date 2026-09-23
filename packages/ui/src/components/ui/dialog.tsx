@@ -92,7 +92,10 @@ export function Dialog({
         >
           <X className="h-4 w-4" strokeWidth={1.75} />
         </button>
-        <h2 id={titleId} className="pr-6 text-base font-semibold text-foreground">
+        <h2
+          id={titleId}
+          className="pr-6 text-base font-semibold text-foreground"
+        >
           {title}
         </h2>
         {description && (

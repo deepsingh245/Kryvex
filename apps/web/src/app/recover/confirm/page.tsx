@@ -159,7 +159,11 @@ function RecoverConfirmInner() {
         title="Recover your vault"
         description="Enter the Recovery Key from your Emergency Kit and choose a new master password."
       >
-        <form onSubmit={handleSubmit} className="flex flex-col gap-5" noValidate>
+        <form
+          onSubmit={handleSubmit}
+          className="flex flex-col gap-5"
+          noValidate
+        >
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="recoveryKey">Recovery Key</Label>
             <Input

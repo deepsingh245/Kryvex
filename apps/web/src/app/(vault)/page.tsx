@@ -26,6 +26,7 @@ const CATEGORY_HEADINGS: Record<string, string> = {
   apiKey: "API Keys",
   recoveryCodes: "Recovery Codes",
   files: "Files",
+  governmentId: "Government IDs",
 };
 
 /**
@@ -133,10 +134,13 @@ export default function Home() {
 
       {conflicts.length > 0 && (
         <Link href="/conflicts">
-          <Alert variant="warning" className="transition-colors hover:bg-warning/15">
+          <Alert
+            variant="warning"
+            className="transition-colors hover:bg-warning/15"
+          >
             {conflicts.length}{" "}
-            {conflicts.length === 1 ? "item has" : "items have"} sync
-            conflicts — Review
+            {conflicts.length === 1 ? "item has" : "items have"} sync conflicts
+            — Review
           </Alert>
         </Link>
       )}
@@ -172,7 +176,11 @@ export default function Home() {
 
       {!loading && visible.length === 0 && (
         <EmptyState
-          title={items.length === 0 ? "Your vault is empty." : "No items match your search."}
+          title={
+            items.length === 0
+              ? "Your vault is empty."
+              : "No items match your search."
+          }
           description={
             items.length === 0
               ? "Add your first login, note, or file to get started."

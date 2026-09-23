@@ -5,64 +5,64 @@ import { useId, useState, type ChangeEvent, type FormEvent } from "react";
 import type { CustomField } from "@kryvex/types";
 import { CustomFieldsEditor } from "./CustomFieldsEditor";
 import { Label } from "./ui/label";
+import { MultilineField } from "./MultilineField";
 import { TagsInput } from "./TagsInput";
 import { TextField } from "./TextField";
 import { Button } from "./ui/button";
 
-// Matches firebase/storage.rules' upload size cap exactly.
+// Matches firebase/storage.rules' upload size cap exactly — same limit
+// AttachmentUploadForm.tsx enforces, per file.
 const MAX_ATTACHMENT_BYTES = 50 * 1024 * 1024;
 
-const ACCEPT_BY_TYPE: Record<"image" | "pdf" | "file", string | undefined> = {
-  image: "image/*",
-  pdf: "application/pdf",
-  file: undefined,
-};
+const FILE_ACCEPT = "image/*,application/pdf";
 
-export interface AttachmentUploadFormValues {
+export interface GovernmentIdUploadFormValues {
   title: string;
   tags: string[];
-  // No Notes field in this form (removed per product feedback — Custom
-  // Fields' multiline option already covers free text) — always undefined.
-  // Kept in the shape rather than removed outright since it flows straight
-  // into ItemContentBase.notes, which stays optional.
+  // Unlike AttachmentUploadForm.tsx, this IS user-edited here — Notes is a
+  // deliberate, one-off exception for this type. See GovernmentIdContent's
+  // doc comment in @kryvex/types for why.
   notes: string | undefined;
   customFields: CustomField[];
-  file: File;
+  frontFile: File;
+  backFile: File | undefined;
 }
 
-export interface AttachmentUploadFormProps {
-  type: "image" | "pdf" | "file";
-  onSubmit: (values: AttachmentUploadFormValues) => void;
+export interface GovernmentIdUploadFormProps {
+  onSubmit: (values: GovernmentIdUploadFormValues) => void;
   onCancel: () => void;
   submitting?: boolean;
 }
 
 /**
- * Dedicated Add-flow form for Image/PDF/File items — deliberately separate
- * from the generic ItemForm (see ../fieldConfig.ts's header comment):
- * picking/encrypting/uploading a file is an async, bespoke sequence the
- * caller owns, unlike ItemForm's synchronous "assemble ItemContent" submit
- * contract. This component itself stays free of crypto/Firebase — it only
- * ever hands the caller a raw `File`.
+ * Dedicated Add-flow form for the Government ID item type — same
+ * "picking/encrypting/uploading is an async, bespoke sequence the caller
+ * owns" rationale as AttachmentUploadForm.tsx, extended to two optional
+ * file slots (front required, back optional) plus an always-visible Notes
+ * field. This component stays free of crypto/Firebase — it only ever
+ * hands the caller raw `File`s.
  */
-export function AttachmentUploadForm({
-  type,
+export function GovernmentIdUploadForm({
   onSubmit,
   onCancel,
   submitting,
-}: AttachmentUploadFormProps) {
-  const fileInputId = useId();
+}: GovernmentIdUploadFormProps) {
+  const frontInputId = useId();
+  const backInputId = useId();
   const [title, setTitle] = useState("");
   const [tags, setTags] = useState<string[]>([]);
+  const [notes, setNotes] = useState("");
   const [customFields, setCustomFields] = useState<CustomField[]>([]);
-  const [file, setFile] = useState<File | null>(null);
+  const [frontFile, setFrontFile] = useState<File | null>(null);
+  const [backFile, setBackFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
-  // Always starts empty (this form has no initialContent) — collapsed
-  // behind a button, same as ItemForm.tsx.
   const [showTags, setShowTags] = useState(false);
   const [showCustomFields, setShowCustomFields] = useState(false);
 
-  function handleFileChange(e: ChangeEvent<HTMLInputElement>) {
+  function handleFileChange(
+    e: ChangeEvent<HTMLInputElement>,
+    setFile: (file: File | null) => void,
+  ) {
     const selected = e.target.files?.[0];
     if (!selected) {
       setFile(null);
@@ -85,23 +85,54 @@ export function AttachmentUploadForm({
       setError("Title is required.");
       return;
     }
-    if (!file) {
-      setError("Choose a file to upload.");
+    if (!frontFile) {
+      setError("Choose a front-side file to upload.");
       return;
     }
     setError(null);
     onSubmit({
       title,
       tags,
-      notes: undefined,
+      notes: notes || undefined,
       customFields,
-      file,
+      frontFile,
+      backFile: backFile ?? undefined,
     });
   }
 
   return (
     <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-5">
       <TextField label="Title" value={title} required onChange={setTitle} />
+
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor={frontInputId}>Front</Label>
+        <input
+          id={frontInputId}
+          type="file"
+          accept={FILE_ACCEPT}
+          onChange={(e) => handleFileChange(e, setFrontFile)}
+          className="flex h-11 w-full min-w-0 rounded-md border border-border-strong bg-surface text-sm text-foreground shadow-sm outline-none file:mr-3 file:h-11 file:cursor-pointer file:border-0 file:border-r file:border-border file:bg-surface-2 file:px-3.5 file:text-sm file:font-medium file:text-foreground hover:file:bg-border-strong focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/40"
+        />
+      </div>
+
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor={backInputId}>Back (optional)</Label>
+        <input
+          id={backInputId}
+          type="file"
+          accept={FILE_ACCEPT}
+          onChange={(e) => handleFileChange(e, setBackFile)}
+          className="flex h-11 w-full min-w-0 rounded-md border border-border-strong bg-surface text-sm text-foreground shadow-sm outline-none file:mr-3 file:h-11 file:cursor-pointer file:border-0 file:border-r file:border-border file:bg-surface-2 file:px-3.5 file:text-sm file:font-medium file:text-foreground hover:file:bg-border-strong focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/40"
+        />
+      </div>
+
+      <MultilineField
+        label="Notes"
+        value={notes}
+        onChange={setNotes}
+        rows={3}
+      />
+
       {showTags ? (
         <TagsInput
           label="Tags"
@@ -121,17 +152,6 @@ export function AttachmentUploadForm({
           Add tags
         </Button>
       )}
-
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor={fileInputId}>File</Label>
-        <input
-          id={fileInputId}
-          type="file"
-          accept={ACCEPT_BY_TYPE[type]}
-          onChange={handleFileChange}
-          className="flex h-11 w-full min-w-0 rounded-md border border-border-strong bg-surface text-sm text-foreground shadow-sm outline-none file:mr-3 file:h-11 file:cursor-pointer file:border-0 file:border-r file:border-border file:bg-surface-2 file:px-3.5 file:text-sm file:font-medium file:text-foreground hover:file:bg-border-strong focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/40"
-        />
-      </div>
 
       {showCustomFields ? (
         <CustomFieldsEditor fields={customFields} onChange={setCustomFields} />

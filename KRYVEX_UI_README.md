@@ -50,16 +50,16 @@ Pronunciation can be treated as:
 
 ## Brand personality
 
-| Attribute | Direction |
-|---|---|
-| Secure | High |
-| Premium | High |
-| Minimal | High |
-| Technical | Medium |
-| Friendly | Medium |
-| Playful | Low |
-| Futuristic | Medium |
-| Corporate | Low |
+| Attribute  | Direction |
+| ---------- | --------- |
+| Secure     | High      |
+| Premium    | High      |
+| Minimal    | High      |
+| Technical  | Medium    |
+| Friendly   | Medium    |
+| Playful    | Low       |
+| Futuristic | Medium    |
+| Corporate  | Low       |
 
 ## Brand statement
 
@@ -334,18 +334,18 @@ Use a 4px base grid.
 
 Recommended usage:
 
-| Size | Usage |
-|---|---|
-| 4px | icon/text micro spacing |
-| 8px | tight component spacing |
-| 12px | labels |
-| 16px | standard component padding |
-| 20px | card internal spacing |
-| 24px | card/page spacing |
-| 32px | section spacing |
-| 40px | major groups |
-| 48px | page sections |
-| 64px | hero spacing |
+| Size    | Usage                       |
+| ------- | --------------------------- |
+| 4px     | icon/text micro spacing     |
+| 8px     | tight component spacing     |
+| 12px    | labels                      |
+| 16px    | standard component padding  |
+| 20px    | card internal spacing       |
+| 24px    | card/page spacing           |
+| 32px    | section spacing             |
+| 40px    | major groups                |
+| 48px    | page sections               |
+| 64px    | hero spacing                |
 | 80–96px | large visual breathing room |
 
 Never randomly use values such as 13px, 19px, 27px unless there is a specific design reason.
