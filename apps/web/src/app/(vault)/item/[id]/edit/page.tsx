@@ -6,6 +6,7 @@ import { useParams, useRouter } from "next/navigation";
 import { secureLogger } from "@kryvex/security";
 import type { ItemContent } from "@kryvex/types";
 import { ITEM_TYPE_LABELS, ItemForm } from "@kryvex/ui";
+import { BackLink } from "@/components/layout/BackLink";
 import { useVaultItems } from "@/hooks/useVaultItems";
 import { useVault } from "@/providers/VaultProvider";
 
@@ -60,6 +61,7 @@ export default function EditItemPage() {
 
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-5 px-4 py-6 sm:px-8 sm:py-8">
+      <BackLink href={`/item/${item.id}`} label="Back to item" />
       <h1 className="text-xl font-semibold text-foreground">
         Edit {ITEM_TYPE_LABELS[item.type]}
       </h1>

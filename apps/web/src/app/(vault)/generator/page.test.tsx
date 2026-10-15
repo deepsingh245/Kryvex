@@ -28,6 +28,9 @@ describe("GeneratorPage", () => {
       settings: undefined,
       updateSettings: vi.fn(),
       signOut: vi.fn(),
+      unlockWithBiometric: vi.fn(),
+      enableBiometric: vi.fn(),
+      disableBiometric: vi.fn(),
     });
     render(<GeneratorPage />);
     expect(

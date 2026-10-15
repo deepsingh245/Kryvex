@@ -1,6 +1,7 @@
 export {
   DEFAULT_KDF_PARAMS,
   deriveAuthAndStretchedKey,
+  deriveBiometricWrapKey,
   deriveKdfMaterial,
   generateKdfSalt,
 } from "./kdf";

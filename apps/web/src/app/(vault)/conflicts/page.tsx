@@ -2,9 +2,9 @@
 
 import { AlertTriangle } from "lucide-react";
 import { useState } from "react";
-import Link from "next/link";
 import { secureLogger } from "@kryvex/security";
 import { Button, Card } from "@kryvex/ui";
+import { BackLink } from "@/components/layout/BackLink";
 import { useVaultItems, type ConflictResolution } from "@/hooks/useVaultItems";
 
 /**
@@ -31,6 +31,7 @@ export default function ConflictsPage() {
 
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-6 px-4 py-10 sm:px-8">
+      <BackLink href="/" label="Back to vault" />
       <h1 className="text-2xl font-semibold text-foreground">Sync conflicts</h1>
 
       {error && (
@@ -119,13 +120,6 @@ export default function ConflictsPage() {
           </li>
         ))}
       </ul>
-
-      <Link
-        href="/"
-        className="text-sm text-text-secondary underline-offset-4 hover:text-foreground hover:underline"
-      >
-        Back to vault
-      </Link>
     </main>
   );
 }
