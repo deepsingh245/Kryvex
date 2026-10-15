@@ -34,6 +34,9 @@ describe("SignUpPage", () => {
       settings: undefined,
       updateSettings: vi.fn(),
       signOut: vi.fn(),
+      unlockWithBiometric: vi.fn(),
+      enableBiometric: vi.fn(),
+      disableBiometric: vi.fn(),
     });
     render(<SignUpPage />);
     expect(
@@ -55,6 +58,9 @@ describe("SignUpPage", () => {
       settings: undefined,
       updateSettings: vi.fn(),
       signOut: vi.fn(),
+      unlockWithBiometric: vi.fn(),
+      enableBiometric: vi.fn(),
+      disableBiometric: vi.fn(),
     });
     render(<SignUpPage />);
 
@@ -90,6 +96,9 @@ describe("SignUpPage", () => {
       settings: undefined,
       updateSettings: vi.fn(),
       signOut: vi.fn(),
+      unlockWithBiometric: vi.fn(),
+      enableBiometric: vi.fn(),
+      disableBiometric: vi.fn(),
     });
     render(<SignUpPage />);
 
@@ -122,6 +131,9 @@ describe("SignUpPage", () => {
       settings: undefined,
       updateSettings: vi.fn(),
       signOut: vi.fn(),
+      unlockWithBiometric: vi.fn(),
+      enableBiometric: vi.fn(),
+      disableBiometric: vi.fn(),
     });
     render(<SignUpPage />);
 

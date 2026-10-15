@@ -48,6 +48,12 @@ import {
   type LockState,
 } from "@kryvex/vault";
 import {
+  clearAllBiometric,
+  clearBiometric,
+  enrollBiometric,
+  unlockWithBiometric as unlockWithBiometricKey,
+} from "@/lib/biometric";
+import {
   webFirebaseAppCheckOptions,
   webFirebaseConfig,
   webFirebaseEmulatorEnv,
@@ -106,6 +112,11 @@ interface VaultContextValue {
   ) => Promise<{ recoveryKey: string }>;
   signIn: (email: string, masterPassword: string) => Promise<void>;
   unlock: (masterPassword: string) => Promise<void>;
+  /** Unlocks using the device biometric enrolled via enableBiometric. */
+  unlockWithBiometric: () => Promise<void>;
+  /** Re-verifies the master password, then enrolls this device's biometric. */
+  enableBiometric: (masterPassword: string) => Promise<void>;
+  disableBiometric: () => Promise<void>;
   lock: (reason?: LockReason) => void;
   recoverVault: (
     oobCode: string,
@@ -336,6 +347,69 @@ export function VaultProvider({ children }: { children: ReactNode }) {
       }
     },
 
+    async unlockWithBiometric() {
+      if (state.status !== "AUTHENTICATED_LOCKED") return;
+      const { user } = state;
+      dispatch({ type: "UNLOCK_REQUESTED" });
+      try {
+        const services = getServices();
+        // Biometric replaces only the master-password prompt — the vault
+        // key comes from the device-local PRF-wrapped envelope, and the
+        // profile is still read for settings. stretchedMasterKey isn't
+        // available without the password; nothing downstream of UNLOCKED
+        // needs it beyond holding it (see lockStateReducer), so an empty
+        // buffer stands in rather than weakening the type.
+        const vaultEncryptionKey = await unlockWithBiometricKey(user.uid);
+        const profile = (await fetchUserProfileDocument(
+          services.firestore,
+          user.uid,
+        )) as KdfParamsRecord | undefined;
+        setSettings(parseSettings(profile?.settings));
+        dispatch({
+          type: "UNLOCK_SUCCEEDED",
+          stretchedMasterKey: new Uint8Array(32),
+          vaultEncryptionKey,
+        });
+      } catch (err) {
+        dispatch({ type: "UNLOCK_FAILED" });
+        throw err;
+      }
+    },
+
+    async enableBiometric(masterPassword) {
+      if (state.status !== "UNLOCKED") throw new Error("Vault is locked.");
+      const services = getServices();
+      const { user, vaultEncryptionKey } = state;
+      const profile = (await fetchUserProfileDocument(
+        services.firestore,
+        user.uid,
+      )) as KdfParamsRecord | undefined;
+      if (!profile?.protectedVaultKey) throw new Error("Profile not found.");
+      const { masterKey } = await deriveKdfMaterial(
+        masterPassword,
+        hexToBytes(profile.kdfSalt),
+        profile.kdfParams,
+      );
+      const { stretchedMasterKey } = deriveAuthAndStretchedKey(masterKey);
+      wipeBytes(masterKey);
+      try {
+        // Fail-closed password check: AEAD tag mismatch throws.
+        decryptBytes(stretchedMasterKey, profile.protectedVaultKey);
+      } catch {
+        throw new Error("Incorrect master password.");
+      } finally {
+        wipeBytes(stretchedMasterKey);
+      }
+      await enrollBiometric(user.uid, user.email, vaultEncryptionKey);
+      await value.updateSettings({ biometricUnlockEnabled: true });
+    },
+
+    async disableBiometric() {
+      if (state.status !== "UNLOCKED") throw new Error("Vault is locked.");
+      await clearBiometric(state.user.uid);
+      await value.updateSettings({ biometricUnlockEnabled: false });
+    },
+
     lock,
 
     async recoverVault(oobCode, recoveryKeyInput, newMasterPassword) {
@@ -425,6 +499,9 @@ export function VaultProvider({ children }: { children: ReactNode }) {
     },
 
     async signOut() {
+      // Shared-device safety: a signed-out browser keeps no biometric
+      // envelope; the next sign-in (master password) can re-enroll.
+      await clearAllBiometric();
       await signOutKryvex(getServices().auth);
     },
   };

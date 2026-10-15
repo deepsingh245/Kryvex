@@ -43,6 +43,9 @@ See "Current status" in `KRYVEX_SOURCE_OF_TRUTH.md` for full detail and the
 decisions log. **Next up:** Phase 9w (security hardening).
 Owner: lead architect/engineer (Claude), directed by project owner
 Last updated: 2026-10-16
+(Post-9w addition: web biometric unlock via WebAuthn PRF — see "Current status"
+in `KRYVEX_SOURCE_OF_TRUTH.md`; flagged manual verification on real devices
+pending.)
 
 This document is the working plan for building Kryvex, a zero-knowledge encrypted
 personal vault. It sequences the work into checkpoints so that no security-sensitive

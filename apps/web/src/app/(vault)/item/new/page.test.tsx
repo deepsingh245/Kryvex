@@ -63,6 +63,9 @@ function mockUseVault() {
     settings: undefined,
     updateSettings: vi.fn(),
     signOut: vi.fn(),
+    unlockWithBiometric: vi.fn(),
+    enableBiometric: vi.fn(),
+    disableBiometric: vi.fn(),
   });
 }
 
@@ -83,6 +86,9 @@ describe("NewItemPage", () => {
       settings: undefined,
       updateSettings: vi.fn(),
       signOut: vi.fn(),
+      unlockWithBiometric: vi.fn(),
+      enableBiometric: vi.fn(),
+      disableBiometric: vi.fn(),
     });
     mockVaultItems();
     mockedUseCreateAttachment.mockReturnValue(vi.fn());
@@ -106,6 +112,9 @@ describe("NewItemPage", () => {
       settings: undefined,
       updateSettings: vi.fn(),
       signOut: vi.fn(),
+      unlockWithBiometric: vi.fn(),
+      enableBiometric: vi.fn(),
+      disableBiometric: vi.fn(),
     });
     mockVaultItems(createItem);
     mockedUseCreateAttachment.mockReturnValue(vi.fn());
@@ -143,6 +152,9 @@ describe("NewItemPage", () => {
       settings: undefined,
       updateSettings: vi.fn(),
       signOut: vi.fn(),
+      unlockWithBiometric: vi.fn(),
+      enableBiometric: vi.fn(),
+      disableBiometric: vi.fn(),
     });
     mockVaultItems(createItem);
     mockedUseCreateAttachment.mockReturnValue(createAttachment);

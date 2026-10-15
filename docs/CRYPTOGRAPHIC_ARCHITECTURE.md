@@ -238,6 +238,22 @@ target devices, but the design targets:
   elsewhere (e.g. an internal Argon2id/WASM buffer) before this runs, and
   the GC can still leave stale copies in memory pages. It shrinks the
   window a memory-scraping attack has; it doesn't close it.
+- **Web biometric unlock (opt-in, per device):** a WebAuthn credential on the
+  platform authenticator (Touch ID / Windows Hello / Android) is enrolled with
+  the PRF extension. The authenticator derives a secret and releases it only
+  after user verification; `deriveBiometricWrapKey` (`packages/crypto`,
+  HKDF-SHA-256, `info="kryvex-biometric-wrap-v1"`) turns it into an AES-256-GCM
+  key that wraps the Vault Encryption Key. The resulting envelope
+  (`{credentialId, prfSalt, envelope}`) lives only in this browser's IndexedDB
+  (`apps/web/src/lib/biometric.ts`) — never sent to the server, useless without
+  that authenticator + biometric. Enabling requires re-entering the master
+  password; the envelope is deleted on sign-out and when disabled. There is no
+  fallback for browsers without PRF support (a bare WebAuthn check yields no
+  key, and VEK-in-storage-behind-a-check would be a fake security indicator):
+  the feature is simply unavailable and the master password remains the only
+  way in. Biometric replaces the master-password prompt on the unlock screen
+  only — never Firebase sign-in or recovery. The VEK never changes on password
+  change/recovery, so the envelope stays valid across them.
 - **Mobile client:** same in-memory rule for unwrapped key material; biometric
   unlock protects a Keychain (iOS) / Keystore (Android) entry that itself holds
   the wrapped Vault Encryption Key material or an equivalent locally-scoped

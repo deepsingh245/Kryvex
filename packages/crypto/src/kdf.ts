@@ -57,6 +57,7 @@ export async function deriveKdfMaterial(
 // outputs of the same masterKey — see docs/CRYPTOGRAPHIC_ARCHITECTURE.md §2.
 const STRETCH_INFO = new TextEncoder().encode("kryvex-stretch-v1");
 const AUTH_INFO = new TextEncoder().encode("kryvex-firebase-auth-v1");
+const BIOMETRIC_INFO = new TextEncoder().encode("kryvex-biometric-wrap-v1");
 
 export interface AuthAndStretchedKey {
   /** Hex-encoded — sent to Firebase Auth as the account "password." Never the master password itself. */
@@ -88,4 +89,19 @@ export function deriveAuthAndStretchedKey(
   // never needed again by anyone once hex-encoded — safe to wipe here.
   wipeBytes(authKeyBytes);
   return { authSecret, stretchedMasterKey };
+}
+
+/**
+ * Derives the AES-256 key that wraps the Vault Encryption Key for biometric
+ * unlock, from the secret a platform authenticator releases via the WebAuthn
+ * PRF extension after user verification — see
+ * docs/CRYPTOGRAPHIC_ARCHITECTURE.md §2/§7. The PRF output is already a
+ * uniformly random 32-byte secret, so HKDF (distinct `info`, so it can never
+ * collide with the password-derived keys above) is all that's needed.
+ */
+export function deriveBiometricWrapKey(prfOutput: Uint8Array): Uint8Array {
+  if (prfOutput.length < 32) {
+    throw new Error("deriveBiometricWrapKey: PRF output must be >= 32 bytes.");
+  }
+  return hkdf(sha256, prfOutput, undefined, BIOMETRIC_INFO, 32);
 }
