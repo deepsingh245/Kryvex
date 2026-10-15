@@ -186,9 +186,21 @@ describe("Home", () => {
     expect(screen.getByText("Personal email")).toBeInTheDocument();
   });
 
-  it("does not show the Email view toggle for other categories", () => {
+  it("defaults the Login category to the dense view, showing Username/Password inline", () => {
     searchParamsGet.mockImplementation((key) =>
       key === "type" ? "login" : null,
+    );
+    mockVaultItems({ items: [loginItem()] });
+    render(<Home />);
+    expect(screen.getByLabelText("Username")).toHaveValue("u");
+    expect(screen.getByLabelText("Password")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "One by one" }));
+    expect(screen.queryByLabelText("Username")).not.toBeInTheDocument();
+  });
+
+  it("does not show the dense view toggle for other categories", () => {
+    searchParamsGet.mockImplementation((key) =>
+      key === "type" ? "secureNote" : null,
     );
     mockVaultItems({ items: [loginItem()] });
     render(<Home />);

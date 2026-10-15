@@ -13,6 +13,7 @@ import {
 } from "@kryvex/ui";
 import { selectVisibleItems } from "@kryvex/vault";
 import { EmailDenseList } from "@/components/vault/EmailDenseList";
+import { LoginDenseList } from "@/components/vault/LoginDenseList";
 import { ItemCard } from "@/components/vault/ItemCard";
 import { useVaultItems } from "@/hooks/useVaultItems";
 import { useVault } from "@/providers/VaultProvider";
@@ -47,9 +48,10 @@ export default function Home() {
 
   const [query, setQuery] = useState("");
   const [tagFilter, setTagFilter] = useState<string | undefined>(undefined);
-  // Only relevant for the Email category — defaults to the dense view so
-  // users can scan every email/password without clicking into each item.
-  const [emailView, setEmailView] = useState<"dense" | "list">("dense");
+  // Only relevant for the Email and Login categories — defaults to the dense
+  // view so users can scan every credential without clicking into each item.
+  const [denseView, setDenseView] = useState<"dense" | "list">("dense");
+  const hasDenseView = typeFilter === "email" || typeFilter === "login";
 
   const visible = useMemo(() => {
     const base = selectVisibleItems(
@@ -103,13 +105,13 @@ export default function Home() {
         </div>
       </div>
 
-      {typeFilter === "email" && (
+      {hasDenseView && (
         <div className="flex items-center gap-1 self-start rounded-md border border-border p-0.5">
           <button
             type="button"
-            onClick={() => setEmailView("dense")}
+            onClick={() => setDenseView("dense")}
             className={
-              emailView === "dense"
+              denseView === "dense"
                 ? "rounded-md bg-primary px-2.5 py-1 text-xs font-medium text-primary-foreground"
                 : "rounded-md px-2.5 py-1 text-xs font-medium text-text-secondary transition-colors hover:text-foreground"
             }
@@ -118,9 +120,9 @@ export default function Home() {
           </button>
           <button
             type="button"
-            onClick={() => setEmailView("list")}
+            onClick={() => setDenseView("list")}
             className={
-              emailView === "list"
+              denseView === "list"
                 ? "rounded-md bg-primary px-2.5 py-1 text-xs font-medium text-primary-foreground"
                 : "rounded-md px-2.5 py-1 text-xs font-medium text-text-secondary transition-colors hover:text-foreground"
             }
@@ -189,12 +191,20 @@ export default function Home() {
         />
       )}
 
-      {typeFilter === "email" && emailView === "dense" ? (
-        <EmailDenseList
-          items={visible}
-          onToggleFavorite={(id) => void toggleFavorite(id)}
-          clipboardClearSeconds={settings?.clipboardClearSeconds}
-        />
+      {hasDenseView && denseView === "dense" ? (
+        typeFilter === "email" ? (
+          <EmailDenseList
+            items={visible}
+            onToggleFavorite={(id) => void toggleFavorite(id)}
+            clipboardClearSeconds={settings?.clipboardClearSeconds}
+          />
+        ) : (
+          <LoginDenseList
+            items={visible}
+            onToggleFavorite={(id) => void toggleFavorite(id)}
+            clipboardClearSeconds={settings?.clipboardClearSeconds}
+          />
+        )
       ) : (
         <ul className="flex flex-col gap-2">
           {visible.map((item) => (
