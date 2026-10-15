@@ -3,10 +3,9 @@
 Status: Firestore rules, Storage rules, and Cloud Functions are
 code-complete, pass the emulator-based security/auth test suites (see
 `pnpm test:security`/`pnpm test:auth`), and are deployed to the real
-Firebase project. Web hosting is still being set up (§6) — classic
-Firebase Hosting's Next.js framework integration was tried first and
-abandoned (see §6's note); **Firebase App Hosting** is the current plan
-instead, driven by a `dev`/`main`/`prod` git branch strategy (§7). No
+Firebase project. The web app is hosted on **Netlify** (§6) — classic
+Firebase Hosting and Firebase App Hosting were both tried and abandoned —
+driven by a `dev`/`main`/`prod` git branch strategy (§7). No
 `production` alias in `.firebaserc` yet (deliberately deferred — see §3);
 deploy commands below pass `--project <your-project-id>` explicitly
 instead. See also: [FIREBASE_SECURITY.md](./FIREBASE_SECURITY.md).
@@ -182,7 +181,7 @@ each one individually in the Console (§8) before moving to the next.
 
 ### Classic Firebase Hosting — tried, abandoned
 
-`firebase.json`'s `hosting: { "source": "apps/web" }` entry plus
+`firebase.json`'s former `hosting: { "source": "apps/web" }` entry (since removed) plus
 `firebase experiments:enable webframeworks` (Firebase's Next.js framework
 integration, auto-provisioning an SSR backend via Cloud Functions/Cloud
 Run) got as far as a successful Next.js build, then failed bundling the
@@ -199,43 +198,62 @@ type-only cross-package imports), `apps/web` has real, necessary
 mirrored the same way. Conclusion: classic Hosting's Next.js integration
 isn't a good fit for this repo's pnpm workspace as it stands today.
 
-### Firebase App Hosting — current plan
+### Firebase App Hosting — tried, abandoned
 
-Firebase App Hosting is a separate, newer product built specifically
-around framework monorepos (documented pnpm-workspace support, unlike
-classic Hosting's older integration above) — and unlike classic Hosting's
-local `firebase deploy`, it's GitHub-connected: a backend watches one
-branch of this repo and builds+deploys automatically on push to it. That
-GitHub connection is exactly why the branch strategy in §7 exists — each
-branch maps to one App Hosting backend/environment.
+Its buildpack's pnpm-fetch logic (any pnpm `>=11.0.0`) downloads a release
+tarball whose structure doesn't match what the buildpack expects, and
+downgrading pnpm below 11 isn't a clean fix (`pnpm-workspace.yaml`'s
+`allowBuilds`/`minimumReleaseAge` config is pnpm-11-specific). See the
+decisions log in `KRYVEX_SOURCE_OF_TRUTH.md`.
 
-Setting up the actual App Hosting backend (Console → **App Hosting** →
-create a backend, connect this GitHub repo, pick the branch, configure
-`apphosting.yaml` for env vars) hasn't been done yet — to be filled in
-here once that's set up, rather than documented speculatively ahead of
-actually running it.
+### Netlify — current host
+
+Netlify's Next.js Runtime auto-detects this pnpm monorepo with no extra
+configuration, so there is deliberately no `netlify.toml` today (add one
+only if a real need appears — e.g. pinning Node). Netlify is
+GitHub-connected: each environment watches one branch (§7) and builds and
+deploys on push. Firestore/Storage/Functions stay on Firebase (§5).
+
+Setup notes:
+
+- Production build env vars (§4's table) are set in Netlify's site
+  settings per deploy context, never committed.
+- The Netlify site's origin must be in Firebase Console → Authentication →
+  Settings → **Authorized domains**, or sign-in/password-reset will fail.
+- `cors.json` (repo root) holds the Storage bucket CORS config for the
+  Netlify origin and `localhost:3000`; apply it with
+  `gcloud storage buckets update gs://<bucket> --cors-file=cors.json`.
+  Add each additional origin (staging/production custom domain) to it.
+- Security headers (HSTS, `nosniff`, `frame-ancestors 'none'`/
+  `X-Frame-Options`, Referrer-Policy, Permissions-Policy) are set in
+  `apps/web/next.config.ts`. A full CSP is **not** set yet — it needs
+  verifying in a real browser against the deployed site (Next inline
+  scripts, Firebase endpoints, reCAPTCHA, `blob:` previews) and is tracked
+  in §12.
 
 ## 7. Branching strategy: `dev` / `main` / `prod`
 
-Three long-lived branches, each mapped to one deploy destination — this is
-what App Hosting's per-branch backends (§6) actually deploy from, and the
-main reason App Hosting was preferred here over a manual local deploy:
+Three long-lived branches, each mapped to one deploy destination (Netlify
+watches them per §6):
 
 - **`dev`** — active development; latest code lands here first (this is
-  today's default working branch). Nothing auto-deploys from `dev`.
-- **`main`** — pre-release staging. A staging App Hosting backend (or a
-  separate Firebase project — §1's optional Staging environment) watches
-  `main` and auto-deploys on push, so a change gets verified against real
-  Firebase infrastructure before it can reach real users.
-- **`prod`** — production. The production App Hosting backend watches
-  `prod`; merging/fast-forwarding into it is what actually ships. Nothing
-  is "deployed" by running a local command here the way §5's Firestore/
+  today's default working branch). Nothing auto-deploys to production from
+  `dev`.
+- **`main`** — pre-release staging. Netlify builds `main` as the staging
+  site (against the same Firebase project, or a separate one — §1's
+  optional Staging environment), so a change gets verified before it can
+  reach real users.
+- **`prod`** — production. Netlify's production branch is `prod`;
+  merging/fast-forwarding into it is what actually ships. Nothing is
+  "deployed" by running a local command here the way §5's Firestore/
   Functions/Storage commands are — it's deployed by the branch itself
   advancing.
 
+(`origin/stage` also exists on the remote but is unused by this strategy.)
+
 Flow: commit to `dev` → merge to `main` when ready to verify → check it on
-staging → once confirmed, merge/fast-forward `main` into `prod` → App
-Hosting builds and deploys automatically. Firestore rules, Storage rules,
+staging → once confirmed, merge/fast-forward `main` into `prod` → Netlify
+builds and deploys automatically. Firestore rules, Storage rules,
 and Cloud Functions (§5) aren't branch-triggered the same way yet — those
 stay manual `firebase deploy --only ...` commands regardless of which
 branch, so a rules/functions change should be verified on `demo-kryvex`
@@ -244,8 +262,8 @@ today.
 
 **Repo visibility**: this GitHub repo is currently public; the plan is to
 make it private once things settle (tracked as a follow-up, not blocking
-anything above — App Hosting's GitHub App connection works identically
-against a private repo, it just needs the App granted install access).
+anything above — Netlify's GitHub connection works identically against a
+private repo, it just needs the Netlify app granted install access).
 
 ## 8. Deploying Firestore/Functions/Storage together
 
@@ -257,9 +275,9 @@ firebase deploy --project production
 
 deploys every `firebase.json`-configured target — today that's
 `firestore`, `storage`, and `functions` (§5's three commands combined into
-one). This does **not** include Hosting: App Hosting (§6) deploys by a
-branch advancing (§7), not by anything in this command, so — unlike
-classic Hosting — there's no single `firebase deploy` that covers
+one). This does **not** include the web app: Netlify (§6) deploys by a
+branch advancing (§7), not by anything in this command (`firebase.json`
+has no `hosting` block), so there's no single `firebase deploy` that covers
 everything including the web app. Prefer §5's scoped `--only` commands for
 a routine single-area change; this combined form is for a coordinated
 Firestore+Functions+Storage release.
@@ -321,8 +339,12 @@ Firestore+Functions+Storage release.
       something code changes; may have cost/behavior implications the
       project owner should confirm before enabling. See
       `docs/SECURITY_THREAT_MODEL.md` §4 item #25.
-- [ ] Web security headers verified in the deployed environment (§6, §9 —
-      not just locally).
+- [ ] Web security headers (set in `apps/web/next.config.ts`, §6) verified
+      in the deployed environment, e.g. `curl -sI <url>` — not just locally.
+- [ ] Enforcing Content-Security-Policy designed and verified in a real
+      browser on staging (Next inline scripts, Firebase endpoints,
+      reCAPTCHA, `blob:` attachment previews) — start with
+      `Content-Security-Policy-Report-Only`.
 - [ ] iOS/Android builds signed, tested on physical devices for biometric
       unlock, auto-lock, and clipboard behavior (build spec §71 — do not fake
       security: if a platform feature isn't actually working, it is not

@@ -1,9 +1,9 @@
 "use client";
 
 import { useId, useState, type FormEvent } from "react";
-import { useRouter } from "next/navigation";
 import { secureLogger } from "@kryvex/security";
 import { BooleanField, Button, Label, Select } from "@kryvex/ui";
+import { BackLink } from "@/components/layout/BackLink";
 import { useVault } from "@/providers/VaultProvider";
 
 const AUTO_LOCK_OPTIONS = [1, 5, 15, 30, 60];
@@ -13,7 +13,6 @@ const CLIPBOARD_CLEAR_OPTIONS = [10, 30, 60, 120];
 // ../layout.tsx, shared by every route in this group.
 export default function SettingsPage() {
   const { settings, updateSettings } = useVault();
-  const router = useRouter();
   const autoLockId = useId();
   const clipboardId = useId();
   // Lazy initial state, not a synchronous setState-in-effect: by the time
@@ -55,6 +54,7 @@ export default function SettingsPage() {
 
   return (
     <main className="mx-auto flex w-full max-w-sm flex-1 flex-col gap-6 px-4 py-10 sm:px-8">
+      <BackLink href="/" label="Back to vault" />
       <h1 className="text-2xl font-semibold text-foreground">Settings</h1>
       <form onSubmit={handleSubmit} className="flex flex-col gap-5">
         <div className="flex flex-col gap-1.5">
@@ -109,14 +109,6 @@ export default function SettingsPage() {
         <div className="flex gap-2">
           <Button type="submit" variant="primary" disabled={submitting}>
             {submitting ? "Saving…" : "Save"}
-          </Button>
-          <Button
-            type="button"
-            variant="secondary"
-            onClick={() => router.push("/")}
-            disabled={submitting}
-          >
-            Back to vault
           </Button>
         </div>
       </form>

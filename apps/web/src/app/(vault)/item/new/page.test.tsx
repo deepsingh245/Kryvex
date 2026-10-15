@@ -207,7 +207,7 @@ describe("NewItemPage", () => {
     expect(screen.getByText("File")).toBeInTheDocument();
     expect(screen.queryByText("Login")).not.toBeInTheDocument();
     expect(screen.queryByText("Custom")).not.toBeInTheDocument();
-    expect(screen.getByText("Cancel").closest("a")).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "Back" })).toHaveAttribute(
       "href",
       "/?type=files",
     );

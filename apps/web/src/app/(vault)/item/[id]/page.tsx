@@ -1,6 +1,6 @@
 "use client";
 
-import { Star } from "lucide-react";
+import { Pencil, Star, Trash2 } from "lucide-react";
 import { useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
@@ -17,6 +17,7 @@ import {
   ItemTypeBadge,
   SecretField,
 } from "@kryvex/ui";
+import { BackLink } from "@/components/layout/BackLink";
 import { useAttachment } from "@/hooks/useAttachment";
 import { useVaultItems } from "@/hooks/useVaultItems";
 import { useVault } from "@/providers/VaultProvider";
@@ -109,6 +110,7 @@ export default function ItemDetailPage() {
 
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-5 px-4 py-6 sm:px-8 sm:py-8">
+      <BackLink href="/" label="Back to vault" />
       <div className="flex items-center justify-between gap-3">
         <div className="flex min-w-0 items-center gap-3">
           <ItemTypeBadge type={item.type} />
@@ -280,26 +282,23 @@ export default function ItemDetailPage() {
         </p>
       )}
 
-      <div className="flex flex-wrap gap-2">
+      <div className="grid grid-cols-2 gap-3 border-t border-border pt-5 sm:flex sm:justify-end">
         <Link
           href={`/item/${item.id}/edit`}
           className={buttonVariants({ variant: "secondary" })}
         >
+          <Pencil className="h-4 w-4" strokeWidth={1.75} />
           Edit
         </Link>
         <Button
           type="button"
-          variant="destructive"
+          variant="secondary"
+          className="border-destructive/40 text-destructive hover:border-destructive hover:bg-destructive/10"
           onClick={() => setConfirmOpen(true)}
         >
+          <Trash2 className="h-4 w-4" strokeWidth={1.75} />
           Delete
         </Button>
-        <Link
-          href="/"
-          className={cn(buttonVariants({ variant: "ghost" }), "ml-auto")}
-        >
-          Back
-        </Link>
       </div>
 
       <Dialog
@@ -323,6 +322,7 @@ export default function ItemDetailPage() {
             onClick={() => void handleDelete()}
             disabled={deleting}
           >
+            <Trash2 className="h-4 w-4" strokeWidth={1.75} />
             {deleting ? "Deleting…" : "Delete"}
           </Button>
         </div>
