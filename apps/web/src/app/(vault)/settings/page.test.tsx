@@ -36,6 +36,9 @@ function mockVault(overrides: Partial<ReturnType<typeof useVault>> = {}) {
     },
     updateSettings: vi.fn(),
     signOut: vi.fn(),
+    unlockWithBiometric: vi.fn(),
+    enableBiometric: vi.fn(),
+    disableBiometric: vi.fn(),
     ...overrides,
   });
 }

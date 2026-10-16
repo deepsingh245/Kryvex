@@ -9,6 +9,7 @@ import { Button } from "@kryvex/ui";
 import { AuthCard } from "@/components/auth/AuthCard";
 import { BiometricUnlockButton } from "@/components/auth/BiometricUnlockButton";
 import { PasswordInput } from "@/components/auth/PasswordInput";
+import { hasBiometricEnrollment } from "@/lib/biometric";
 import { useVault } from "@/providers/VaultProvider";
 
 /**
@@ -17,16 +18,47 @@ import { useVault } from "@/providers/VaultProvider";
  * redirect logic is unchanged from the previous implementation.
  */
 export default function UnlockPage() {
-  const { state, unlock } = useVault();
+  const { state, unlock, unlockWithBiometric } = useVault();
   const router = useRouter();
   const [masterPassword, setMasterPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [biometricEnrolled, setBiometricEnrolled] = useState(false);
+  const [biometricBusy, setBiometricBusy] = useState(false);
+  const uid =
+    state.status === "AUTHENTICATED_LOCKED" || state.status === "UNLOCKING"
+      ? state.user.uid
+      : null;
 
   useEffect(() => {
     if (state.status === "SIGNED_OUT") router.replace("/sign-in");
     if (state.status === "UNLOCKED") router.replace("/");
   }, [state.status, router]);
+
+  useEffect(() => {
+    if (!uid) return;
+    let cancelled = false;
+    void hasBiometricEnrollment(uid).then((enrolled) => {
+      if (!cancelled) setBiometricEnrolled(enrolled);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [uid]);
+
+  async function handleBiometric() {
+    setError(null);
+    setBiometricBusy(true);
+    try {
+      await unlockWithBiometric();
+      router.push("/");
+    } catch {
+      secureLogger.error("Biometric unlock failed");
+      setError("Biometric unlock failed. Use your master password instead.");
+    } finally {
+      setBiometricBusy(false);
+    }
+  }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -87,9 +119,14 @@ export default function UnlockPage() {
             Forgot password?
           </Link>
 
-          <div className="mt-1 flex justify-center">
-            <BiometricUnlockButton />
-          </div>
+          {biometricEnrolled && (
+            <div className="mt-1 flex justify-center">
+              <BiometricUnlockButton
+                onClick={() => void handleBiometric()}
+                busy={biometricBusy}
+              />
+            </div>
+          )}
         </form>
       </AuthCard>
     </main>

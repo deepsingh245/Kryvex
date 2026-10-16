@@ -123,6 +123,9 @@ function setup(
     settings: undefined,
     updateSettings: vi.fn(),
     signOut: vi.fn(),
+    unlockWithBiometric: vi.fn(),
+    enableBiometric: vi.fn(),
+    disableBiometric: vi.fn(),
   });
   mockedUseVaultItems.mockReturnValue({
     items,

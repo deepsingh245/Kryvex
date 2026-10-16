@@ -31,6 +31,9 @@ function baseVault(overrides: Partial<ReturnType<typeof useVault>> = {}) {
     settings: undefined,
     updateSettings: vi.fn(),
     signOut: vi.fn(),
+    unlockWithBiometric: vi.fn(),
+    enableBiometric: vi.fn(),
+    disableBiometric: vi.fn(),
     ...overrides,
   };
 }

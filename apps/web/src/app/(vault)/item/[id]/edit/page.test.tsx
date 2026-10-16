@@ -69,6 +69,9 @@ describe("EditItemPage", () => {
       settings: undefined,
       updateSettings: vi.fn(),
       signOut: vi.fn(),
+      unlockWithBiometric: vi.fn(),
+      enableBiometric: vi.fn(),
+      disableBiometric: vi.fn(),
     });
     mockedUseVaultItems.mockReturnValue({
       items: [loginItem()],
@@ -135,6 +138,9 @@ describe("EditItemPage", () => {
       settings: undefined,
       updateSettings: vi.fn(),
       signOut: vi.fn(),
+      unlockWithBiometric: vi.fn(),
+      enableBiometric: vi.fn(),
+      disableBiometric: vi.fn(),
     });
     mockedUseVaultItems.mockReturnValue({
       items: [imageItem],
@@ -180,6 +186,9 @@ describe("EditItemPage", () => {
       settings: undefined,
       updateSettings: vi.fn(),
       signOut: vi.fn(),
+      unlockWithBiometric: vi.fn(),
+      enableBiometric: vi.fn(),
+      disableBiometric: vi.fn(),
     });
     mockedUseVaultItems.mockReturnValue({
       items: [],

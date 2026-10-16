@@ -63,6 +63,9 @@ function mockUseVault() {
     settings: undefined,
     updateSettings: vi.fn(),
     signOut: vi.fn(),
+    unlockWithBiometric: vi.fn(),
+    enableBiometric: vi.fn(),
+    disableBiometric: vi.fn(),
   });
 }
 
@@ -83,6 +86,9 @@ describe("NewItemPage", () => {
       settings: undefined,
       updateSettings: vi.fn(),
       signOut: vi.fn(),
+      unlockWithBiometric: vi.fn(),
+      enableBiometric: vi.fn(),
+      disableBiometric: vi.fn(),
     });
     mockVaultItems();
     mockedUseCreateAttachment.mockReturnValue(vi.fn());
@@ -106,6 +112,9 @@ describe("NewItemPage", () => {
       settings: undefined,
       updateSettings: vi.fn(),
       signOut: vi.fn(),
+      unlockWithBiometric: vi.fn(),
+      enableBiometric: vi.fn(),
+      disableBiometric: vi.fn(),
     });
     mockVaultItems(createItem);
     mockedUseCreateAttachment.mockReturnValue(vi.fn());
@@ -143,6 +152,9 @@ describe("NewItemPage", () => {
       settings: undefined,
       updateSettings: vi.fn(),
       signOut: vi.fn(),
+      unlockWithBiometric: vi.fn(),
+      enableBiometric: vi.fn(),
+      disableBiometric: vi.fn(),
     });
     mockVaultItems(createItem);
     mockedUseCreateAttachment.mockReturnValue(createAttachment);
@@ -207,7 +219,7 @@ describe("NewItemPage", () => {
     expect(screen.getByText("File")).toBeInTheDocument();
     expect(screen.queryByText("Login")).not.toBeInTheDocument();
     expect(screen.queryByText("Custom")).not.toBeInTheDocument();
-    expect(screen.getByText("Cancel").closest("a")).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "Back" })).toHaveAttribute(
       "href",
       "/?type=files",
     );

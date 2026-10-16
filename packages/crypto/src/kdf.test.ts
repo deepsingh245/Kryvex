@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   DEFAULT_KDF_PARAMS,
   deriveAuthAndStretchedKey,
+  deriveBiometricWrapKey,
   deriveKdfMaterial,
   generateKdfSalt,
 } from "./kdf";
@@ -133,5 +134,19 @@ describe("deriveAuthAndStretchedKey", () => {
 describe("DEFAULT_KDF_PARAMS", () => {
   it("targets at least 64 MiB per docs/CRYPTOGRAPHIC_ARCHITECTURE.md §6", () => {
     expect(DEFAULT_KDF_PARAMS.memoryKiB).toBeGreaterThanOrEqual(65536);
+  });
+});
+
+describe("deriveBiometricWrapKey", () => {
+  it("is deterministic, 32 bytes, and differs per PRF output", () => {
+    const a = new Uint8Array(32).fill(1);
+    const b = new Uint8Array(32).fill(2);
+    expect(deriveBiometricWrapKey(a)).toEqual(deriveBiometricWrapKey(a));
+    expect(deriveBiometricWrapKey(a).length).toBe(32);
+    expect(deriveBiometricWrapKey(a)).not.toEqual(deriveBiometricWrapKey(b));
+  });
+
+  it("rejects short input", () => {
+    expect(() => deriveBiometricWrapKey(new Uint8Array(8))).toThrow();
   });
 });

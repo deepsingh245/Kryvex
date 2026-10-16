@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { secureLogger } from "@kryvex/security";
 import { ITEM_TYPES, type ItemContent, type ItemType } from "@kryvex/types";
@@ -15,6 +14,7 @@ import {
   type AttachmentUploadFormValues,
   type GovernmentIdUploadFormValues,
 } from "@kryvex/ui";
+import { BackLink } from "@/components/layout/BackLink";
 import { useCreateAttachment } from "@/hooks/useCreateAttachment";
 import { newItemId, useVaultItems } from "@/hooks/useVaultItems";
 import { useVault } from "@/providers/VaultProvider";
@@ -176,6 +176,7 @@ export default function NewItemPage() {
         : ITEM_TYPES.filter((type) => ITEM_TYPE_ENABLED[type]);
     return (
       <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-5 px-4 py-6 sm:px-8 sm:py-8">
+        <BackLink href={backHref} label="Back" />
         <h1 className="text-xl font-semibold text-foreground">Add an item</h1>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
           {tileTypes.map((type) => (
@@ -186,12 +187,6 @@ export default function NewItemPage() {
             />
           ))}
         </div>
-        <Link
-          href={backHref}
-          className="text-sm text-text-secondary underline-offset-4 hover:text-foreground hover:underline"
-        >
-          Cancel
-        </Link>
       </main>
     );
   }
