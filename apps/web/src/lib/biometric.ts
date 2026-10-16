@@ -130,7 +130,7 @@ async function evaluatePrf(
   )?.prf?.results?.first;
   if (!first) {
     throw new BiometricUnsupportedError(
-      "This device's biometric authenticator didn't provide the secret needed to protect your vault (WebAuthn PRF isn't supported by this browser/Windows version). Your master password still works.",
+      "This device's biometric authenticator didn't provide the secret needed to protect your vault (WebAuthn PRF isn't supported by this browser or authenticator). Your master password still works.",
     );
   }
   return new Uint8Array(first);
@@ -162,7 +162,13 @@ export async function enrollBiometric(
     authenticatorSelection: {
       authenticatorAttachment: "platform",
       userVerification: "required",
-      residentKey: "discouraged",
+      // Android Chrome routes residentKey="discouraged" registrations to
+      // the legacy GMS FIDO2 path. PRF-capable Google Password Manager lives
+      // behind Credential Manager, which Chrome selects for discoverable
+      // credentials ("preferred"/"required"). Requiring one also prevents
+      // enrollment from succeeding with a credential that cannot later
+      // provide the PRF output used to unwrap the vault key.
+      residentKey: "required",
     },
     timeout: 60_000,
     extensions: { prf: {} },

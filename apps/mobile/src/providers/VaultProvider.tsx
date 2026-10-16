@@ -26,6 +26,7 @@ import {
   generateKdfSalt,
   generateKey,
   hexToBytes,
+  wipeBytes,
   type KdfParams,
 } from "@kryvex/crypto";
 import {
@@ -37,6 +38,7 @@ import {
   signInWithAuthSecret,
   signOutKryvex,
   signUpWithAuthSecret,
+  updateUserProfileDocument,
   type KryvexFirebaseServices,
 } from "@kryvex/firebase";
 import type { EncryptedEnvelope } from "@kryvex/types";
@@ -49,6 +51,11 @@ import {
   mobileFirebaseConfig,
   mobileFirebaseEmulatorEnv,
 } from "@/lib/firebaseConfig";
+import {
+  clearAllBiometric,
+  enrollBiometric,
+  unlockWithBiometric as unlockWithBiometricKey,
+} from "@/lib/biometric";
 
 // See apps/web's VaultProvider for the full rationale of this shape — this
 // file mirrors it, swapping only the RN-specific initializer (persistence
@@ -72,6 +79,10 @@ interface VaultContextValue {
   signUp: (email: string, masterPassword: string) => Promise<void>;
   signIn: (email: string, masterPassword: string) => Promise<void>;
   unlock: (masterPassword: string) => Promise<void>;
+  unlockWithBiometric: () => Promise<void>;
+  enableBiometric: (masterPassword: string) => Promise<void>;
+  disableBiometric: () => Promise<void>;
+  lock: () => void;
   signOut: () => Promise<void>;
 }
 
@@ -112,6 +123,12 @@ export function VaultProvider({ children }: { children: ReactNode }) {
       }
     });
   }, []);
+
+  function lock() {
+    // The shared reducer wipes both in-memory key buffers on LOCK_REQUESTED.
+    dispatch({ type: "LOCK_REQUESTED", reason: "manual" });
+    dispatch({ type: "LOCK_COMPLETED" });
+  }
 
   const value: VaultContextValue = {
     state,
@@ -216,7 +233,81 @@ export function VaultProvider({ children }: { children: ReactNode }) {
       }
     },
 
+    async unlockWithBiometric() {
+      if (state.status !== "AUTHENTICATED_LOCKED") return;
+      const { user } = state;
+      dispatch({ type: "UNLOCK_REQUESTED" });
+      try {
+        // SecureStore performs the Android Biometric Prompt and releases this
+        // device-local VEK only after Keystore user authentication succeeds.
+        const vaultEncryptionKey = await unlockWithBiometricKey(user.uid);
+        dispatch({
+          type: "UNLOCK_SUCCEEDED",
+          // Biometric unlock has no master-password-derived key. Nothing in
+          // the unlocked mobile flow consumes it; retain the shared state
+          // shape without persisting or reconstructing the master password.
+          stretchedMasterKey: new Uint8Array(32),
+          vaultEncryptionKey,
+        });
+      } catch (err) {
+        dispatch({ type: "UNLOCK_FAILED" });
+        throw err;
+      }
+    },
+
+    async enableBiometric(masterPassword) {
+      if (state.status !== "UNLOCKED") throw new Error("Vault is locked.");
+      const services = getServices();
+      const { user, vaultEncryptionKey } = state;
+      const profile = (await fetchUserProfileDocument(
+        services.firestore,
+        user.uid,
+      )) as KdfParamsRecord | undefined;
+      if (!profile?.protectedVaultKey) throw new Error("Profile not found.");
+
+      const { masterKey } = await deriveKdfMaterial(
+        masterPassword,
+        hexToBytes(profile.kdfSalt),
+        profile.kdfParams,
+      );
+      const { stretchedMasterKey } = deriveAuthAndStretchedKey(masterKey);
+      wipeBytes(masterKey);
+      try {
+        // Re-entry is authoritative only if the existing server envelope
+        // authenticates under the derived key (AEAD fails closed otherwise).
+        const verifiedVaultKey = decryptBytes(
+          stretchedMasterKey,
+          profile.protectedVaultKey,
+        );
+        wipeBytes(verifiedVaultKey);
+      } catch {
+        throw new Error("Incorrect master password.");
+      } finally {
+        wipeBytes(stretchedMasterKey);
+      }
+
+      await enrollBiometric(user.uid, vaultEncryptionKey);
+      await updateUserProfileDocument(services.firestore, user.uid, {
+        settings: { biometricUnlockEnabled: true },
+      });
+    },
+
+    async disableBiometric() {
+      if (state.status !== "UNLOCKED") throw new Error("Vault is locked.");
+      await clearAllBiometric();
+      await updateUserProfileDocument(getServices().firestore, state.user.uid, {
+        settings: { biometricUnlockEnabled: false },
+      });
+    },
+
+    lock,
+
     async signOut() {
+      // Shared-device safety: signing out removes the device-local vault-key
+      // copy. Failure is non-fatal because the enrollment marker is removed
+      // in clearAllBiometric's finally block and the value remains Keystore-
+      // encrypted behind device authentication.
+      await clearAllBiometric().catch(() => undefined);
       await signOutKryvex(getServices().auth);
     },
   };

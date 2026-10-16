@@ -68,6 +68,23 @@ describe("biometric unlock", () => {
     expect(await unlockWithBiometric("u1")).toEqual(vek);
   });
 
+  it("requests a discoverable credential so Android Chrome uses Credential Manager", async () => {
+    installAuthenticator();
+    await enrollBiometric("u1", "a@b.com", generateKey());
+
+    expect(navigator.credentials.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        publicKey: expect.objectContaining({
+          authenticatorSelection: expect.objectContaining({
+            authenticatorAttachment: "platform",
+            residentKey: "required",
+            userVerification: "required",
+          }),
+        }),
+      }),
+    );
+  });
+
   it("rejects enrollment when the authenticator has no PRF support", async () => {
     installAuthenticator({ prf: false });
     await expect(
