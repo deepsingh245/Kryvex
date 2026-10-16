@@ -86,6 +86,10 @@ describe("HomeScreen", () => {
       signUp: jest.fn(),
       signIn: jest.fn(),
       unlock: jest.fn(),
+      unlockWithBiometric: jest.fn(),
+      enableBiometric: jest.fn(),
+      disableBiometric: jest.fn(),
+      lock: jest.fn(),
       signOut: jest.fn(),
     });
     mockVaultItems();
@@ -100,6 +104,10 @@ describe("HomeScreen", () => {
       signUp: jest.fn(),
       signIn: jest.fn(),
       unlock: jest.fn(),
+      unlockWithBiometric: jest.fn(),
+      enableBiometric: jest.fn(),
+      disableBiometric: jest.fn(),
+      lock: jest.fn(),
       signOut: jest.fn(),
     });
     mockVaultItems({ items: [loginItem()] });
@@ -114,6 +122,10 @@ describe("HomeScreen", () => {
       signUp: jest.fn(),
       signIn: jest.fn(),
       unlock: jest.fn(),
+      unlockWithBiometric: jest.fn(),
+      enableBiometric: jest.fn(),
+      disableBiometric: jest.fn(),
+      lock: jest.fn(),
       signOut: jest.fn(),
     });
     mockVaultItems({ items: [loginItem()], toggleFavorite });
@@ -128,6 +140,10 @@ describe("HomeScreen", () => {
       signUp: jest.fn(),
       signIn: jest.fn(),
       unlock: jest.fn(),
+      unlockWithBiometric: jest.fn(),
+      enableBiometric: jest.fn(),
+      disableBiometric: jest.fn(),
+      lock: jest.fn(),
       signOut: jest.fn(),
     });
     mockVaultItems({
@@ -148,6 +164,10 @@ describe("HomeScreen", () => {
       signUp: jest.fn(),
       signIn: jest.fn(),
       unlock: jest.fn(),
+      unlockWithBiometric: jest.fn(),
+      enableBiometric: jest.fn(),
+      disableBiometric: jest.fn(),
+      lock: jest.fn(),
       signOut: jest.fn(),
     });
     mockVaultItems();
@@ -161,6 +181,10 @@ describe("HomeScreen", () => {
       signUp: jest.fn(),
       signIn: jest.fn(),
       unlock: jest.fn(),
+      unlockWithBiometric: jest.fn(),
+      enableBiometric: jest.fn(),
+      disableBiometric: jest.fn(),
+      lock: jest.fn(),
       signOut: jest.fn(),
     });
     mockVaultItems();

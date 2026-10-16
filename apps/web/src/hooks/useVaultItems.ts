@@ -1,6 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useReducer, useState, useTransition } from "react";
+import {
+  useEffect,
+  useMemo,
+  useReducer,
+  useRef,
+  useState,
+  useTransition,
+} from "react";
 import {
   createVaultItem,
   fetchAttachmentDocument,
@@ -179,6 +186,12 @@ export function useVaultItems(): UseVaultItemsResult {
   const [loadError, setLoadError] = useState<string | null>(null);
   const isOnline = useOnlineStatus();
   const localStore = useMemo(() => createIndexedDbItemStore(), []);
+  // The same encrypted document is normally seen twice on startup (first
+  // IndexedDB, then Firestore's initial snapshot). Report an active-item
+  // failure once per owner/item instead of emitting duplicate errors for the
+  // same condition. A later successful decrypt removes the marker so a real
+  // regression is still reported.
+  const loggedDecryptFailures = useRef(new Set<string>());
 
   const uid = state.status === "UNLOCKED" ? state.user.uid : undefined;
   const vaultEncryptionKey =
@@ -188,15 +201,27 @@ export function useVaultItems(): UseVaultItemsResult {
     doc: VaultItemDocument,
     vek: Uint8Array,
   ): DecryptedVaultItem {
+    // Soft-deleted documents are retained as sync tombstones and are filtered
+    // from every user-visible item list. Their plaintext is never needed, so
+    // attempting to decrypt an old/corrupt tombstone only creates misleading
+    // errors without improving integrity or recovery. Keep the encrypted
+    // envelope in the cache/sync flow, but deliberately do not open it.
+    if (doc.deleted) return { ...doc, decryptFailed: true };
+
+    const failureKey = `${doc.ownerId}/${doc.id}`;
     try {
       const content = decryptItemContent(
         vek,
         doc.wrappedItemKey,
         doc.encryptedData,
       );
+      loggedDecryptFailures.current.delete(failureKey);
       return { ...doc, decryptFailed: false, content };
     } catch {
-      secureLogger.error("Vault item failed to decrypt", { id: doc.id });
+      if (!loggedDecryptFailures.current.has(failureKey)) {
+        loggedDecryptFailures.current.add(failureKey);
+        secureLogger.error("Vault item failed to decrypt", { id: doc.id });
+      }
       return { ...doc, decryptFailed: true };
     }
   }

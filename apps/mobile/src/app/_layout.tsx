@@ -5,7 +5,8 @@ import { VaultProvider } from "@/providers/VaultProvider";
 /**
  * Screens: sign-up, sign-in, unlock, index (gated home) — see
  * docs/ARCHITECTURE.md §5 for the full future screen map. Recovery kit /
- * biometric opt-in (Phase 3/7) aren't built yet.
+ * recovery kit remains deferred; native biometric opt-in is implemented in
+ * Settings and backed by Android Keystore / iOS Keychain SecureStore access.
  */
 export default function RootLayout() {
   return (

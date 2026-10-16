@@ -20,7 +20,7 @@ import { useVault } from "@/providers/VaultProvider";
  * already-decrypted item list.
  */
 export default function HomeScreen() {
-  const { state, signOut } = useVault();
+  const { state, lock, signOut } = useVault();
   const router = useRouter();
   const { items, loading, toggleFavorite, conflicts } = useVaultItems();
   const [query, setQuery] = useState("");
@@ -60,6 +60,12 @@ export default function HomeScreen() {
             <Link href="/item/new" style={styles.headerLink}>
               + Add
             </Link>
+            <Link href="/settings" style={styles.headerLink}>
+              Settings
+            </Link>
+            <TouchableOpacity onPress={lock}>
+              <Text style={styles.headerLink}>Lock</Text>
+            </TouchableOpacity>
             <TouchableOpacity onPress={() => void signOut()}>
               <Text style={styles.headerLink}>Sign out</Text>
             </TouchableOpacity>

@@ -8,18 +8,37 @@ import {
   View,
 } from "react-native";
 import { secureLogger } from "@kryvex/security";
+import { hasBiometricEnrollment } from "@/lib/biometric";
 import { useVault } from "@/providers/VaultProvider";
 
 export default function UnlockScreen() {
-  const { state, unlock } = useVault();
+  const { state, unlock, unlockWithBiometric } = useVault();
   const router = useRouter();
   const [masterPassword, setMasterPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [biometricEnrolled, setBiometricEnrolled] = useState(false);
+  const [biometricBusy, setBiometricBusy] = useState(false);
+
+  const uid =
+    state.status === "AUTHENTICATED_LOCKED" || state.status === "UNLOCKING"
+      ? state.user.uid
+      : null;
 
   useEffect(() => {
     if (state.status === "UNLOCKED") router.replace("/");
   }, [state.status, router]);
+
+  useEffect(() => {
+    if (!uid) return;
+    let cancelled = false;
+    void hasBiometricEnrollment(uid).then((enrolled) => {
+      if (!cancelled) setBiometricEnrolled(enrolled);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [uid]);
 
   if (state.status === "SIGNED_OUT") return <Redirect href="/sign-in" />;
 
@@ -34,6 +53,22 @@ export default function UnlockScreen() {
       setError("Incorrect master password.");
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  async function handleBiometric() {
+    setError(null);
+    setBiometricBusy(true);
+    try {
+      await unlockWithBiometric();
+      router.replace("/");
+    } catch {
+      secureLogger.error("Biometric unlock failed");
+      setError(
+        "Fingerprint unlock failed. Use your master password, then enable it again in Settings if needed.",
+      );
+    } finally {
+      setBiometricBusy(false);
     }
   }
 
@@ -68,6 +103,18 @@ export default function UnlockScreen() {
           {submitting ? "Unlocking…" : "Unlock"}
         </Text>
       </TouchableOpacity>
+
+      {biometricEnrolled && (
+        <TouchableOpacity
+          style={styles.biometricButton}
+          onPress={() => void handleBiometric()}
+          disabled={biometricBusy || submitting}
+        >
+          <Text style={styles.biometricButtonText}>
+            {biometricBusy ? "Waiting for fingerprint…" : "Use fingerprint"}
+          </Text>
+        </TouchableOpacity>
+      )}
     </View>
   );
 }
@@ -90,4 +137,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   buttonText: { color: "white", fontWeight: "600" },
+  biometricButton: {
+    borderWidth: 1,
+    borderColor: "#d1d5db",
+    borderRadius: 6,
+    padding: 12,
+    alignItems: "center",
+  },
+  biometricButtonText: { color: "#111827", fontWeight: "600" },
 });

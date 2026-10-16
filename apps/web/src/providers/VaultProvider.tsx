@@ -394,7 +394,11 @@ export function VaultProvider({ children }: { children: ReactNode }) {
       wipeBytes(masterKey);
       try {
         // Fail-closed password check: AEAD tag mismatch throws.
-        decryptBytes(stretchedMasterKey, profile.protectedVaultKey);
+        const verifiedVaultKey = decryptBytes(
+          stretchedMasterKey,
+          profile.protectedVaultKey,
+        );
+        wipeBytes(verifiedVaultKey);
       } catch {
         throw new Error("Incorrect master password.");
       } finally {
