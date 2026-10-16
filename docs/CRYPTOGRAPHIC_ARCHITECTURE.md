@@ -240,7 +240,10 @@ target devices, but the design targets:
   window a memory-scraping attack has; it doesn't close it.
 - **Web biometric unlock (opt-in, per device):** a WebAuthn credential on the
   platform authenticator (Touch ID / Windows Hello / Android) is enrolled with
-  the PRF extension. The authenticator derives a secret and releases it only
+  the PRF extension. Enrollment requires a discoverable credential
+  (`residentKey="required"`): on Android Chrome, `"discouraged"` routes the
+  request to the legacy GMS FIDO2 path instead of the PRF-capable Credential
+  Manager / Google Password Manager path. The authenticator derives a secret and releases it only
   after user verification; `deriveBiometricWrapKey` (`packages/crypto`,
   HKDF-SHA-256, `info="kryvex-biometric-wrap-v1"`) turns it into an AES-256-GCM
   key that wraps the Vault Encryption Key. The resulting envelope
@@ -254,10 +257,18 @@ target devices, but the design targets:
   way in. Biometric replaces the master-password prompt on the unlock screen
   only — never Firebase sign-in or recovery. The VEK never changes on password
   change/recovery, so the envelope stays valid across them.
-- **Mobile client:** same in-memory rule for unwrapped key material; biometric
-  unlock protects a Keychain (iOS) / Keystore (Android) entry that itself holds
-  the wrapped Vault Encryption Key material or an equivalent locally-scoped
-  unlock secret — never the master password.
+- **Mobile client (implemented for the native app's biometric slice):** same
+  in-memory rule for unwrapped key material. `expo-secure-store` stores a
+  device-local copy of the Vault Encryption Key with
+  `requireAuthentication: true`, backed by Android Keystore / iOS Keychain;
+  `expo-local-authentication` requires enrolled strong biometrics before
+  opt-in. AsyncStorage holds only the current user's non-secret enrollment
+  marker so the unlock screen can render without triggering a prompt. Enabling
+  requires re-entering the master password and successfully authenticating the
+  server-stored VEK envelope; sign-out deletes the secure entry. Changing the
+  enrolled biometric set invalidates the platform key, so the user must unlock
+  with the master password and enroll again. The master password is never
+  stored.
 
 ## 8. Key rotation
 

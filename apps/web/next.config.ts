@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // allowedDevOrigins: ["e97f-117-242-47-49.ngrok-free.app"],
   // Every workspace package apps/web actually imports — see
   // docs/ARCHITECTURE.md §4 and docs/DEVELOPMENT.md for the known Turbopack
   // caveat: if `next dev --turbopack` fails to resolve one of these, fall

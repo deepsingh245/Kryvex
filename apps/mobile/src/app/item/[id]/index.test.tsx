@@ -91,6 +91,10 @@ function setup(
     signUp: jest.fn(),
     signIn: jest.fn(),
     unlock: jest.fn(),
+    unlockWithBiometric: jest.fn(),
+    enableBiometric: jest.fn(),
+    disableBiometric: jest.fn(),
+    lock: jest.fn(),
     signOut: jest.fn(),
   });
   mockedUseVaultItems.mockReturnValue({
