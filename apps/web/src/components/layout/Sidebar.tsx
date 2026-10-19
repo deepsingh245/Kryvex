@@ -23,7 +23,6 @@ import { usePathname, useSearchParams } from "next/navigation";
 import { cn } from "@kryvex/ui";
 import { Logo } from "@/components/brand/Logo";
 import { useVault } from "@/providers/VaultProvider";
-import { ThemeToggle } from "./ThemeToggle";
 
 const CATEGORIES: { label: string; type: string; icon: LucideIcon }[] = [
   { label: "Logins", type: "login", icon: KeyRound },
@@ -147,9 +146,8 @@ export function SidebarNav() {
 export function Sidebar() {
   return (
     <aside className="hidden w-64 shrink-0 flex-col gap-6 border-r border-border bg-surface px-4 py-6 md:flex">
-      <div className="flex items-center justify-between px-1">
+      <div className="px-1">
         <Logo markSize={28} />
-        <ThemeToggle />
       </div>
       <nav className="flex flex-1 flex-col gap-6">
         <SidebarNav />

@@ -1111,4 +1111,11 @@ Claude must:
 
 ---
 
+## Theming and the responsive vault home (web)
+
+- **Theme:** dark is the default palette; `data-theme="light"` on `<html>` swaps in the light palette, and with no explicit choice `prefers-color-scheme` decides. `ThemeToggle` (top bar, sidebar, marketing header, auth cards) flips light/dark; Settings → Appearance offers light / dark / system.
+- **Vault home breakpoints:** below 768px the original single-column list; 768px and up the dashboard (summary chips, credential table, quick copy actions). From 1024px an inline detail pane shows the selected item; at tablet width the same detail opens in a right-hand sheet.
+- **Security:** the table never renders passwords. Copy actions use the auto-clearing clipboard path and reveal stays behind `SecretField`.
+
+
 ## End of Kryvex UI Source of Truth

@@ -12,6 +12,8 @@ import {
   Skeleton,
 } from "@kryvex/ui";
 import { selectVisibleItems } from "@kryvex/vault";
+import { VaultDashboard } from "@/components/vault/dashboard/VaultDashboard";
+import { useIsTabletUp } from "@/hooks/useMediaQuery";
 import { EmailDenseList } from "@/components/vault/EmailDenseList";
 import { LoginDenseList } from "@/components/vault/LoginDenseList";
 import { ItemCard } from "@/components/vault/ItemCard";
@@ -46,6 +48,8 @@ export default function Home() {
   const favoritesOnly = searchParams.get("favorites") === "true";
   const typeFilter = searchParams.get("type");
 
+  const isTabletUp = useIsTabletUp();
+
   const [query, setQuery] = useState("");
   const [tagFilter, setTagFilter] = useState<string | undefined>(undefined);
   // Only relevant for the Email and Login categories — defaults to the dense
@@ -68,6 +72,9 @@ export default function Home() {
     return base.filter((item) => item.type === typeFilter);
   }, [items, query, tagFilter, favoritesOnly, typeFilter]);
 
+  // Unfiltered, non-deleted items — the dashboard's summary counts.
+  const allVisible = useMemo(() => selectVisibleItems({ items }, {}), [items]);
+
   const allTags = useMemo(() => {
     const tags = new Set<string>();
     for (const item of items) {
@@ -83,6 +90,31 @@ export default function Home() {
     : typeFilter
       ? (CATEGORY_HEADINGS[typeFilter] ?? "Your vault")
       : "Your vault";
+
+  // Tablet and desktop get the dashboard; below `md` the original
+  // single-column list below is unchanged.
+  if (isTabletUp) {
+    return (
+      <VaultDashboard
+        heading={heading}
+        allItems={allVisible}
+        visible={visible}
+        loading={loading}
+        loadError={loadError}
+        conflictCount={conflicts.length}
+        query={query}
+        onQueryChange={setQuery}
+        tags={allTags}
+        tagFilter={tagFilter}
+        onTagFilterChange={setTagFilter}
+        typeFilter={typeFilter}
+        favoritesOnly={favoritesOnly}
+        addHref={typeFilter ? `/item/new?type=${typeFilter}` : "/item/new"}
+        onToggleFavorite={(id) => void toggleFavorite(id)}
+        clipboardClearSeconds={settings?.clipboardClearSeconds}
+      />
+    );
+  }
 
   return (
     <main className="flex flex-1 flex-col gap-6 px-4 py-6 sm:px-8 sm:py-8">

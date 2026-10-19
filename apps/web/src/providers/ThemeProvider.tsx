@@ -4,9 +4,8 @@ import {
   createContext,
   useCallback,
   useContext,
-  useEffect,
   useMemo,
-  useState,
+  useSyncExternalStore,
 } from "react";
 import { THEME_STORAGE_KEY, type ThemePreference } from "@/lib/theme";
 
@@ -25,6 +24,8 @@ const ThemeContext = createContext<ThemeContextValue>({
   setPreference: () => {},
 });
 
+const listeners = new Set<() => void>();
+
 function readStoredPreference(): ThemePreference {
   try {
     const stored = localStorage.getItem(THEME_STORAGE_KEY);
@@ -35,39 +36,57 @@ function readStoredPreference(): ThemePreference {
   return "system";
 }
 
+function subscribePreference(onChange: () => void) {
+  listeners.add(onChange);
+  // Keeps multiple tabs in step.
+  window.addEventListener("storage", onChange);
+  return () => {
+    listeners.delete(onChange);
+    window.removeEventListener("storage", onChange);
+  };
+}
+
+function subscribeSystem(onChange: () => void) {
+  if (typeof window.matchMedia !== "function") return () => {};
+  const mql = window.matchMedia("(prefers-color-scheme: light)");
+  mql.addEventListener("change", onChange);
+  return () => mql.removeEventListener("change", onChange);
+}
+
 function systemPrefersLight(): boolean {
   return (
-    typeof window !== "undefined" &&
     typeof window.matchMedia === "function" &&
     window.matchMedia("(prefers-color-scheme: light)").matches
   );
 }
 
-export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [preference, setPreferenceState] = useState<ThemePreference>("system");
-  const [systemLight, setSystemLight] = useState(false);
+function applyToDocument(next: ThemePreference) {
+  const root = document.documentElement;
+  if (next === "system") root.removeAttribute("data-theme");
+  else root.setAttribute("data-theme", next);
+}
 
-  useEffect(() => {
-    setPreferenceState(readStoredPreference());
-    setSystemLight(systemPrefersLight());
-    if (typeof window.matchMedia !== "function") return;
-    const mql = window.matchMedia("(prefers-color-scheme: light)");
-    const onChange = (e: MediaQueryListEvent) => setSystemLight(e.matches);
-    mql.addEventListener("change", onChange);
-    return () => mql.removeEventListener("change", onChange);
-  }, []);
+export function ThemeProvider({ children }: { children: React.ReactNode }) {
+  const preference = useSyncExternalStore<ThemePreference>(
+    subscribePreference,
+    readStoredPreference,
+    () => "system",
+  );
+  const systemLight = useSyncExternalStore(
+    subscribeSystem,
+    systemPrefersLight,
+    () => false,
+  );
 
   const setPreference = useCallback((next: ThemePreference) => {
-    setPreferenceState(next);
-    const root = document.documentElement;
-    if (next === "system") root.removeAttribute("data-theme");
-    else root.setAttribute("data-theme", next);
+    applyToDocument(next);
     try {
       if (next === "system") localStorage.removeItem(THEME_STORAGE_KEY);
       else localStorage.setItem(THEME_STORAGE_KEY, next);
     } catch {
       // Preference just won't persist.
     }
+    listeners.forEach((l) => l());
   }, []);
 
   const resolved: "light" | "dark" =
