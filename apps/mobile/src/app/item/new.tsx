@@ -10,25 +10,35 @@ import {
 import { secureLogger } from "@kryvex/security";
 import { ITEM_TYPES, type ItemContent, type ItemType } from "@kryvex/types";
 import { ITEM_TYPE_ENABLED, ITEM_TYPE_LABELS } from "@kryvex/ui";
+import {
+  AttachmentUploadForm,
+  type AttachmentFormType,
+  type AttachmentUploadFormValues,
+} from "@/components/AttachmentUploadForm";
 import { ItemForm } from "@/components/ItemForm";
-import { useVaultItems } from "@/hooks/useVaultItems";
+import { useCreateAttachment } from "@/hooks/useAttachments";
+import { newItemId, useVaultItems } from "@/hooks/useVaultItems";
 import { useVault } from "@/providers/VaultProvider";
 
-// The shared ITEM_TYPE_ENABLED turned these on for web's Phase 6, but mobile
-// has no file picker/upload until Phase 6b. Offering them here would create
-// an item with no attachment.
-const ATTACHMENT_ONLY_TYPES: ReadonlySet<ItemType> = new Set([
+// Types whose content is (or includes) an uploaded file get the dedicated
+// upload form instead of the generic ItemForm — same split as web's
+// item/new/page.tsx.
+const ATTACHMENT_FORM_TYPES: ReadonlySet<ItemType> = new Set([
   "image",
   "pdf",
   "file",
+  "governmentId",
 ]);
 
-// image/pdf/file are excluded from the picker — attachment upload is
-// Phase 6, same as web's item/new/page.tsx.
+function isAttachmentFormType(type: ItemType): type is AttachmentFormType {
+  return ATTACHMENT_FORM_TYPES.has(type);
+}
+
 export default function NewItemScreen() {
   const { state } = useVault();
   const router = useRouter();
   const { createItem } = useVaultItems();
+  const createAttachment = useCreateAttachment();
   const [selectedType, setSelectedType] = useState<ItemType | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -58,15 +68,62 @@ export default function NewItemScreen() {
     }
   }
 
+  // The item id is decided first so each AttachmentDocument.itemId can point
+  // back at it. Uploads happen before the item write; a failure partway
+  // leaves an orphaned attachment doc/blob (same as web — no rollback yet).
+  async function handleAttachmentSubmit(
+    type: AttachmentFormType,
+    values: AttachmentUploadFormValues,
+  ) {
+    setError(null);
+    setSubmitting(true);
+    try {
+      const id = newItemId();
+      const base = {
+        title: values.title,
+        tags: values.tags,
+        notes: values.notes,
+        customFields: values.customFields,
+      };
+      if (type === "governmentId") {
+        const frontAttachmentId = await createAttachment(values.file, id);
+        const backAttachmentId = values.backFile
+          ? await createAttachment(values.backFile, id)
+          : undefined;
+        await createItem(
+          type,
+          { ...base, type, frontAttachmentId, backAttachmentId },
+          backAttachmentId
+            ? [frontAttachmentId, backAttachmentId]
+            : [frontAttachmentId],
+          id,
+        );
+      } else {
+        const attachmentId = await createAttachment(values.file, id);
+        await createItem(
+          type,
+          { ...base, type, attachmentId },
+          [attachmentId],
+          id,
+        );
+      }
+      router.replace(`/item/${id}`);
+    } catch (err) {
+      secureLogger.error("Failed to create attachment item");
+      setError(
+        err instanceof Error ? err.message : "Upload failed. Please try again.",
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
   if (!selectedType) {
     return (
       <ScrollView contentContainerStyle={styles.pickerContainer}>
         <Text style={styles.title}>Add an item</Text>
         <View style={styles.grid}>
-          {ITEM_TYPES.filter(
-            (type) =>
-              ITEM_TYPE_ENABLED[type] && !ATTACHMENT_ONLY_TYPES.has(type),
-          ).map((type) => (
+          {ITEM_TYPES.filter((type) => ITEM_TYPE_ENABLED[type]).map((type) => (
             <TouchableOpacity
               key={type}
               style={styles.typeCard}
@@ -86,12 +143,23 @@ export default function NewItemScreen() {
   return (
     <View style={styles.formContainer}>
       <Text style={styles.title}>Add {ITEM_TYPE_LABELS[selectedType]}</Text>
-      <ItemForm
-        type={selectedType}
-        onSubmit={(content) => void handleSubmit(content)}
-        onCancel={() => setSelectedType(null)}
-        submitting={submitting}
-      />
+      {isAttachmentFormType(selectedType) ? (
+        <AttachmentUploadForm
+          type={selectedType}
+          onSubmit={(values) =>
+            void handleAttachmentSubmit(selectedType, values)
+          }
+          onCancel={() => setSelectedType(null)}
+          submitting={submitting}
+        />
+      ) : (
+        <ItemForm
+          type={selectedType}
+          onSubmit={(content) => void handleSubmit(content)}
+          onCancel={() => setSelectedType(null)}
+          submitting={submitting}
+        />
+      )}
       {error && <Text style={styles.error}>{error}</Text>}
     </View>
   );

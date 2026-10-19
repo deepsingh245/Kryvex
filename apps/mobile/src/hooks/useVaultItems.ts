@@ -6,8 +6,10 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { getReactNativePersistence } from "@firebase/auth";
 import {
   createVaultItem,
+  fetchAttachmentDocument,
   fetchVaultItem,
   initializeKryvexFirebaseNative,
+  softDeleteAttachmentDocument,
   subscribeToVaultItems,
   updateVaultItem,
 } from "@kryvex/firebase";
@@ -50,7 +52,10 @@ function getServices() {
   );
 }
 
-function newItemId(): string {
+// Exported so attachment items can decide their id before uploading: the
+// AttachmentDocument.itemId back-reference must exist before the item write
+// (same as apps/web's newItemId).
+export function newItemId(): string {
   return randomId("item");
 }
 
@@ -123,7 +128,12 @@ export interface UseVaultItemsResult {
   loading: boolean;
   isOnline: boolean;
   conflicts: DecryptedSyncConflict[];
-  createItem: (type: ItemType, content: ItemContent) => Promise<string>;
+  createItem: (
+    type: ItemType,
+    content: ItemContent,
+    attachmentRefs?: string[],
+    id?: string,
+  ) => Promise<string>;
   updateItem: (id: string, content: ItemContent) => Promise<void>;
   toggleFavorite: (id: string) => Promise<void>;
   softDeleteItem: (id: string) => Promise<void>;
@@ -377,9 +387,9 @@ export function useVaultItems(): UseVaultItemsResult {
     isOnline,
     conflicts,
 
-    async createItem(type, content) {
+    async createItem(type, content, attachmentRefs = [], presetId) {
       const { uid, vaultEncryptionKey } = requireUnlocked();
-      const id = newItemId();
+      const id = presetId ?? newItemId();
       const { wrappedItemKey, encryptedData } = encryptItemContent(
         vaultEncryptionKey,
         content,
@@ -395,7 +405,7 @@ export function useVaultItems(): UseVaultItemsResult {
         favorite: false,
         wrappedItemKey,
         encryptedData,
-        attachmentRefs: [],
+        attachmentRefs,
       };
       dispatchCache({
         type: "ITEM_UPSERTED",
@@ -480,6 +490,33 @@ export function useVaultItems(): UseVaultItemsResult {
         item: { ...existing, ...envelope },
       });
       await writeAndTrack(uid, envelope, "update");
+
+      // Best-effort cascade, same as apps/web: an attachment tombstone
+      // failure never blocks or rolls back the item's own tombstone —
+      // attachmentGc only acts on tombstoned docs, so a failure here just
+      // leaves that blob for a later retry.
+      for (const attachmentId of existing.attachmentRefs) {
+        try {
+          const firestore = getServices().firestore;
+          const attachmentDoc = await fetchAttachmentDocument(
+            firestore,
+            uid,
+            attachmentId,
+          );
+          if (attachmentDoc && attachmentDoc.deleted !== true) {
+            await softDeleteAttachmentDocument(
+              firestore,
+              uid,
+              attachmentId,
+              attachmentDoc,
+            );
+          }
+        } catch {
+          secureLogger.error("Failed to tombstone attachment", {
+            attachmentId,
+          });
+        }
+      }
     },
 
     async resolveConflict(itemId, resolution) {

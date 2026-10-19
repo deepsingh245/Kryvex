@@ -65,6 +65,7 @@ import {
   enrollBiometric,
   unlockWithBiometric as unlockWithBiometricKey,
 } from "@/lib/biometric";
+import { purgeDecryptedFiles } from "@/lib/attachmentFiles";
 import { clearCopiedSecret } from "@/lib/clipboard";
 import { useAutoLock } from "@/hooks/useAutoLock";
 import { DEFAULT_SETTINGS, VaultSettingsContext } from "./vaultSettings";
@@ -225,9 +226,17 @@ export function VaultProvider({ children }: { children: ReactNode }) {
     dispatch({ type: "LOCK_REQUESTED", reason });
     dispatch({ type: "LOCK_COMPLETED" });
     // Best-effort: a secret copied from the vault shouldn't outlive the
-    // unlocked session if the auto-clear timer hasn't fired yet.
+    // unlocked session if the auto-clear timer hasn't fired yet. Same for
+    // any decrypted attachment temp file handed to the share sheet.
     void clearCopiedSecret();
+    purgeDecryptedFiles();
   }
+
+  // Backstop for decrypted temp files left behind if the app was killed
+  // before its cleanup timer ran.
+  useEffect(() => {
+    purgeDecryptedFiles();
+  }, []);
 
   // See useAutoLock for the foreground/background policy (and why mobile
   // deliberately differs from web's lock-on-tab-hidden).
@@ -539,6 +548,7 @@ export function VaultProvider({ children }: { children: ReactNode }) {
       // encrypted behind device authentication.
       await clearAllBiometric().catch(() => undefined);
       await clearCopiedSecret();
+      purgeDecryptedFiles();
       setSettings(undefined);
       await signOutKryvex(getServices().auth);
     },

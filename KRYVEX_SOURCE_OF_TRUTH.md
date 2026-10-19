@@ -1,7 +1,7 @@
 # Kryvex — Source of Truth
 
-Status: **Web v1 complete (Track A). Track B (mobile) pass 1, security
-parity, complete; Phase 6b (mobile attachments) is next.**
+Status: **Web v1 complete (Track A). Track B (mobile): security parity and
+Phase 6b (attachments) complete; Phase 8m (mobile UX polish) is next.**
 This is the primary project reference. Read this before any other file
 when picking up work on Kryvex.
 Detailed reasoning for each section lives in the linked `docs/*.md` file —
@@ -171,6 +171,8 @@ build spec §18.
 | Mobile screenshot / recording / app-switcher protection is always on, for every screen, with no setting (Track B pass 1; resolves PLAN.md §5's open risk) | A password manager has no screen worth exempting, and a per-screen allowlist is easy to get wrong. iOS screenshots can't be blocked by any app, so the docs say exactly that | apps/mobile/src/components/PrivacyGuard.tsx, docs/SECURITY_THREAT_MODEL.md row 16 |
 | Mobile recovery uses a pasted email link, not a deep link; the email's `continueUrl` is web's `/recover/confirm` (`EXPO_PUBLIC_WEB_RECOVERY_URL`) (Track B pass 1) | Universal links / App Links need domain-verification infrastructure that doesn't exist yet. Pasting the link keeps both recovery factors (inbox control + Recovery Key) intact, and the user can also just finish on web | apps/mobile/src/app/recover*.tsx, apps/mobile/src/lib/recoveryLink.ts, docs/RECOVERY.md §3 |
 | Mobile Settings can create/replace the Recovery Key after master-password re-verification (Track B pass 1) | Before this pass, mobile sign-up never issued a Recovery Key, so mobile-created accounts had no recovery path on any platform. Re-verification stops a thief holding an unlocked phone from silently invalidating the owner's existing kit. Not yet on web | apps/mobile/src/providers/VaultProvider.tsx (`regenerateRecoveryKey`), docs/RECOVERY.md §3 |
+| Mobile attachment preview: images render inline from an in-memory data URI. PDFs and other files go to the system share sheet via a decrypted temp file in the app's private cache, deleted after 60s and on lock, sign-out and app start. Picker cache copies are deleted right after reading (Phase 6b) | RN has no object-URL equivalent, and the system viewer needs a real file. A delay rather than an immediate delete covers Android, where `shareAsync` resolves when the chooser returns, possibly before the receiving app has read the file (same idea as web's delayed object-URL revoke). The purge on lock/sign-out/start is the backstop for a killed app | apps/mobile/src/lib/attachmentFiles.ts, apps/mobile/src/components/AttachmentSection.tsx, docs/SECURITY_THREAT_MODEL.md row 18 |
+| Mobile file picking: photo library (`expo-image-picker`, camera and microphone permissions blocked) and documents (`expo-document-picker`). No camera capture yet (Phase 6b) | Keeps the permission surface minimal for v1; scanning an ID with the camera is a natural 8m follow-up | apps/mobile/app.json, apps/mobile/src/lib/attachmentFiles.ts |
 | `softDeleteAttachmentDocument` now bumps `revision` by one (Track B pass 1, shared fix) | It wrote the fetched doc back with the same revision, which `firestore.rules` always rejects. Web's item-delete cascade swallowed the error, so attachments were never tombstoned and `attachmentGc` never reclaimed them. Blobs orphaned before this fix still need a one-off cleanup (not built) | packages/firebase/src/attachments.ts (+ test) |
 | `getKdfParams`/`getRecoveryEnvelope` now pass `invoker: "public"` in their `onCall` options, instead of `{}` (post-9w, discovered live once the web app was deployed and hit a CORS error calling `getKdfParams`)                                                                                                                                           | Both are deliberately unauthenticated (called before the user has any credential), but v2 `onCall` still needs this set explicitly — Cloud Run's default IAM invoker policy otherwise rejects the request, including the client SDK's CORS preflight, before the function's own code (and its automatic CORS handling) ever runs. Browsers surface that IAM-layer rejection as a missing `Access-Control-Allow-Origin` header, not as a 403, which is why it read as a CORS bug rather than a permissions one                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  | firebase/functions/src/getKdfParams.ts, getRecoveryEnvelope.ts                                                       |
 
@@ -981,3 +983,22 @@ Tests: new mobile tests for `useAutoLock`, clipboard, `recoveryLink`, `Emergency
 
   `apps/web`'s `recoverVault` has the same two gaps. Fix them there next.
 - Biometric unlock now loads settings best-effort, so offline biometric unlock still works.
+
+Phase 6b (attachments on mobile) is complete. It reuses the shared layers
+unchanged: `@kryvex/vault`'s `attachmentCrypto` and `@kryvex/firebase`'s
+attachment doc/blob helpers. New mobile code:
+
+- `useCreateAttachment` / `useAttachment` (`src/hooks/useAttachments.ts`), mirroring web.
+- `src/lib/attachmentFiles.ts`: picking, 50 MB cap, reading and deleting the picker's cache copy, and private temp-file sharing with purge.
+- `AttachmentUploadForm` covers image, PDF, file and Government ID (front, optional back, notes). `AttachmentSection` handles preview and share on item detail.
+- `useVaultItems.createItem` takes attachment refs and a preset id (`newItemId` is exported). `softDeleteItem` now cascades a best-effort tombstone to each live attachment, as web does.
+- Image/PDF/File are back in mobile's type picker. Government ID now uses the upload form; it previously used the generic form, which could never pass validation.
+- **Bug fixed:** mobile `ItemForm` rebuilt content from only the fields it edits, so editing an attachment item dropped `attachmentId` and failed validation. It now spreads `initialContent` first, as `packages/ui`'s form does.
+
+Tests: new `attachmentFiles`, `AttachmentSection` and ItemForm edit cases, cascade and preset-id cases in `useVaultItems`, and upload-flow cases in `new.test`. Mobile is 85/85.
+
+**Not yet verified, and needs a device:** Firebase Storage's JS `uploadBytes` with a `Uint8Array` body on React Native. It should work, since RN's XHR base64-encodes typed-array bodies, but that has historically been fragile. If it fails, the fallback is a mobile-only `uploadString(…, "base64")` path. Also check performance with large (tens of MB) files, since the whole file is encrypted in JS memory.
+
+**Known gaps, same as web:**
+- If the item write fails after an upload, the attachment is orphaned (no rollback).
+- An attachment can't be replaced on an existing item.

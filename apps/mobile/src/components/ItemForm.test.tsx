@@ -41,4 +41,27 @@ describe("ItemForm", () => {
     expect(onSubmit).not.toHaveBeenCalled();
     expect(screen.getByText("Title is required.")).toBeTruthy();
   });
+
+  it("keeps fields it doesn't edit (attachmentId) when editing an attachment item", async () => {
+    const onSubmit = jest.fn();
+    await render(
+      <ItemForm
+        type="pdf"
+        initialContent={{
+          type: "pdf",
+          title: "Lease",
+          tags: [],
+          customFields: [],
+          attachmentId: "att1",
+        }}
+        onSubmit={onSubmit}
+        onCancel={jest.fn()}
+      />,
+    );
+    await fireEvent.changeText(screen.getByLabelText("Title"), "Lease 2026");
+    await fireEvent.press(screen.getByText("Save"));
+    expect(onSubmit).toHaveBeenCalledWith(
+      expect.objectContaining({ title: "Lease 2026", attachmentId: "att1" }),
+    );
+  });
 });

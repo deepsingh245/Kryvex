@@ -204,7 +204,7 @@ port after every web phase as before. Phases already done on both platforms
 
 | Phase | Focus                                                                                                                                                                                                                                                                                                                        |
 | ----- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 6b    | Attachments (mobile port) — native file/image picker (`expo-image-picker`, `expo-document-picker`), `expo-sharing` for the system-viewer hand-off                                                                                                                                                                            |
+| 6b    | **Done (pending device verification).** Attachments (mobile port) — native file/image picker (`expo-image-picker`, `expo-document-picker`), `expo-sharing` for the system-viewer hand-off                                                                                                                                    |
 | 7m    | **Done (Track B pass 1, pending device verification).** Biometric unlock (earlier), plus auto-lock (idle + background timeout), clipboard auto-clear, always-on screenshot/recording/app-switcher protection, settings screen, and Recovery Key parity: issued at sign-up, mobile recover flow, create/replace from Settings |
 | 8m    | UX polish (mobile)                                                                                                                                                                                                                                                                                                           |
 | 9m    | Security hardening (mobile-specific — native module review, on top of Track A's shared-package hardening)                                                                                                                                                                                                                    |
@@ -290,5 +290,8 @@ and a short "Changed / Tests / Security considerations / Files / Next step" repo
     Done — see "Current status" in `KRYVEX_SOURCE_OF_TRUTH.md`. Needs a
     physical-device click-through (dev build: `expo-screen-capture` is a
     native module).
-20. **Next up:** Phase 6b — attachments on `apps/mobile` (image/pdf/file are
-    hidden from mobile's new-item picker until then).
+20. ~~Phase 6b — attachments on `apps/mobile`.~~ Done — see "Current status"
+    in `KRYVEX_SOURCE_OF_TRUTH.md`. Needs device verification of the RN
+    Storage upload path.
+21. **Next up:** Phase 8m — UX polish (mobile): Kryvex visual system and dark
+    mode on mobile, plus small gaps (e.g. camera capture for IDs).

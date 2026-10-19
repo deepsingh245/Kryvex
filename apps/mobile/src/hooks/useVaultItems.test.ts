@@ -2,7 +2,9 @@ import { act, renderHook, waitFor } from "@testing-library/react-native";
 import { generateKey } from "@kryvex/crypto";
 import {
   createVaultItem,
+  fetchAttachmentDocument,
   fetchVaultItem,
+  softDeleteAttachmentDocument,
   subscribeToVaultItems,
   updateVaultItem,
 } from "@kryvex/firebase";
@@ -19,6 +21,8 @@ jest.mock("@kryvex/firebase", () => ({
   updateVaultItem: jest.fn(),
   fetchVaultItem: jest.fn(),
   subscribeToVaultItems: jest.fn(),
+  fetchAttachmentDocument: jest.fn(),
+  softDeleteAttachmentDocument: jest.fn(),
 }));
 
 // initializeKryvexFirebaseNative is already mocked above and ignores its
@@ -226,6 +230,88 @@ describe("useVaultItems — writes", () => {
     expect(id).toBeTruthy();
     expect(mockedCreateVaultItem).toHaveBeenCalledTimes(1);
     expect(result.current.items.some((i) => i.id === id)).toBe(true);
+  });
+
+  it("createItem honours a preset id and attachmentRefs (attachment items)", async () => {
+    mockedCreateVaultItem.mockResolvedValue(undefined);
+    const { result } = await renderHook(() => useVaultItems());
+    await waitFor(() => expect(capturedOnNext).toBeDefined());
+
+    let id = "";
+    await act(async () => {
+      id = await result.current.createItem(
+        "image",
+        {
+          type: "image",
+          title: "Passport scan",
+          tags: [],
+          customFields: [],
+          attachmentId: "att1",
+        },
+        ["att1"],
+        "preset-id",
+      );
+    });
+
+    expect(id).toBe("preset-id");
+    expect(mockedCreateVaultItem.mock.calls[0]![2]).toBe("preset-id");
+    const written = mockedCreateVaultItem.mock.calls[0]![3] as unknown as {
+      attachmentRefs: string[];
+    };
+    expect(written.attachmentRefs).toEqual(["att1"]);
+  });
+
+  it("softDeleteItem tombstones the item, then each live attachment", async () => {
+    mockedUpdateVaultItem.mockResolvedValue(undefined);
+    const attachmentDoc = { id: "att1", revision: 0, deleted: false };
+    jest
+      .mocked(fetchAttachmentDocument)
+      .mockImplementation(async (_fs, _uid, attachmentId) =>
+        attachmentId === "att1"
+          ? attachmentDoc
+          : { id: attachmentId, revision: 1, deleted: true },
+      );
+    const { result } = await renderHook(() => useVaultItems());
+    await waitFor(() => expect(capturedOnNext).toBeDefined());
+    await act(() => {
+      capturedOnNext!([
+        rawDocFor(LOGIN_CONTENT, { attachmentRefs: ["att1", "att-gone"] }),
+      ]);
+    });
+    await waitFor(() => expect(result.current.items).toHaveLength(1));
+
+    await act(async () => {
+      await result.current.softDeleteItem("item1");
+    });
+
+    expect(mockedUpdateVaultItem).toHaveBeenCalledTimes(1);
+    expect(softDeleteAttachmentDocument).toHaveBeenCalledTimes(1);
+    expect(softDeleteAttachmentDocument).toHaveBeenCalledWith(
+      expect.anything(),
+      "alice",
+      "att1",
+      attachmentDoc,
+    );
+  });
+
+  it("an attachment tombstone failure doesn't fail the item delete", async () => {
+    mockedUpdateVaultItem.mockResolvedValue(undefined);
+    jest
+      .mocked(fetchAttachmentDocument)
+      .mockRejectedValue(new Error("offline"));
+    const { result } = await renderHook(() => useVaultItems());
+    await waitFor(() => expect(capturedOnNext).toBeDefined());
+    await act(() => {
+      capturedOnNext!([rawDocFor(LOGIN_CONTENT, { attachmentRefs: ["att1"] })]);
+    });
+    await waitFor(() => expect(result.current.items).toHaveLength(1));
+
+    await act(async () => {
+      await expect(
+        result.current.softDeleteItem("item1"),
+      ).resolves.toBeUndefined();
+    });
+    expect(mockedUpdateVaultItem).toHaveBeenCalledTimes(1);
   });
 
   it("a permission-denied rejection produces a conflict", async () => {
