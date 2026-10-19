@@ -79,6 +79,9 @@ export default function SignInScreen() {
       <Link href="/sign-up" style={styles.link}>
         Need a vault? Create one
       </Link>
+      <Link href="/recover" style={styles.link}>
+        Forgot master password?
+      </Link>
     </View>
   );
 }

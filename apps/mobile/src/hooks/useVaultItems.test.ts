@@ -137,6 +137,12 @@ beforeEach(() => {
     disableBiometric: jest.fn(),
     lock: jest.fn(),
     signOut: jest.fn(),
+    settings: undefined,
+    reportActivity: jest.fn(),
+    updateSettings: jest.fn(),
+    regenerateRecoveryKey: jest.fn(),
+    sendRecoveryEmail: jest.fn(),
+    recoverVault: jest.fn(),
   });
   mockedCreateAsyncStorageItemStore.mockReturnValue(createFakeLocalStore());
   mockedUseOnlineStatus.mockReturnValue(true);

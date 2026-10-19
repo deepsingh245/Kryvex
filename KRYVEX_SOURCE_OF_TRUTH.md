@@ -1,6 +1,7 @@
 # Kryvex — Source of Truth
 
-Status: **Phase 9w (security hardening, web + shared packages) complete.**
+Status: **Web v1 complete (Track A). Track B (mobile) pass 1, security
+parity, complete; Phase 6b (mobile attachments) is next.**
 This is the primary project reference. Read this before any other file
 when picking up work on Kryvex.
 Detailed reasoning for each section lives in the linked `docs/*.md` file —
@@ -166,6 +167,11 @@ build spec §18.
 | `firebase/functions/package.json` carries zero `@kryvex/*` workspace deps and zero `catalog:` versions — real pinned npm semver only; its one type-only cross-package need (`UserProfileDocument`) is a small hand-synced local mirror (`src/userProfileShape.ts`) instead (post-9w, first real `firebase deploy --only functions` attempt, two iterations) | Discovered live: Cloud Build's remote `npm install` for the deployed bundle processes the _whole_ package.json — dependencies and devDependencies both — and plain npm can't resolve pnpm's `workspace:*`/`catalog:` protocols at all (first attempt moved the one workspace dep to devDependencies alone and still failed identically, proving the dependencies-only theory wrong). A `paths`-based tsconfig mapping straight to `packages/types/src` was tried next but rejected by `tsc`'s `rootDir` check (pulls a sibling-package file outside this package's `src/`) — the local mirror sidesteps both problems, mirroring the accepted-duplicate precedent already set by firestore.rules' `ITEM_TYPES` list                                                                                                                                                                                                                                                                                            | firebase/functions/package.json, firebase/functions/src/userProfileShape.ts, docs/DEPLOYMENT.md §5                   |
 | Web biometric unlock via WebAuthn PRF wrapping the Vault Encryption Key; per-device IndexedDB envelope, cleared on sign-out; no unsupported-browser fallback (post-9w). WebAuthn enrollment requires `residentKey="required"` so Android Chrome routes to PRF-capable Credential Manager / Google Password Manager rather than its legacy local-key path    | A bare WebAuthn assertion yields no key, and keeping the VEK in browser storage behind one would be a fake security indicator (CLAUDE.md §3). PRF makes the authenticator release a secret only after user verification, which wraps the VEK with existing AES-256-GCM + HKDF. Nothing new reaches the server (no rules/functions change). Master-password re-entry required to enable; biometric replaces only the unlock prompt, never sign-in/recovery                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      | docs/CRYPTOGRAPHIC_ARCHITECTURE.md §7, apps/web/src/lib/biometric.ts, packages/crypto/src/kdf.ts                     |
 | Native mobile biometric unlock uses an `expo-secure-store` VEK copy with `requireAuthentication: true` (Android Keystore / iOS Keychain), plus only a non-secret AsyncStorage enrollment marker; master-password re-entry is required to enable and sign-out deletes it (post-9w scoped Phase 7m slice)                                                     | Calling `expo-local-authentication` and then reading an ordinary value would leave a time-of-check/time-of-use gap and make the biometric prompt a cosmetic gate. SecureStore makes release of the actual key material conditional on platform authentication. Only strong enrolled biometrics are accepted; biometric-set changes invalidate the platform key and fail closed to master-password unlock                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       | docs/CRYPTOGRAPHIC_ARCHITECTURE.md §7, apps/mobile/src/lib/biometric.ts, apps/mobile/src/providers/VaultProvider.tsx |
+| Mobile auto-lock: idle timer reset by every touch at the root, plus a background timeout measured on resume (wall clock), **not** web's immediate lock-on-hidden (Track B pass 1) | Copying a password into another app is the core mobile flow; an immediate background lock would force a re-unlock on every copy. JS timers don't run reliably while suspended, so elapsed time is checked on `active`. The app-switcher privacy cover hides content while backgrounded | apps/mobile/src/hooks/useAutoLock.ts, docs/SECURITY_THREAT_MODEL.md row 7 |
+| Mobile screenshot / recording / app-switcher protection is always on, for every screen, with no setting (Track B pass 1; resolves PLAN.md §5's open risk) | A password manager has no screen worth exempting, and a per-screen allowlist is easy to get wrong. iOS screenshots can't be blocked by any app, so the docs say exactly that | apps/mobile/src/components/PrivacyGuard.tsx, docs/SECURITY_THREAT_MODEL.md row 16 |
+| Mobile recovery uses a pasted email link, not a deep link; the email's `continueUrl` is web's `/recover/confirm` (`EXPO_PUBLIC_WEB_RECOVERY_URL`) (Track B pass 1) | Universal links / App Links need domain-verification infrastructure that doesn't exist yet. Pasting the link keeps both recovery factors (inbox control + Recovery Key) intact, and the user can also just finish on web | apps/mobile/src/app/recover*.tsx, apps/mobile/src/lib/recoveryLink.ts, docs/RECOVERY.md §3 |
+| Mobile Settings can create/replace the Recovery Key after master-password re-verification (Track B pass 1) | Before this pass, mobile sign-up never issued a Recovery Key, so mobile-created accounts had no recovery path on any platform. Re-verification stops a thief holding an unlocked phone from silently invalidating the owner's existing kit. Not yet on web | apps/mobile/src/providers/VaultProvider.tsx (`regenerateRecoveryKey`), docs/RECOVERY.md §3 |
+| `softDeleteAttachmentDocument` now bumps `revision` by one (Track B pass 1, shared fix) | It wrote the fetched doc back with the same revision, which `firestore.rules` always rejects. Web's item-delete cascade swallowed the error, so attachments were never tombstoned and `attachmentGc` never reclaimed them. Blobs orphaned before this fix still need a one-off cleanup (not built) | packages/firebase/src/attachments.ts (+ test) |
 | `getKdfParams`/`getRecoveryEnvelope` now pass `invoker: "public"` in their `onCall` options, instead of `{}` (post-9w, discovered live once the web app was deployed and hit a CORS error calling `getKdfParams`)                                                                                                                                           | Both are deliberately unauthenticated (called before the user has any credential), but v2 `onCall` still needs this set explicitly — Cloud Run's default IAM invoker policy otherwise rejects the request, including the client SDK's CORS preflight, before the function's own code (and its automatic CORS handling) ever runs. Browsers surface that IAM-layer rejection as a missing `Access-Control-Allow-Origin` header, not as a 403, which is why it read as a CORS bug rather than a permissions one                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  | firebase/functions/src/getKdfParams.ts, getRecoveryEnvelope.ts                                                       |
 
 ## 13. Known limitations
@@ -932,3 +938,46 @@ fingerprint action, manual lock, and sign-out cleanup. The rest of Phase 7m
 (auto-lock/background locking, clipboard integration, and screenshot/
 screen-recording protection) remains deferred and must not be reported as
 complete. Physical-device verification remains required.
+
+Track B pass 1 (mobile security parity) is complete; it finishes Phase 7m. With
+web v1 declared done, mobile work resumed. This pass did security before 6b
+because exploration found mobile further behind than `PLAN.md` said. Mobile
+sign-up issued **no Recovery Key**, so every mobile-created account was
+unrecoverable on both platforms.
+
+- **Recovery parity.**
+  - `signUp` issues a Recovery Key and returns it, and `sign-up.tsx` shows the new RN `EmergencyKit` (copy with auto-clear, share sheet, required acknowledgment).
+  - `recoverVault` is ported from web.
+  - New `recover` / `recover-confirm` screens; confirm accepts a pasted email link.
+  - Settings → "Create new Recovery Key" (`regenerateRecoveryKey`, with master-password re-verification) covers existing accounts.
+- **Settings.**
+  - The provider now loads and validates `settings` (`userProfileSettingsSchema`) on sign-in, unlock and biometric unlock, and exposes `updateSettings`.
+  - Settings screen gains auto-lock and clipboard-clear pickers, using web's option lists.
+  - Biometric enable/disable now go through `updateSettings`, so local state stays in sync.
+- **Auto-lock** (`useAutoLock`): an idle timer, plus a background timeout measured on resume. This is a deliberate divergence from web (decisions log).
+- **Clipboard.**
+  - `SecretField` uses `copySecret` → `copyWithAutoClear` (expo-clipboard `ClipboardIO`).
+  - `lock()` and `signOut()` best-effort clear the last vault copy.
+  - Settings reach leaf components through a separate `VaultSettingsContext`, so components work without a provider.
+- **Capture protection** (`PrivacyGuard`, new `expo-screen-capture` dependency): FLAG_SECURE on Android, iOS app-switcher protection, and an opaque cover whenever `AppState` isn't `active`. It also reports root touches to the idle timer.
+- **Hardening.**
+  - Both mobile `Math.random()` id fallbacks are replaced by a CSPRNG `randomId` helper. On Hermes this fallback is the path that usually runs.
+  - Removed a duplicate `expo-secure-store` plugin entry in `app.json`.
+- **Bugs found and fixed along the way.**
+  - The shared attachment soft-delete revision bug (decisions log).
+  - Mobile's new-item picker offered image/pdf/file after web's Phase 6 enabled them in the shared `ITEM_TYPE_ENABLED`. Mobile can't attach files yet, so they're hidden until 6b.
+
+Tests: new mobile tests for `useAutoLock`, clipboard, `recoveryLink`, `EmergencyKit`, `recover-confirm` and settings, plus a `packages/firebase` unit test for the soft-delete revision. Results: mobile 67/67, all packages + web green, `test:security` 37/37.
+
+**Pre-existing, not from this pass:** `@kryvex/vault`'s `itemCrypto.test.ts` imports `EmailContent`, which `@kryvex/types` doesn't export, so `pnpm typecheck` fails in that package. Also, `pnpm lint`'s Prettier check flags several web files and docs from earlier work.
+
+**Not yet done:**
+- A physical-device / dev-build click-through. `expo-screen-capture` is a native module, so Expo Go is not enough.
+- Web has no "create Recovery Key" action for existing accounts.
+- Old orphaned attachment blobs need a one-off cleanup.
+- The security review turned up two edge cases in recovery, fixed on mobile only:
+  - Recovering the same uid from the unlock screen: Firebase doesn't re-fire `onAuthStateChanged`, so `pendingUnlock` was never consumed. Mobile now finishes the unlock directly.
+  - Recovering a different account while another is signed in: the reducer ignores `FIREBASE_SIGNED_IN` unless `SIGNED_OUT`. Mobile now signs the old account out first.
+
+  `apps/web`'s `recoverVault` has the same two gaps. Fix them there next.
+- Biometric unlock now loads settings best-effort, so offline biometric unlock still works.

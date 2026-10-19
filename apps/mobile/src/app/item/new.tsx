@@ -14,6 +14,15 @@ import { ItemForm } from "@/components/ItemForm";
 import { useVaultItems } from "@/hooks/useVaultItems";
 import { useVault } from "@/providers/VaultProvider";
 
+// The shared ITEM_TYPE_ENABLED turned these on for web's Phase 6, but mobile
+// has no file picker/upload until Phase 6b. Offering them here would create
+// an item with no attachment.
+const ATTACHMENT_ONLY_TYPES: ReadonlySet<ItemType> = new Set([
+  "image",
+  "pdf",
+  "file",
+]);
+
 // image/pdf/file are excluded from the picker — attachment upload is
 // Phase 6, same as web's item/new/page.tsx.
 export default function NewItemScreen() {
@@ -54,7 +63,10 @@ export default function NewItemScreen() {
       <ScrollView contentContainerStyle={styles.pickerContainer}>
         <Text style={styles.title}>Add an item</Text>
         <View style={styles.grid}>
-          {ITEM_TYPES.filter((type) => ITEM_TYPE_ENABLED[type]).map((type) => (
+          {ITEM_TYPES.filter(
+            (type) =>
+              ITEM_TYPE_ENABLED[type] && !ATTACHMENT_ONLY_TYPES.has(type),
+          ).map((type) => (
             <TouchableOpacity
               key={type}
               style={styles.typeCard}

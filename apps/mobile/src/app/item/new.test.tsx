@@ -52,6 +52,12 @@ describe("NewItemScreen", () => {
       disableBiometric: jest.fn(),
       lock: jest.fn(),
       signOut: jest.fn(),
+      settings: undefined,
+      reportActivity: jest.fn(),
+      updateSettings: jest.fn(),
+      regenerateRecoveryKey: jest.fn(),
+      sendRecoveryEmail: jest.fn(),
+      recoverVault: jest.fn(),
     });
     mockedUseVaultItems.mockReturnValue({
       items: [],
@@ -84,6 +90,12 @@ describe("NewItemScreen", () => {
       disableBiometric: jest.fn(),
       lock: jest.fn(),
       signOut: jest.fn(),
+      settings: undefined,
+      reportActivity: jest.fn(),
+      updateSettings: jest.fn(),
+      regenerateRecoveryKey: jest.fn(),
+      sendRecoveryEmail: jest.fn(),
+      recoverVault: jest.fn(),
     });
     mockedUseVaultItems.mockReturnValue({
       items: [],

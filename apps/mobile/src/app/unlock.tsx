@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Redirect, useRouter } from "expo-router";
+import { Link, Redirect, useRouter } from "expo-router";
 import {
   StyleSheet,
   Text,
@@ -115,6 +115,10 @@ export default function UnlockScreen() {
           </Text>
         </TouchableOpacity>
       )}
+
+      <Link href="/recover" style={styles.link}>
+        Forgot master password?
+      </Link>
     </View>
   );
 }
@@ -145,4 +149,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   biometricButtonText: { color: "#111827", fontWeight: "600" },
+  link: {
+    textAlign: "center",
+    color: "#6b7280",
+    textDecorationLine: "underline",
+  },
 });

@@ -63,7 +63,7 @@ export default function HomeScreen() {
             <Link href="/settings" style={styles.headerLink}>
               Settings
             </Link>
-            <TouchableOpacity onPress={lock}>
+            <TouchableOpacity onPress={() => lock()}>
               <Text style={styles.headerLink}>Lock</Text>
             </TouchableOpacity>
             <TouchableOpacity onPress={() => void signOut()}>

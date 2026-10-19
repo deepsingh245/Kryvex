@@ -6,7 +6,8 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import * as Clipboard from "expo-clipboard";
+import { copySecret } from "@/lib/clipboard";
+import { useEffectiveSettings } from "@/providers/vaultSettings";
 
 export interface SecretFieldProps {
   label: string;
@@ -16,10 +17,8 @@ export interface SecretFieldProps {
   required?: boolean;
 }
 
-// No clipboard-clear-after-timeout here — that's Phase 7
-// (packages/security/src/clipboard.ts, currently a stub). Flagged as a
-// documented Phase 4b limitation, same as web's SecretField, not silently
-// shipped as if handled.
+// Copy clears the clipboard after the account's clipboardClearSeconds, but
+// only if it still holds this value — see src/lib/clipboard.ts.
 export function SecretField({
   label,
   value,
@@ -27,10 +26,11 @@ export function SecretField({
   readOnly,
 }: SecretFieldProps) {
   const [revealed, setRevealed] = useState(false);
+  const { clipboardClearSeconds } = useEffectiveSettings();
 
   async function handleCopy() {
     try {
-      await Clipboard.setStringAsync(value);
+      await copySecret(value, clipboardClearSeconds);
     } catch {
       // Clipboard can be unavailable/denied — no-op; no secret is exposed
       // either way.

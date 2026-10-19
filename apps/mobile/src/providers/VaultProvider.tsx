@@ -4,6 +4,7 @@ import {
   useEffect,
   useReducer,
   useRef,
+  useState,
   type ReactNode,
 } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -30,32 +31,43 @@ import {
   type KdfParams,
 } from "@kryvex/crypto";
 import {
+  confirmVaultRecovery,
   createUserProfileDocument,
   fetchUserProfileDocument,
   initializeKryvexFirebaseNative,
   observeAuthState,
   resolveKdfParamsForEmail,
+  resolveRecoveryEnvelopeForEmail,
+  sendVaultRecoveryEmail,
   signInWithAuthSecret,
   signOutKryvex,
   signUpWithAuthSecret,
   updateUserProfileDocument,
+  verifyRecoveryCode,
   type KryvexFirebaseServices,
 } from "@kryvex/firebase";
-import type { EncryptedEnvelope } from "@kryvex/types";
+import type { EncryptedEnvelope, UserProfileSettings } from "@kryvex/types";
+import { userProfileSettingsSchema } from "@kryvex/validation";
 import {
+  formatRecoveryKey,
   initialLockState,
   lockStateReducer,
+  parseRecoveryKey,
   type LockState,
 } from "@kryvex/vault";
 import {
   mobileFirebaseConfig,
   mobileFirebaseEmulatorEnv,
+  mobileWebRecoveryUrl,
 } from "@/lib/firebaseConfig";
 import {
   clearAllBiometric,
   enrollBiometric,
   unlockWithBiometric as unlockWithBiometricKey,
 } from "@/lib/biometric";
+import { clearCopiedSecret } from "@/lib/clipboard";
+import { useAutoLock } from "@/hooks/useAutoLock";
+import { DEFAULT_SETTINGS, VaultSettingsContext } from "./vaultSettings";
 
 // See apps/web's VaultProvider for the full rationale of this shape — this
 // file mirrors it, swapping only the RN-specific initializer (persistence
@@ -72,17 +84,97 @@ interface KdfParamsRecord {
   kdfSalt: string;
   kdfParams: KdfParams;
   protectedVaultKey?: EncryptedEnvelope;
+  settings?: unknown;
 }
+
+// Same "never trust the settings sub-object structurally" precedent as
+// apps/web's VaultProvider: malformed/missing settings fall back to
+// DEFAULT_SETTINGS and never block sign-in/unlock.
+function parseSettings(raw: unknown): UserProfileSettings | undefined {
+  const parsed = userProfileSettingsSchema.safeParse(raw);
+  return parsed.success ? parsed.data : undefined;
+}
+
+interface RecoveryEnvelopeRecord {
+  protectedVaultKeyByRecovery?: EncryptedEnvelope;
+}
+
+/**
+ * Fail-closed master-password re-verification against the server envelope
+ * (AEAD tag mismatch throws). Wipes every derived buffer before returning.
+ */
+async function verifyMasterPassword(
+  profile: KdfParamsRecord,
+  masterPassword: string,
+): Promise<void> {
+  if (!profile.protectedVaultKey) throw new Error("Profile not found.");
+  const { masterKey } = await deriveKdfMaterial(
+    masterPassword,
+    hexToBytes(profile.kdfSalt),
+    profile.kdfParams,
+  );
+  const { stretchedMasterKey } = deriveAuthAndStretchedKey(masterKey);
+  wipeBytes(masterKey);
+  try {
+    const verifiedVaultKey = decryptBytes(
+      stretchedMasterKey,
+      profile.protectedVaultKey,
+    );
+    wipeBytes(verifiedVaultKey);
+  } catch {
+    throw new Error("Incorrect master password.");
+  } finally {
+    wipeBytes(stretchedMasterKey);
+  }
+}
+
+/** Wraps the VEK under a fresh Recovery Key — docs/RECOVERY.md §2. */
+function wrapWithNewRecoveryKey(vaultEncryptionKey: Uint8Array): {
+  recoveryKey: string;
+  protectedVaultKeyByRecovery: EncryptedEnvelope;
+} {
+  const recoveryKeyBytes = generateKey();
+  const protectedVaultKeyByRecovery = encryptBytes(
+    recoveryKeyBytes,
+    vaultEncryptionKey,
+  );
+  const recoveryKey = formatRecoveryKey(recoveryKeyBytes);
+  wipeBytes(recoveryKeyBytes);
+  return { recoveryKey, protectedVaultKeyByRecovery };
+}
+
+export type LockReason = "manual" | "timeout" | "background";
 
 interface VaultContextValue {
   state: LockState;
-  signUp: (email: string, masterPassword: string) => Promise<void>;
+  settings: UserProfileSettings | undefined;
+  signUp: (
+    email: string,
+    masterPassword: string,
+  ) => Promise<{ recoveryKey: string }>;
   signIn: (email: string, masterPassword: string) => Promise<void>;
   unlock: (masterPassword: string) => Promise<void>;
   unlockWithBiometric: () => Promise<void>;
   enableBiometric: (masterPassword: string) => Promise<void>;
   disableBiometric: () => Promise<void>;
-  lock: () => void;
+  lock: (reason?: LockReason) => void;
+  /** Resets the auto-lock idle timer — wired to every touch at the root. */
+  reportActivity: () => void;
+  updateSettings: (patch: Partial<UserProfileSettings>) => Promise<void>;
+  /**
+   * Re-verifies the master password, then replaces this account's Recovery
+   * Key (or creates one for accounts that never had it). The old kit stops
+   * working.
+   */
+  regenerateRecoveryKey: (
+    masterPassword: string,
+  ) => Promise<{ recoveryKey: string }>;
+  sendRecoveryEmail: (email: string) => Promise<void>;
+  recoverVault: (
+    oobCode: string,
+    recoveryKeyInput: string,
+    newMasterPassword: string,
+  ) => Promise<{ recoveryKey: string }>;
   signOut: () => Promise<void>;
 }
 
@@ -90,6 +182,10 @@ const VaultContext = createContext<VaultContextValue | null>(null);
 
 export function VaultProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(lockStateReducer, initialLockState);
+  // Local React state, not part of the shared LockState — same as web.
+  const [settings, setSettings] = useState<UserProfileSettings | undefined>(
+    undefined,
+  );
   // See apps/web's VaultProvider for the full rationale of this shape.
   const pendingUnlock = useRef<{
     stretchedMasterKey: Uint8Array;
@@ -124,14 +220,26 @@ export function VaultProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  function lock() {
+  function lock(reason: LockReason = "manual") {
     // The shared reducer wipes both in-memory key buffers on LOCK_REQUESTED.
-    dispatch({ type: "LOCK_REQUESTED", reason: "manual" });
+    dispatch({ type: "LOCK_REQUESTED", reason });
     dispatch({ type: "LOCK_COMPLETED" });
+    // Best-effort: a secret copied from the vault shouldn't outlive the
+    // unlocked session if the auto-clear timer hasn't fired yet.
+    void clearCopiedSecret();
   }
+
+  // See useAutoLock for the foreground/background policy (and why mobile
+  // deliberately differs from web's lock-on-tab-hidden).
+  const reportActivity = useAutoLock(
+    state.status === "UNLOCKED",
+    settings?.autoLockMinutes ?? DEFAULT_SETTINGS.autoLockMinutes,
+    lock,
+  );
 
   const value: VaultContextValue = {
     state,
+    settings,
 
     async signUp(email, masterPassword) {
       const services = getServices();
@@ -143,11 +251,16 @@ export function VaultProvider({ children }: { children: ReactNode }) {
       );
       const { authSecret, stretchedMasterKey } =
         deriveAuthAndStretchedKey(masterKey);
+      wipeBytes(masterKey);
       const vaultEncryptionKey = generateKey();
       const protectedVaultKey = encryptBytes(
         stretchedMasterKey,
         vaultEncryptionKey,
       );
+      // Second, independent wrapping of the same VEK — never transmitted or
+      // stored unwrapped; shown to the user exactly once by sign-up.tsx.
+      const { recoveryKey, protectedVaultKeyByRecovery } =
+        wrapWithNewRecoveryKey(vaultEncryptionKey);
       pendingUnlock.current = {
         stretchedMasterKey,
         resolveVaultKey: async () => vaultEncryptionKey,
@@ -159,12 +272,11 @@ export function VaultProvider({ children }: { children: ReactNode }) {
         kdfSalt: bytesToHex(salt),
         kdfParams: DEFAULT_KDF_PARAMS,
         protectedVaultKey,
-        settings: {
-          autoLockMinutes: 5,
-          clipboardClearSeconds: 30,
-          biometricUnlockEnabled: false,
-        },
+        protectedVaultKeyByRecovery,
+        settings: DEFAULT_SETTINGS,
       });
+      setSettings(DEFAULT_SETTINGS);
+      return { recoveryKey };
     },
 
     async signIn(email, masterPassword) {
@@ -183,6 +295,7 @@ export function VaultProvider({ children }: { children: ReactNode }) {
       );
       const { authSecret, stretchedMasterKey } =
         deriveAuthAndStretchedKey(masterKey);
+      wipeBytes(masterKey);
       pendingUnlock.current = {
         stretchedMasterKey,
         resolveVaultKey: async (uid) => {
@@ -193,6 +306,7 @@ export function VaultProvider({ children }: { children: ReactNode }) {
           if (!profile?.protectedVaultKey) {
             throw new Error("Unable to decrypt vault item.");
           }
+          setSettings(parseSettings(profile.settings));
           return decryptBytes(stretchedMasterKey, profile.protectedVaultKey);
         },
       };
@@ -216,12 +330,14 @@ export function VaultProvider({ children }: { children: ReactNode }) {
           profile.kdfParams,
         );
         const { stretchedMasterKey } = deriveAuthAndStretchedKey(masterKey);
+        wipeBytes(masterKey);
         // Local AEAD unwrap is the authoritative "wrong password" signal —
         // no need to re-authenticate against Firebase on every unlock.
         const vaultEncryptionKey = decryptBytes(
           stretchedMasterKey,
           profile.protectedVaultKey,
         );
+        setSettings(parseSettings(profile.settings));
         dispatch({
           type: "UNLOCK_SUCCEEDED",
           stretchedMasterKey,
@@ -241,6 +357,13 @@ export function VaultProvider({ children }: { children: ReactNode }) {
         // SecureStore performs the Android Biometric Prompt and releases this
         // device-local VEK only after Keystore user authentication succeeds.
         const vaultEncryptionKey = await unlockWithBiometricKey(user.uid);
+        // Settings only — the key above never touches the server. Best-effort
+        // so offline biometric unlock keeps working on DEFAULT_SETTINGS.
+        const profile = (await fetchUserProfileDocument(
+          getServices().firestore,
+          user.uid,
+        ).catch(() => undefined)) as KdfParamsRecord | undefined;
+        setSettings(parseSettings(profile?.settings));
         dispatch({
           type: "UNLOCK_SUCCEEDED",
           // Biometric unlock has no master-password-derived key. Nothing in
@@ -263,44 +386,151 @@ export function VaultProvider({ children }: { children: ReactNode }) {
         services.firestore,
         user.uid,
       )) as KdfParamsRecord | undefined;
-      if (!profile?.protectedVaultKey) throw new Error("Profile not found.");
-
-      const { masterKey } = await deriveKdfMaterial(
-        masterPassword,
-        hexToBytes(profile.kdfSalt),
-        profile.kdfParams,
-      );
-      const { stretchedMasterKey } = deriveAuthAndStretchedKey(masterKey);
-      wipeBytes(masterKey);
-      try {
-        // Re-entry is authoritative only if the existing server envelope
-        // authenticates under the derived key (AEAD fails closed otherwise).
-        const verifiedVaultKey = decryptBytes(
-          stretchedMasterKey,
-          profile.protectedVaultKey,
-        );
-        wipeBytes(verifiedVaultKey);
-      } catch {
-        throw new Error("Incorrect master password.");
-      } finally {
-        wipeBytes(stretchedMasterKey);
-      }
+      if (!profile) throw new Error("Profile not found.");
+      await verifyMasterPassword(profile, masterPassword);
 
       await enrollBiometric(user.uid, vaultEncryptionKey);
-      await updateUserProfileDocument(services.firestore, user.uid, {
-        settings: { biometricUnlockEnabled: true },
-      });
+      await value.updateSettings({ biometricUnlockEnabled: true });
     },
 
     async disableBiometric() {
       if (state.status !== "UNLOCKED") throw new Error("Vault is locked.");
       await clearAllBiometric();
-      await updateUserProfileDocument(getServices().firestore, state.user.uid, {
-        settings: { biometricUnlockEnabled: false },
-      });
+      await value.updateSettings({ biometricUnlockEnabled: false });
     },
 
     lock,
+
+    reportActivity,
+
+    async updateSettings(patch) {
+      if (state.status !== "UNLOCKED") throw new Error("Vault is locked.");
+      const next: UserProfileSettings = {
+        ...(settings ?? DEFAULT_SETTINGS),
+        ...patch,
+      };
+      await updateUserProfileDocument(getServices().firestore, state.user.uid, {
+        settings: next,
+      });
+      setSettings(next);
+    },
+
+    async regenerateRecoveryKey(masterPassword) {
+      if (state.status !== "UNLOCKED") throw new Error("Vault is locked.");
+      const services = getServices();
+      const { user, vaultEncryptionKey } = state;
+      const profile = (await fetchUserProfileDocument(
+        services.firestore,
+        user.uid,
+      )) as KdfParamsRecord | undefined;
+      if (!profile) throw new Error("Profile not found.");
+      // Possession of an unlocked device alone must not be enough to
+      // silently invalidate the user's existing Emergency Kit.
+      await verifyMasterPassword(profile, masterPassword);
+
+      const { recoveryKey, protectedVaultKeyByRecovery } =
+        wrapWithNewRecoveryKey(vaultEncryptionKey);
+      await updateUserProfileDocument(services.firestore, user.uid, {
+        protectedVaultKeyByRecovery,
+      });
+      return { recoveryKey };
+    },
+
+    async sendRecoveryEmail(email) {
+      await sendVaultRecoveryEmail(
+        getServices().auth,
+        email,
+        mobileWebRecoveryUrl,
+      );
+    },
+
+    // Ported from apps/web's VaultProvider — see docs/RECOVERY.md §3. Needs
+    // both factors: the email oobCode (inbox control) and the Recovery Key.
+    async recoverVault(oobCode, recoveryKeyInput, newMasterPassword) {
+      const services = getServices();
+      const email = await verifyRecoveryCode(services.auth, oobCode);
+      // The shared reducer ignores FIREBASE_SIGNED_IN unless SIGNED_OUT, so
+      // recovering account B while this device holds account A would pair
+      // B's key with A's identity. Sign A out first (also drops A's
+      // biometric copy, same as a normal sign-out).
+      if (
+        state.status !== "SIGNED_OUT" &&
+        state.user.email?.toLowerCase() !== email.toLowerCase()
+      ) {
+        await value.signOut();
+      }
+
+      const envelope = (await resolveRecoveryEnvelopeForEmail(
+        services.functions,
+        email,
+      )) as RecoveryEnvelopeRecord | null;
+      if (!envelope?.protectedVaultKeyByRecovery) {
+        throw new Error("Recovery isn't available for this account.");
+      }
+
+      const recoveryKeyBytes = parseRecoveryKey(recoveryKeyInput);
+      let vaultEncryptionKey: Uint8Array;
+      try {
+        vaultEncryptionKey = decryptBytes(
+          recoveryKeyBytes,
+          envelope.protectedVaultKeyByRecovery,
+        );
+      } finally {
+        wipeBytes(recoveryKeyBytes);
+      }
+
+      const newSalt = generateKdfSalt();
+      const { masterKey } = await deriveKdfMaterial(
+        newMasterPassword,
+        newSalt,
+        DEFAULT_KDF_PARAMS,
+      );
+      const { authSecret: newAuthSecret, stretchedMasterKey } =
+        deriveAuthAndStretchedKey(masterKey);
+      wipeBytes(masterKey);
+      const protectedVaultKey = encryptBytes(
+        stretchedMasterKey,
+        vaultEncryptionKey,
+      );
+      // The used kit is spent — issue a fresh one (docs/RECOVERY.md §3.5).
+      const { recoveryKey, protectedVaultKeyByRecovery } =
+        wrapWithNewRecoveryKey(vaultEncryptionKey);
+
+      pendingUnlock.current = {
+        stretchedMasterKey,
+        resolveVaultKey: async () => vaultEncryptionKey,
+      };
+
+      await confirmVaultRecovery(services.auth, oobCode, newAuthSecret);
+      const user = await signInWithAuthSecret(
+        services.auth,
+        email,
+        newAuthSecret,
+      );
+      await updateUserProfileDocument(services.firestore, user.uid, {
+        kdfSalt: bytesToHex(newSalt),
+        kdfParams: DEFAULT_KDF_PARAMS,
+        protectedVaultKey,
+        protectedVaultKeyByRecovery,
+      });
+      // Recovering from the unlock screen re-signs-in the *same* uid, and
+      // Firebase doesn't re-fire onAuthStateChanged for that — so the
+      // listener never consumes pendingUnlock. Finish the unlock here rather
+      // than leave key material parked in the ref. (Reducer no-ops if the
+      // state isn't AUTHENTICATED_LOCKED.)
+      if (pendingUnlock.current) {
+        pendingUnlock.current = null;
+        dispatch({ type: "UNLOCK_REQUESTED" });
+        dispatch({
+          type: "UNLOCK_SUCCEEDED",
+          stretchedMasterKey,
+          vaultEncryptionKey,
+        });
+      }
+      // Biometric copies on this device wrap the same VEK, so they remain
+      // valid; nothing else to rotate.
+      return { recoveryKey };
+    },
 
     async signOut() {
       // Shared-device safety: signing out removes the device-local vault-key
@@ -308,12 +538,18 @@ export function VaultProvider({ children }: { children: ReactNode }) {
       // in clearAllBiometric's finally block and the value remains Keystore-
       // encrypted behind device authentication.
       await clearAllBiometric().catch(() => undefined);
+      await clearCopiedSecret();
+      setSettings(undefined);
       await signOutKryvex(getServices().auth);
     },
   };
 
   return (
-    <VaultContext.Provider value={value}>{children}</VaultContext.Provider>
+    <VaultContext.Provider value={value}>
+      <VaultSettingsContext.Provider value={settings}>
+        {children}
+      </VaultSettingsContext.Provider>
+    </VaultContext.Provider>
   );
 }
 

@@ -15,3 +15,10 @@ export const mobileFirebaseEmulatorEnv = {
   useEmulator: process.env.EXPO_PUBLIC_USE_FIREBASE_EMULATOR,
   host: process.env.EXPO_PUBLIC_FIREBASE_EMULATOR_HOST,
 };
+
+// The recovery email link opens apps/web's /recover/confirm (no mobile deep
+// link yet). The user can finish there, or paste the link into the app's
+// recover-confirm screen.
+export const mobileWebRecoveryUrl =
+  process.env.EXPO_PUBLIC_WEB_RECOVERY_URL ??
+  "http://localhost:3000/recover/confirm";

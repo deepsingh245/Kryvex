@@ -40,6 +40,12 @@ describe("GeneratorScreen", () => {
       disableBiometric: jest.fn(),
       lock: jest.fn(),
       signOut: jest.fn(),
+      settings: undefined,
+      reportActivity: jest.fn(),
+      updateSettings: jest.fn(),
+      regenerateRecoveryKey: jest.fn(),
+      sendRecoveryEmail: jest.fn(),
+      recoverVault: jest.fn(),
     });
     await render(<GeneratorScreen />);
     expect(screen.getByText("Regenerate")).toBeTruthy();

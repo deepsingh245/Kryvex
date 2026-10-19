@@ -37,6 +37,7 @@ import {
   mobileFirebaseEmulatorEnv,
 } from "@/lib/firebaseConfig";
 import { createAsyncStorageItemStore } from "@/lib/localItemStore";
+import { randomId } from "@/lib/randomId";
 import { useVault } from "@/providers/VaultProvider";
 import { useOnlineStatus } from "./useOnlineStatus";
 
@@ -50,9 +51,7 @@ function getServices() {
 }
 
 function newItemId(): string {
-  return typeof crypto !== "undefined" && "randomUUID" in crypto
-    ? crypto.randomUUID()
-    : `item-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  return randomId("item");
 }
 
 // Firestore rejects a stale-revision write via the security rules, which
