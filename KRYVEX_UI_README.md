@@ -737,42 +737,43 @@ Automatically return to the hidden state where appropriate.
 
 # 20. First Three Screens
 
-## Screen 01 — Welcome / Onboarding
+## Screen 01 — Public Marketing Home / Welcome
 
 Purpose:
 
-Introduce Kryvex without overwhelming the user.
+Introduce Kryvex to signed-out visitors, explain the product and zero-knowledge
+model in plain language, and lead into vault creation without overwhelming the
+user. This remains the `/welcome` destination used by the signed-out redirect.
 
 Structure:
 
 ```text
-Logo
+Navigation + Sign in + Create a free vault
 
-Kryvex
+The secure home for everything you need to remember.
 
-Your private vault. Always.
+[ Product vault visual ]
 
-Store everything that matters
+Scattered information → one searchable private vault
 
-Passwords, credentials, secure notes,
-files, and more — all in one encrypted
-vault, accessible only by you.
+Find in seconds / More than passwords / Cross-device direction
 
-[ Secure visual illustration ]
+Zero-knowledge explanation
 
-[ Get Started ]
+Unlock → Find → Reveal or copy
 
-I already have an account
+Supported item types / FAQ / Final CTA / Footer
 ```
 
 Visual:
 
-- dark navy background
-- large brand mark
-- subtle indigo atmospheric glow
-- floating secure-item cards
-- generous whitespace
-- no busy dashboard elements
+- light editorial marketing canvas with the existing indigo brand
+- dark product imagery so the public site still feels connected to the app
+- plain-language security copy with no absolute security claims
+- one dominant action label: `Create a free vault`
+- real links to `/sign-up`, `/sign-in`, and `/recover`
+- web availability stated accurately; native mobile remains in progress
+- responsive navigation and section layout with generous whitespace
 
 ---
 

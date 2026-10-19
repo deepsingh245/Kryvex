@@ -9,8 +9,8 @@
 
 /*
  * Kryvex design tokens — see KRYVEX_UI_README.md §4/§5/§9/§10/§25.
- * Dark is the primary identity (bare :root); prefers-color-scheme: light
- * swaps in the light palette. Same semantic token names in both themes so
+ * Dark is the primary identity (bare :root); the light palette is applied via
+ * data-theme="light" or, with no explicit choice, prefers-color-scheme. Same semantic token names in both themes so
  * components never hard-code a color.
  */
 :root {
@@ -58,8 +58,38 @@
   --shadow-lg: 0 20px 50px rgba(0, 0, 0, 0.3);
 }
 
+/* Theme selection: <html data-theme="light|dark"> is set by ThemeProvider (and
+ * the pre-hydration script in layout.tsx). With no attribute ("system"), the
+ * OS preference decides. */
+:root[data-theme="light"] {
+  color-scheme: light;
+
+  --background: #f8fafc;
+  --surface: #ffffff;
+  --surface-2: #f1f5f9;
+  --card: #ffffff;
+  --card-foreground: #0f172a;
+
+  --foreground: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #64748b;
+
+  --border: #e2e8f0;
+  --border-strong: #cbd5e1;
+  --ring: #4f46e5;
+
+  --primary: #4f46e5;
+  --primary-hover: #4338ca;
+  --primary-soft: #6366f1;
+  --primary-foreground: #ffffff;
+
+  --shadow-sm: 0 2px 8px rgba(15, 23, 42, 0.08);
+  --shadow-md: 0 8px 24px rgba(15, 23, 42, 0.1);
+  --shadow-lg: 0 20px 50px rgba(15, 23, 42, 0.14);
+}
+
 @media (prefers-color-scheme: light) {
-  :root {
+  :root:not([data-theme="dark"]):not([data-theme="light"]) {
     color-scheme: light;
 
     --background: #f8fafc;
@@ -74,15 +104,23 @@
 
     --border: #e2e8f0;
     --border-strong: #cbd5e1;
+    --ring: #4f46e5;
 
     --primary: #4f46e5;
     --primary-hover: #4338ca;
+    --primary-soft: #6366f1;
     --primary-foreground: #ffffff;
 
     --shadow-sm: 0 2px 8px rgba(15, 23, 42, 0.08);
     --shadow-md: 0 8px 24px rgba(15, 23, 42, 0.1);
     --shadow-lg: 0 20px 50px rgba(15, 23, 42, 0.14);
   }
+}
+
+.marketing-page a,
+.marketing-page button,
+.marketing-page summary {
+  -webkit-tap-highlight-color: transparent;
 }
 
 @theme inline {
