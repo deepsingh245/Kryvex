@@ -3,6 +3,7 @@ import { KeyRound, LockKeyhole, ShieldCheck } from "lucide-react";
 import type { ReactNode } from "react";
 import { cn } from "@kryvex/ui";
 import { Logo } from "@/components/brand/Logo";
+import { ThemeToggle } from "@/components/layout/ThemeToggle";
 
 type AuthPageContext = "sign-in" | "sign-up" | "recover" | "unlock";
 
@@ -123,6 +124,7 @@ export function AuthPageShell({
       </aside>
 
       <section className="relative flex min-h-screen items-center justify-center px-5 pb-10 pt-24 sm:px-8 lg:px-12 lg:py-12 xl:px-16">
+        <ThemeToggle className="absolute right-5 top-5 z-20 h-10 w-10 sm:right-8 lg:right-5 lg:top-9 xl:top-12" />
         <Link
           href="/welcome"
           aria-label="Kryvex home"

@@ -23,7 +23,7 @@ export function Logo({
         width={markSize}
         height={markSize}
         alt={showWordmark ? "" : "Kryvex"}
-        className="shrink-0 rounded-[28%] bg-[#f8fbff] p-[5%] shadow-sm ring-1 ring-slate-900/10"
+        className="shrink-0 object-contain"
       />
       {showWordmark && (
         <span className="text-base font-bold tracking-[0.18em] text-foreground">

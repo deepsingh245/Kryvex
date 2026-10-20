@@ -3,7 +3,6 @@
 import type { LucideIcon } from "lucide-react";
 import { ArrowLeft } from "lucide-react";
 import type { ReactNode } from "react";
-import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import {
   Card,
   CardContent,
@@ -42,7 +41,6 @@ export function AuthCard({
         className,
       )}
     >
-      <ThemeToggle className="absolute right-3 top-3 h-9 w-9" />
       {onBack && (
         <button
           type="button"
