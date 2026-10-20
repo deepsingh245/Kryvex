@@ -701,9 +701,12 @@ primitives wired to the new tokens, deliberately avoiding an extra
 `@radix-ui/react-slot` dependency the 3 screens don't need (no `asChild`
 use case yet).
 
-**New components**: `components/brand/` (`Logo`, an SVG geometric-K mark;
-`FloatingVaultIllustration`, the Screen 1 decorative visual — no external
-images). `components/auth/` (`AuthCard`, the shared centered-card shell used
+**New components**: `components/brand/` (`Logo`, now backed by the approved
+Kryvex geometric vault/cube mark; the same source identity also drives the web
+metadata icons and Expo app/adaptive/splash assets; `FloatingVaultIllustration`,
+the Screen 1 decorative visual). Mobile uses a matching `BrandLogo` component
+on entry and vault surfaces. `components/auth/` (
+`AuthCard`, the shared centered-card shell used
 by Screens 02/03; `PasswordInput`, a show/hide-toggle input; `passwordRequirements.ts`,
 `PasswordStrengthMeter`, `PasswordRequirementsList` — all three requirement-
 checking components derive from the same `evaluateMasterPassword()` helper

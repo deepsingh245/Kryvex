@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link } from "expo-router";
 import { StyleSheet, Text, TextInput, View } from "react-native";
 import { secureLogger } from "@kryvex/security";
+import { BrandLogo } from "@/components/BrandLogo";
 import { Button } from "@/components/Button";
 import { useVault } from "@/providers/VaultProvider";
 
@@ -33,6 +34,7 @@ export default function RecoverScreen() {
   if (sent) {
     return (
       <View style={styles.container}>
+        <BrandLogo size={52} style={styles.brand} />
         <Text style={styles.title}>Check your email</Text>
         <Text style={styles.hint}>
           If an account exists for {email.trim()}, we&apos;ve sent a recovery
@@ -51,6 +53,7 @@ export default function RecoverScreen() {
 
   return (
     <View style={styles.container}>
+      <BrandLogo size={52} style={styles.brand} />
       <Text style={styles.title}>Recover your vault</Text>
       <Text style={styles.hint}>
         You&apos;ll need access to your email and your Emergency Kit&apos;s
@@ -84,6 +87,7 @@ export default function RecoverScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, justifyContent: "center", padding: 24, gap: 12 },
+  brand: { alignSelf: "center", marginBottom: 12 },
   title: { fontSize: 20, fontWeight: "600" },
   hint: { fontSize: 14, color: "#6b7280", lineHeight: 20 },
   input: {

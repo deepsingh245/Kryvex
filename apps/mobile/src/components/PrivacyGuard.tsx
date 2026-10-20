@@ -1,7 +1,8 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { AppState, Platform, StyleSheet, Text, View } from "react-native";
+import { AppState, Platform, StyleSheet, View } from "react-native";
 import * as ScreenCapture from "expo-screen-capture";
 import { KRYVEX_BRAND_COLOR } from "@kryvex/ui";
+import { BrandLogo } from "@/components/BrandLogo";
 
 /**
  * Screenshot / screen-recording / app-switcher protection — always on, for
@@ -50,7 +51,7 @@ export function PrivacyGuard({
       {children}
       {covered && (
         <View style={styles.cover} testID="privacy-cover">
-          <Text style={styles.coverText}>Kryvex</Text>
+          <BrandLogo size={96} inverse />
         </View>
       )}
     </View>
@@ -69,5 +70,4 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  coverText: { color: "white", fontSize: 28, fontWeight: "700" },
 });

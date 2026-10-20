@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { cn } from "@kryvex/ui";
 
 interface LogoProps {
@@ -7,7 +8,7 @@ interface LogoProps {
 }
 
 /**
- * Kryvex brand mark — geometric "K", legible from 16px, dark/light-safe.
+ * Kryvex brand mark, shared by marketing, authentication, and vault shells.
  * See KRYVEX_UI_README.md §3.
  */
 export function Logo({
@@ -17,25 +18,16 @@ export function Logo({
 }: LogoProps) {
   return (
     <div className={cn("flex items-center gap-2.5", className)}>
-      <svg
+      <Image
+        src="/brand/kryvex-mark.png"
         width={markSize}
         height={markSize}
-        viewBox="0 0 32 32"
-        fill="none"
-        aria-hidden="true"
-      >
-        <rect width="32" height="32" rx="9" fill="var(--primary)" />
-        <path
-          d="M11 8v16M11 16l7.5-8M11 16l7.5 8"
-          stroke="white"
-          strokeWidth="2.4"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      </svg>
+        alt={showWordmark ? "" : "Kryvex"}
+        className="shrink-0 rounded-[28%] bg-[#f8fbff] p-[5%] shadow-sm ring-1 ring-slate-900/10"
+      />
       {showWordmark && (
-        <span className="text-lg font-semibold tracking-tight text-foreground">
-          Kryvex
+        <span className="text-base font-bold tracking-[0.18em] text-foreground">
+          KRYVEX
         </span>
       )}
     </div>

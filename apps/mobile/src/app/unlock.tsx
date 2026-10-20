@@ -8,6 +8,7 @@ import {
   View,
 } from "react-native";
 import { secureLogger } from "@kryvex/security";
+import { BrandLogo } from "@/components/BrandLogo";
 import { hasBiometricEnrollment } from "@/lib/biometric";
 import { useVault } from "@/providers/VaultProvider";
 
@@ -79,6 +80,7 @@ export default function UnlockScreen() {
 
   return (
     <View style={styles.container}>
+      <BrandLogo size={52} style={styles.brand} />
       <Text style={styles.title}>Unlock your vault</Text>
       {user && <Text style={styles.hint}>Signed in as {user.email}</Text>}
 
@@ -125,6 +127,7 @@ export default function UnlockScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, justifyContent: "center", padding: 24, gap: 12 },
+  brand: { alignSelf: "center", marginBottom: 12 },
   title: { fontSize: 20, fontWeight: "600" },
   hint: { fontSize: 13, color: "#6b7280" },
   input: {

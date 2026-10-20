@@ -3,6 +3,7 @@ import { Link, useRouter } from "expo-router";
 import { ScrollView, StyleSheet, Text, TextInput } from "react-native";
 import { secureLogger } from "@kryvex/security";
 import { masterPasswordSchema } from "@kryvex/validation";
+import { BrandLogo } from "@/components/BrandLogo";
 import { Button } from "@/components/Button";
 import { EmergencyKit } from "@/components/EmergencyKit";
 import { parseOobCode } from "@/lib/recoveryLink";
@@ -71,6 +72,7 @@ export default function RecoverConfirmScreen() {
   if (newRecoveryKey) {
     return (
       <ScrollView contentContainerStyle={styles.container}>
+        <BrandLogo size={52} style={styles.brand} />
         <Text style={styles.hint}>
           Your vault is recovered. Your old Emergency Kit no longer works — save
           this new one.
@@ -88,6 +90,7 @@ export default function RecoverConfirmScreen() {
       contentContainerStyle={styles.container}
       keyboardShouldPersistTaps="handled"
     >
+      <BrandLogo size={52} style={styles.brand} />
       <Text style={styles.title}>Reset with your Recovery Key</Text>
       <TextInput
         style={styles.input}
@@ -145,6 +148,7 @@ export default function RecoverConfirmScreen() {
 
 const styles = StyleSheet.create({
   container: { flexGrow: 1, justifyContent: "center", padding: 24, gap: 12 },
+  brand: { alignSelf: "center", marginBottom: 12 },
   title: { fontSize: 20, fontWeight: "600" },
   hint: { fontSize: 14, color: "#6b7280", lineHeight: 20 },
   input: {

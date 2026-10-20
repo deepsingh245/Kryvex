@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import { cn } from "@kryvex/ui";
 import { Logo } from "@/components/brand/Logo";
 
-type AuthPageContext = "sign-in" | "sign-up" | "recover";
+type AuthPageContext = "sign-in" | "sign-up" | "recover" | "unlock";
 
 interface AuthPageShellProps {
   children: ReactNode;
@@ -22,6 +22,11 @@ const CONTEXT_COPY: Record<AuthPageContext, [string, string, string]> = {
     "Start private",
     "One secure home for the details that run your digital life.",
     "Create a master password that protects your vault locally and stays separate from your account sign-in.",
+  ],
+  unlock: [
+    "Protected every time",
+    "Your vault stays locked until you open it.",
+    "Signing in identifies your account. Unlocking decrypts your vault locally on this device.",
   ],
   recover: [
     "Recovery in your hands",

@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import { signUpFormSchema } from "@kryvex/validation";
 import { secureLogger } from "@kryvex/security";
+import { BrandLogo } from "@/components/BrandLogo";
 import { EmergencyKit } from "@/components/EmergencyKit";
 import { useVault } from "@/providers/VaultProvider";
 
@@ -70,6 +71,7 @@ export default function SignUpScreen() {
 
   return (
     <View style={styles.container}>
+      <BrandLogo size={52} style={styles.brand} />
       <Text style={styles.title}>Create your Kryvex vault</Text>
       <Text style={styles.hint}>
         Your master password protects your vault. After sign-up you&apos;ll get
@@ -124,6 +126,7 @@ export default function SignUpScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, justifyContent: "center", padding: 24, gap: 12 },
   kitContainer: { flexGrow: 1, justifyContent: "center", padding: 24 },
+  brand: { alignSelf: "center", marginBottom: 12 },
   title: { fontSize: 20, fontWeight: "600" },
   hint: { fontSize: 13, color: "#6b7280" },
   input: {

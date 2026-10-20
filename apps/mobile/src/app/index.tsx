@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import { KRYVEX_BRAND_COLOR } from "@kryvex/ui";
 import { selectVisibleItems, type DecryptedVaultItem } from "@kryvex/vault";
+import { BrandLogo } from "@/components/BrandLogo";
 import { ItemTypeBadge } from "@/components/ItemTypeBadge";
 import { useVaultItems } from "@/hooks/useVaultItems";
 import { useVault } from "@/providers/VaultProvider";
@@ -50,9 +51,12 @@ export default function HomeScreen() {
     return (
       <View style={styles.container}>
         <View style={styles.header}>
-          <Text style={[styles.title, { color: KRYVEX_BRAND_COLOR }]}>
-            Your vault
-          </Text>
+          <View style={styles.vaultTitle}>
+            <BrandLogo size={34} showWordmark={false} />
+            <Text style={[styles.title, { color: KRYVEX_BRAND_COLOR }]}>
+              Your vault
+            </Text>
+          </View>
           <View style={styles.headerActions}>
             <Link href="/generator" style={styles.headerLink}>
               Generator
@@ -189,6 +193,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
   },
+  vaultTitle: { flexDirection: "row", alignItems: "center", gap: 9 },
   title: { fontSize: 22, fontWeight: "600" },
   headerActions: { flexDirection: "row", gap: 12 },
   headerLink: { fontSize: 13, fontWeight: "600", color: "#111827" },

@@ -73,15 +73,17 @@ Supporting idea:
 
 # 3. Logo Direction
 
-The visual concept uses a stylized **K** as the primary brand mark.
+The approved Kryvex identity uses the supplied geometric vault/cube symbol
+with navy and electric-blue facets, paired with the uppercase **KRYVEX**
+wordmark.
 
 ### Logo characteristics
 
 - Geometric
 - Angular but not aggressive
-- Recognizable at 16–24px
-- Works in monochrome
-- Works on dark and light backgrounds
+- Recognizable from favicon size through launch-screen size
+- Includes a monochrome Android adaptive-icon variant
+- Uses a light neutral plate when the navy facets need contrast on dark UI
 - Can be used independently from the wordmark
 
 ### Logo usage
@@ -89,13 +91,13 @@ The visual concept uses a stylized **K** as the primary brand mark.
 Primary:
 
 ```text
-[K] Kryvex
+[symbol] KRYVEX
 ```
 
 Compact:
 
 ```text
-[K]
+[symbol]
 ```
 
 Never:
@@ -104,6 +106,10 @@ Never:
 - add excessive glow
 - use multiple competing gradients
 - place the logo inside a generic shield unless specifically required
+
+Canonical assets live in `apps/web/public/brand/kryvex-mark.png` and
+`apps/mobile/assets/images/`. Web metadata and Expo icon, adaptive-icon,
+favicon, and splash configurations all derive from the same approved mark.
 
 ---
 
