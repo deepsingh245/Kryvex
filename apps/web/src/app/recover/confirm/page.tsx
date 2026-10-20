@@ -9,6 +9,7 @@ import { masterPasswordSchema } from "@kryvex/validation";
 import { secureLogger } from "@kryvex/security";
 import { Button, EmergencyKit, Input, Label } from "@kryvex/ui";
 import { AuthCard } from "@/components/auth/AuthCard";
+import { AuthPageShell } from "@/components/auth/AuthPageShell";
 import { PasswordInput } from "@/components/auth/PasswordInput";
 import {
   webFirebaseAppCheckOptions,
@@ -31,9 +32,9 @@ export default function RecoverConfirmPage() {
   return (
     <Suspense
       fallback={
-        <main className="flex min-h-screen flex-1 flex-col items-center justify-center p-8">
+        <AuthPageShell context="recover">
           <p className="text-sm text-text-secondary">Loading…</p>
-        </main>
+        </AuthPageShell>
       }
     >
       <RecoverConfirmInner />
@@ -116,8 +117,8 @@ function RecoverConfirmInner() {
 
   if (newRecoveryKey) {
     return (
-      <main className="flex min-h-screen flex-1 flex-col items-center justify-center p-6 sm:p-8">
-        <div className="w-full max-w-sm">
+      <AuthPageShell context="recover" contentClassName="max-w-xl">
+        <div className="w-full">
           <p className="mb-4 text-sm text-text-secondary">
             Your vault has been recovered with a new master password. Your old
             Emergency Kit is no longer valid — here is a new one.
@@ -127,33 +128,35 @@ function RecoverConfirmInner() {
             onContinue={() => router.push("/")}
           />
         </div>
-      </main>
+      </AuthPageShell>
     );
   }
 
   if (checkingCode) {
     return (
-      <main className="flex min-h-screen flex-1 flex-col items-center justify-center p-8">
+      <AuthPageShell context="recover">
         <p className="text-sm text-text-secondary">Checking link…</p>
-      </main>
+      </AuthPageShell>
     );
   }
 
   if (!oobCode || !codeValid) {
     return (
-      <main className="flex min-h-screen flex-1 flex-col items-center justify-center gap-4 p-8">
-        <p className="text-sm text-text-secondary">
-          This recovery link is invalid or has expired.
-        </p>
-        <Link href="/recover" className="text-sm text-primary underline">
-          Request a new one
-        </Link>
-      </main>
+      <AuthPageShell context="recover">
+        <AuthCard icon={KeyRound} title="Recovery link expired">
+          <p className="text-sm text-text-secondary">
+            This recovery link is invalid or has expired.
+          </p>
+          <Link href="/recover" className="text-sm text-primary underline">
+            Request a new one
+          </Link>
+        </AuthCard>
+      </AuthPageShell>
     );
   }
 
   return (
-    <main className="flex min-h-screen flex-1 flex-col items-center justify-center p-6 sm:p-8">
+    <AuthPageShell context="recover">
       <AuthCard
         icon={KeyRound}
         title="Recover your vault"
@@ -205,6 +208,6 @@ function RecoverConfirmInner() {
           </Button>
         </form>
       </AuthCard>
-    </main>
+    </AuthPageShell>
   );
 }

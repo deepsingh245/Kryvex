@@ -836,8 +836,11 @@ cancel and confirm paths. New's type-picker grid is now `Card` tiles with
 the same per-type icon as `ItemTypeBadge`.
 
 **Sign-in, Generator, Settings, Recovery, Conflicts**: sign-in and both
-recovery screens now use the same `AuthCard`/`PasswordInput` pattern as
-sign-up/unlock; Settings' two dropdowns became the new `Select`; Conflicts'
+recovery screens use the same `AuthCard`/`PasswordInput` pattern as
+sign-up/unlock. Sign-in, sign-up, and both recovery steps now share a
+responsive `AuthPageShell`: focused single-column on smaller screens and a
+product/security split layout from 1024px, with no auth-flow behavior change;
+Settings' two dropdowns became the new `Select`; Conflicts'
 two-version comparison is now a `Card` per conflict with an `AlertTriangle`
 marker and restyled action buttons.
 
