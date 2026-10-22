@@ -129,7 +129,6 @@ export function VaultDashboard({
             <option value="recent">Recently updated</option>
             <option value="name">Name (A–Z)</option>
           </Select>
-          <ThemeToggle />
           <Link
             href={addHref}
             className={buttonVariants({ variant: "primary" })}
@@ -137,6 +136,7 @@ export function VaultDashboard({
             <Plus className="h-4 w-4" strokeWidth={2} />
             Add item
           </Link>
+          <ThemeToggle />
         </div>
       </div>
 

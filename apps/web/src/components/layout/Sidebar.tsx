@@ -145,7 +145,7 @@ export function SidebarNav() {
 
 export function Sidebar() {
   return (
-    <aside className="hidden w-64 shrink-0 flex-col gap-6 border-r border-border bg-surface px-4 py-6 md:flex">
+    <aside className="vault-sidebar hidden w-64 shrink-0 flex-col gap-6 border-r border-border px-4 py-6 md:flex">
       <div className="px-1">
         <Logo markSize={28} />
       </div>

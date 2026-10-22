@@ -10,6 +10,7 @@ export type ResolvedTheme = Exclude<ThemePreference, "system">;
  */
 interface ThemeConfig {
   storageKey: string;
+  transitionGuardClass: string;
   defaultPreference: ThemePreference;
   defaultResolvedTheme: ResolvedTheme;
   options: ReadonlyArray<{ value: ThemePreference; label: string }>;
@@ -18,6 +19,7 @@ interface ThemeConfig {
 
 export const THEME_CONFIG: ThemeConfig = {
   storageKey: "kryvex-theme",
+  transitionGuardClass: "theme-change-in-progress",
   defaultPreference: "system",
   defaultResolvedTheme: "dark",
   options: [

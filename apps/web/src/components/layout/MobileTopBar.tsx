@@ -14,7 +14,6 @@ export function MobileTopBar() {
     <header className="flex items-center justify-between border-b border-border bg-surface px-4 py-3 md:hidden">
       <Logo markSize={24} />
       <div className="flex items-center gap-1">
-        <ThemeToggle size="touch" />
         <button
           type="button"
           onClick={() => setOpen(true)}
@@ -23,6 +22,7 @@ export function MobileTopBar() {
         >
           <Menu className="h-5 w-5" strokeWidth={1.75} />
         </button>
+        <ThemeToggle size="touch" />
       </div>
 
       <Sheet open={open} onOpenChange={setOpen} title="Menu">

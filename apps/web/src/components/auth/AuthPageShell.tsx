@@ -66,7 +66,7 @@ export function AuthPageShell({
     <main className="relative min-h-screen bg-background lg:grid lg:grid-cols-[minmax(0,1.08fr)_minmax(32rem,0.92fr)]">
       <PageThemeToggle />
 
-      <aside className="relative hidden min-h-screen overflow-hidden border-r border-border bg-surface px-10 py-9 text-foreground transition-colors lg:flex lg:flex-col xl:px-14 xl:py-12">
+      <aside className="relative hidden min-h-screen overflow-hidden border-r border-border bg-surface px-10 py-9 text-foreground lg:flex lg:flex-col xl:px-14 xl:py-12">
         <div
           aria-hidden="true"
           className="absolute -left-32 top-1/4 h-96 w-96 rounded-full bg-primary/15 blur-3xl"
@@ -99,7 +99,7 @@ export function AuthPageShell({
             {SECURITY_POINTS.map(([pointTitle, pointDescription, Icon]) => (
               <div
                 key={pointTitle}
-                className="flex items-start gap-4 rounded-2xl border border-border bg-background/70 p-4 backdrop-blur-sm transition-colors"
+                className="flex items-start gap-4 rounded-2xl border border-border bg-background/70 p-4 backdrop-blur-sm"
               >
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/15 text-primary-soft">
                   <Icon

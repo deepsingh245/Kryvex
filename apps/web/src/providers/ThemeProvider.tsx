@@ -66,8 +66,15 @@ function systemPrefersLight(): boolean {
 
 function applyToDocument(next: ThemePreference) {
   const root = document.documentElement;
+  root.classList.add(THEME_CONFIG.transitionGuardClass);
   if (next === "system") root.removeAttribute("data-theme");
   else root.setAttribute("data-theme", next);
+
+  // Apply every semantic color in one style pass. Without this guard,
+  // independently-transitioning panels can make one page look like it is
+  // changing theme in sections.
+  void root.offsetHeight;
+  root.classList.remove(THEME_CONFIG.transitionGuardClass);
 }
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {

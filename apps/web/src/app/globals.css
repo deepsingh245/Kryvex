@@ -17,9 +17,9 @@
 :root {
   color-scheme: light;
 
-  --background: light-dark(#f8fafc, #080b14);
-  --surface: light-dark(#ffffff, #111827);
-  --surface-2: light-dark(#f1f5f9, #151c2b);
+  --background: light-dark(#f4f6fc, #080b14);
+  --surface: light-dark(#fcfdff, #111827);
+  --surface-2: light-dark(#eef2ff, #151c2b);
   --card: light-dark(#ffffff, #1a2332);
   --card-foreground: light-dark(#0f172a, #f8fafc);
 
@@ -27,8 +27,8 @@
   --text-secondary: light-dark(#475569, #94a3b8);
   --text-muted: #64748b;
 
-  --border: light-dark(#e2e8f0, #1f2937);
-  --border-strong: light-dark(#cbd5e1, #334155);
+  --border: light-dark(#dce3f1, #1f2937);
+  --border-strong: light-dark(#c7d2e5, #334155);
   --ring: light-dark(#4f46e5, #6366f1);
 
   --primary: light-dark(#4f46e5, #6366f1);
@@ -50,16 +50,19 @@
 
   --radius: 1rem;
 
+  --vault-glow: light-dark(rgba(79, 70, 229, 0.1), transparent);
+  --vault-sidebar-end: light-dark(#f7f8ff, #111827);
+
   --shadow-sm: light-dark(
-    0 2px 8px rgba(15, 23, 42, 0.08),
+    0 2px 8px rgba(38, 51, 93, 0.09),
     0 2px 8px rgba(0, 0, 0, 0.18)
   );
   --shadow-md: light-dark(
-    0 8px 24px rgba(15, 23, 42, 0.1),
+    0 8px 24px rgba(38, 51, 93, 0.11),
     0 8px 24px rgba(0, 0, 0, 0.24)
   );
   --shadow-lg: light-dark(
-    0 20px 50px rgba(15, 23, 42, 0.14),
+    0 20px 50px rgba(38, 51, 93, 0.15),
     0 20px 50px rgba(0, 0, 0, 0.3)
   );
 }
@@ -76,6 +79,32 @@
   :root:not([data-theme]) {
     color-scheme: dark;
   }
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+/* Theme changes are intentionally atomic. Component hover/focus motion is
+ * restored immediately after the new palette has been painted. */
+:root.theme-change-in-progress *,
+:root.theme-change-in-progress *::before,
+:root.theme-change-in-progress *::after {
+  transition: none !important;
+}
+
+.vault-shell {
+  background:
+    radial-gradient(circle at 78% -12rem, var(--vault-glow), transparent 38rem),
+    var(--background);
+}
+
+.vault-sidebar {
+  background: linear-gradient(
+    180deg,
+    var(--surface) 0%,
+    var(--vault-sidebar-end) 100%
+  );
 }
 
 .marketing-page a,
