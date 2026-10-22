@@ -73,6 +73,24 @@ At onboarding (build spec §54), after the master password is confirmed:
    (recommended, since the old Emergency Kit was just used and should be
    considered spent/rotated).
 
+**As implemented (web + mobile):** step 1 is a Firebase password-reset email
+(`sendVaultRecoveryEmail`). Its `oobCode` proves inbox control and is a second
+factor alongside the Recovery Key; neither alone completes recovery. Step 5
+is not optional: a fresh Recovery Key is always issued and shown as a new
+Emergency Kit. On mobile there is no deep link yet. The email link opens
+web's `/recover/confirm` (`EXPO_PUBLIC_WEB_RECOVERY_URL`), so the user either
+finishes there or pastes the link into the app's `recover-confirm` screen,
+which extracts the `oobCode`.
+
+**Creating/replacing a Recovery Key while unlocked (mobile Settings):**
+accounts created on mobile before the mobile security-parity pass have no
+`protectedVaultKeyByRecovery`. Settings → "Create new Recovery Key"
+re-verifies the master password (fail-closed AEAD unwrap of
+`protectedVaultKey`), wraps the in-memory Vault Encryption Key under a fresh
+Recovery Key, overwrites `protectedVaultKeyByRecovery`, and shows the new
+Emergency Kit. Any previous kit stops working. Web doesn't have this action
+yet.
+
 ## 4. No Emergency Kit, master password lost
 
 The vault is unrecoverable by design. The UI states this plainly rather than

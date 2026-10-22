@@ -28,7 +28,25 @@ jest.mock("@/providers/VaultProvider", () => ({
 
 jest.mock("@/hooks/useVaultItems", () => ({
   useVaultItems: jest.fn(),
+  newItemId: () => "item-1",
 }));
+
+const mockCreateAttachment = jest.fn();
+jest.mock("@/hooks/useAttachments", () => ({
+  useCreateAttachment: () => mockCreateAttachment,
+}));
+
+const mockPickFile = jest.fn();
+jest.mock("@/lib/attachmentFiles", () => ({
+  ...jest.requireActual("@/lib/attachmentFiles"),
+  pickFile: (...args: unknown[]) => mockPickFile(...args),
+}));
+
+beforeEach(() => {
+  mockCreateAttachment.mockReset();
+  mockPickFile.mockReset();
+  mockReplace.mockReset();
+});
 
 const mockedUseVault = jest.mocked(useVault);
 const mockedUseVaultItems = jest.mocked(useVaultItems);
@@ -41,7 +59,7 @@ const UNLOCKED_STATE = {
 };
 
 describe("NewItemScreen", () => {
-  it("shows the type picker excluding image/pdf/file", async () => {
+  it("shows the type picker, including attachment types", async () => {
     mockedUseVault.mockReturnValue({
       state: UNLOCKED_STATE,
       signUp: jest.fn(),
@@ -52,6 +70,12 @@ describe("NewItemScreen", () => {
       disableBiometric: jest.fn(),
       lock: jest.fn(),
       signOut: jest.fn(),
+      settings: undefined,
+      reportActivity: jest.fn(),
+      updateSettings: jest.fn(),
+      regenerateRecoveryKey: jest.fn(),
+      sendRecoveryEmail: jest.fn(),
+      recoverVault: jest.fn(),
     });
     mockedUseVaultItems.mockReturnValue({
       items: [],
@@ -67,9 +91,71 @@ describe("NewItemScreen", () => {
     await render(<NewItemScreen />);
     expect(screen.getByText("Login")).toBeTruthy();
     expect(screen.getByText("Custom")).toBeTruthy();
-    expect(screen.queryByText("Image")).toBeNull();
-    expect(screen.queryByText("PDF")).toBeNull();
-    expect(screen.queryByText("File")).toBeNull();
+    expect(screen.getByText("Image")).toBeTruthy();
+    expect(screen.getByText("PDF")).toBeTruthy();
+    expect(screen.getByText("File")).toBeTruthy();
+  });
+
+  it("an Image item uploads the picked file under the new item's id, then creates the item", async () => {
+    const createItem = jest.fn().mockResolvedValue("item-1");
+    mockCreateAttachment.mockResolvedValue("att-1");
+    mockPickFile.mockResolvedValue({
+      uri: "file:///cache/photo.jpg",
+      name: "photo.jpg",
+      mimeType: "image/jpeg",
+      size: 1234,
+    });
+    mockedUseVault.mockReturnValue({
+      state: UNLOCKED_STATE,
+    } as unknown as ReturnType<typeof useVault>);
+    mockedUseVaultItems.mockReturnValue({
+      items: [],
+      loading: false,
+      createItem,
+    } as unknown as ReturnType<typeof useVaultItems>);
+    await render(<NewItemScreen />);
+
+    await fireEvent.press(screen.getByText("Image"));
+    await fireEvent.changeText(screen.getByLabelText("Title"), "Passport");
+    await fireEvent.press(screen.getByText("Choose photo"));
+    await screen.findByText("photo.jpg");
+    await fireEvent.press(screen.getByText("Upload"));
+
+    await waitFor(() => {
+      expect(createItem).toHaveBeenCalledWith(
+        "image",
+        expect.objectContaining({
+          type: "image",
+          title: "Passport",
+          attachmentId: "att-1",
+        }),
+        ["att-1"],
+        "item-1",
+      );
+    });
+    expect(mockCreateAttachment).toHaveBeenCalledWith(
+      expect.objectContaining({ name: "photo.jpg" }),
+      "item-1",
+    );
+    expect(mockReplace).toHaveBeenCalledWith("/item/item-1");
+  });
+
+  it("refuses to upload without a file", async () => {
+    mockedUseVault.mockReturnValue({
+      state: UNLOCKED_STATE,
+    } as unknown as ReturnType<typeof useVault>);
+    mockedUseVaultItems.mockReturnValue({
+      items: [],
+      loading: false,
+      createItem: jest.fn(),
+    } as unknown as ReturnType<typeof useVaultItems>);
+    await render(<NewItemScreen />);
+
+    await fireEvent.press(screen.getByText("PDF"));
+    await fireEvent.changeText(screen.getByLabelText("Title"), "Lease");
+    await fireEvent.press(screen.getByText("Upload"));
+    expect(screen.getByText("Choose a file.")).toBeTruthy();
+    expect(mockCreateAttachment).not.toHaveBeenCalled();
   });
 
   it("selecting a type renders the ItemForm, and submitting creates the item and navigates", async () => {
@@ -84,6 +170,12 @@ describe("NewItemScreen", () => {
       disableBiometric: jest.fn(),
       lock: jest.fn(),
       signOut: jest.fn(),
+      settings: undefined,
+      reportActivity: jest.fn(),
+      updateSettings: jest.fn(),
+      regenerateRecoveryKey: jest.fn(),
+      sendRecoveryEmail: jest.fn(),
+      recoverVault: jest.fn(),
     });
     mockedUseVaultItems.mockReturnValue({
       items: [],

@@ -73,15 +73,17 @@ Supporting idea:
 
 # 3. Logo Direction
 
-The visual concept uses a stylized **K** as the primary brand mark.
+The approved Kryvex identity uses the supplied geometric vault/cube symbol
+with navy and electric-blue facets, paired with the uppercase **KRYVEX**
+wordmark.
 
 ### Logo characteristics
 
 - Geometric
 - Angular but not aggressive
-- Recognizable at 16–24px
-- Works in monochrome
-- Works on dark and light backgrounds
+- Recognizable from favicon size through launch-screen size
+- Includes a monochrome Android adaptive-icon variant
+- Uses the transparent symbol directly; never add a white plate or tile behind it
 - Can be used independently from the wordmark
 
 ### Logo usage
@@ -89,13 +91,13 @@ The visual concept uses a stylized **K** as the primary brand mark.
 Primary:
 
 ```text
-[K] Kryvex
+[symbol] KRYVEX
 ```
 
 Compact:
 
 ```text
-[K]
+[symbol]
 ```
 
 Never:
@@ -104,6 +106,11 @@ Never:
 - add excessive glow
 - use multiple competing gradients
 - place the logo inside a generic shield unless specifically required
+
+The canonical transparent mark lives at
+`apps/web/public/brand/kryvex-mark.png` and is mirrored into the web metadata
+icons and Expo web favicon. App-store/adaptive icons and splash assets remain
+platform-specific exports of the same approved identity.
 
 ---
 
@@ -180,23 +187,27 @@ Do not turn the entire UI green/red/yellow.
 Kryvex should support a polished light theme, but **dark remains the primary visual identity**.
 
 ```text
-Background:     #F8FAFC
-Surface:        #FFFFFF
-Surface 2:      #F1F5F9
+Background:     #F4F6FC
+Surface:        #FCFDFF
+Surface 2:      #EEF2FF
 Card:           #FFFFFF
 
 Text Primary:   #0F172A
 Text Secondary: #475569
 Text Muted:     #64748B
 
-Border:         #E2E8F0
-Border Strong:  #CBD5E1
+Border:         #DCE3F1
+Border Strong:  #C7D2E5
 
 Primary:        #4F46E5
 Primary Hover:  #4338CA
 ```
 
-The light theme should feel like the same product, not a separate design.
+The light theme should feel like the same product, not a separate design. Use
+the blue-tinted canvas and surface hierarchy to keep it calm without reducing
+the interface to plain white and gray. Vault screens may add one restrained
+indigo ambient glow and a softly tinted sidebar; content legibility remains
+dominant.
 
 ---
 
@@ -541,6 +552,10 @@ Padding: 20–24px
 
 Cards should have clear hierarchy.
 
+Do not use colored or gradient top rails, decorative header strips, or other
+"AI-generated card" accents. Create hierarchy with typography, spacing,
+borders, restrained shadows, and functional status colors instead.
+
 A card should usually contain:
 
 ```text
@@ -737,42 +752,43 @@ Automatically return to the hidden state where appropriate.
 
 # 20. First Three Screens
 
-## Screen 01 — Welcome / Onboarding
+## Screen 01 — Public Marketing Home / Welcome
 
 Purpose:
 
-Introduce Kryvex without overwhelming the user.
+Introduce Kryvex to signed-out visitors, explain the product and zero-knowledge
+model in plain language, and lead into vault creation without overwhelming the
+user. This remains the `/welcome` destination used by the signed-out redirect.
 
 Structure:
 
 ```text
-Logo
+Navigation + Sign in + Create a free vault
 
-Kryvex
+The secure home for everything you need to remember.
 
-Your private vault. Always.
+[ Product vault visual ]
 
-Store everything that matters
+Scattered information → one searchable private vault
 
-Passwords, credentials, secure notes,
-files, and more — all in one encrypted
-vault, accessible only by you.
+Find in seconds / More than passwords / Cross-device direction
 
-[ Secure visual illustration ]
+Zero-knowledge explanation
 
-[ Get Started ]
+Unlock → Find → Reveal or copy
 
-I already have an account
+Supported item types / FAQ / Final CTA / Footer
 ```
 
 Visual:
 
-- dark navy background
-- large brand mark
-- subtle indigo atmospheric glow
-- floating secure-item cards
-- generous whitespace
-- no busy dashboard elements
+- light editorial marketing canvas with the existing indigo brand
+- dark product imagery so the public site still feels connected to the app
+- plain-language security copy with no absolute security claims
+- one dominant action label: `Create a free vault`
+- real links to `/sign-up`, `/sign-in`, and `/recover`
+- web availability stated accurately; native mobile remains in progress
+- responsive navigation and section layout with generous whitespace
 
 ---
 
@@ -1109,5 +1125,13 @@ Claude must:
 15. Keep security UX calm and understandable.
 
 ---
+
+## Theming and responsive web layouts
+
+- **Theme:** behavior, storage, labels, defaults, and the transition guard are centralized in `apps/web/src/config/theme.config.ts`; palette roles are declared once in `app/globals.css` with `light-dark()` semantic tokens. `data-theme="light|dark"` selects an explicit scheme, while no attribute follows the OS. Theme changes are applied atomically so split layouts never repaint panel-by-panel. Every quick switch uses the shared `ThemeToggle` and is the rightmost control in its header; full-page shells use `PageThemeToggle` at the top-right; Settings → Appearance uses the companion `ThemeSelector` for light / dark / system.
+- **Marketing navigation:** in-page navigation uses native anchors with global smooth scrolling; reduced-motion preferences disable the animation.
+- **Responsive auth shell:** sign-in, sign-up, recovery request, and recovery confirmation keep a focused single-column card below 1024px. At 1024px and above they use a split-screen web layout: product/security context on the left and a wider form workspace on the right. Authentication and recovery behavior is unchanged.
+- **Vault home breakpoints:** below 768px the original single-column list; 768px and up the dashboard (summary chips, credential table, quick copy actions). From 1024px an inline detail pane shows the selected item; at tablet width the same detail opens in a right-hand sheet.
+- **Security:** the table never renders passwords. Copy actions use the auto-clearing clipboard path and reveal stays behind `SecretField`.
 
 ## End of Kryvex UI Source of Truth

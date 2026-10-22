@@ -8,6 +8,7 @@ import { signInFormSchema } from "@kryvex/validation";
 import { secureLogger } from "@kryvex/security";
 import { Button, Input, Label } from "@kryvex/ui";
 import { AuthCard } from "@/components/auth/AuthCard";
+import { AuthPageShell } from "@/components/auth/AuthPageShell";
 import { PasswordInput } from "@/components/auth/PasswordInput";
 import { useVault } from "@/providers/VaultProvider";
 
@@ -46,7 +47,7 @@ export default function SignInPage() {
   }
 
   return (
-    <main className="flex min-h-screen flex-1 flex-col items-center justify-center p-6 sm:p-8">
+    <AuthPageShell context="sign-in">
       <AuthCard
         icon={LogIn}
         title="Sign in to Kryvex"
@@ -105,6 +106,6 @@ export default function SignInPage() {
           </div>
         </form>
       </AuthCard>
-    </main>
+    </AuthPageShell>
   );
 }

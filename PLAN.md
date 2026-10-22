@@ -202,13 +202,13 @@ port after every web phase as before. Phases already done on both platforms
 
 ### Track B — Mobile completion (deferred until Track A is entirely done)
 
-| Phase | Focus                                                                                                                                                                                                                                                                                                   |
-| ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 6b    | Attachments (mobile port) — native file/image picker (`expo-image-picker`, `expo-document-picker`), `expo-sharing` for the system-viewer hand-off                                                                                                                                                       |
-| 7m    | **Partially complete:** biometric unlock is implemented (strong-biometric check, Android Keystore/iOS Keychain authenticated SecureStore VEK, opt-in/out UI, manual lock, sign-out cleanup). Still pending: auto-lock/background locking, clipboard integration, screenshot/screen-recording protection |
-| 8m    | UX polish (mobile)                                                                                                                                                                                                                                                                                      |
-| 9m    | Security hardening (mobile-specific — native module review, on top of Track A's shared-package hardening)                                                                                                                                                                                               |
-| 10m   | Release (mobile) — EAS builds, App Store/Play Store submission                                                                                                                                                                                                                                          |
+| Phase | Focus                                                                                                                                                                                                                                                                                                                        |
+| ----- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 6b    | **Done (pending device verification).** Attachments (mobile port) — native file/image picker (`expo-image-picker`, `expo-document-picker`), `expo-sharing` for the system-viewer hand-off                                                                                                                                    |
+| 7m    | **Done (Track B pass 1, pending device verification).** Biometric unlock (earlier), plus auto-lock (idle + background timeout), clipboard auto-clear, always-on screenshot/recording/app-switcher protection, settings screen, and Recovery Key parity: issued at sign-up, mobile recover flow, create/replace from Settings |
+| 8m    | UX polish (mobile)                                                                                                                                                                                                                                                                                                           |
+| 9m    | Security hardening (mobile-specific — native module review, on top of Track A's shared-package hardening)                                                                                                                                                                                                                    |
+| 10m   | Release (mobile) — EAS builds, App Store/Play Store submission                                                                                                                                                                                                                                                               |
 
 Each phase ends with: tests run, security implications reviewed, docs updated,
 and a short "Changed / Tests / Security considerations / Files / Next step" report.
@@ -225,8 +225,9 @@ and a short "Changed / Tests / Security considerations / Files / Next step" repo
   Resolved Phase 4: in-memory substring scan over already-decrypted content,
   no persisted index (see DATA_MODEL.md §6) — revisit once Phase 5's offline
   cache exists to host a real index, if usage at scale shows it's needed.
-- Screenshot/screen-recording protection scope on mobile (which screens, which OS
-  differences).
+- ~~Screenshot/screen-recording protection scope on mobile (which screens, which OS
+  differences).~~ Resolved Track B pass 1: every screen, always on; OS
+  differences in SECURITY_THREAT_MODEL.md row 16.
 
 ---
 
@@ -282,5 +283,15 @@ and a short "Changed / Tests / Security considerations / Files / Next step" repo
     per-item-DEK question resolved, `Math.random()` cleanup, `react/no-danger`,
     the dependency audit result, the Email Enumeration Protection
     action item).
-18. **Next up:** Phase 10w — release (web): production Firebase project,
-    web deploy, release checklist.
+18. Phase 10w — release (web): production Firebase project, web deploy,
+    release checklist. Web v1 declared complete by the project owner;
+    remaining 10w checklist items stay tracked in DEPLOYMENT.md §12.
+19. ~~Track B pass 1 — mobile security parity (7m remainder + Recovery Key).~~
+    Done — see "Current status" in `KRYVEX_SOURCE_OF_TRUTH.md`. Needs a
+    physical-device click-through (dev build: `expo-screen-capture` is a
+    native module).
+20. ~~Phase 6b — attachments on `apps/mobile`.~~ Done — see "Current status"
+    in `KRYVEX_SOURCE_OF_TRUTH.md`. Needs device verification of the RN
+    Storage upload path.
+21. **Next up:** Phase 8m — UX polish (mobile): Kryvex visual system and dark
+    mode on mobile, plus small gaps (e.g. camera capture for IDs).

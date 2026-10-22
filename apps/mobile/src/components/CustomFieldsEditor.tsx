@@ -7,6 +7,7 @@ import {
   View,
 } from "react-native";
 import type { CustomField, CustomFieldType } from "@kryvex/types";
+import { randomId } from "@/lib/randomId";
 import { BooleanField } from "./BooleanField";
 import { Button } from "./Button";
 import { DateField } from "./DateField";
@@ -32,9 +33,7 @@ export interface CustomFieldsEditorProps {
 }
 
 function newFieldId(): string {
-  return typeof crypto !== "undefined" && "randomUUID" in crypto
-    ? crypto.randomUUID()
-    : `field-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  return randomId("field");
 }
 
 export function CustomFieldsEditor({

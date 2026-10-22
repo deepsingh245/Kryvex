@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useRouter } from "expo-router";
 import {
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -9,6 +10,8 @@ import {
 } from "react-native";
 import { signUpFormSchema } from "@kryvex/validation";
 import { secureLogger } from "@kryvex/security";
+import { BrandLogo } from "@/components/BrandLogo";
+import { EmergencyKit } from "@/components/EmergencyKit";
 import { useVault } from "@/providers/VaultProvider";
 
 export default function SignUpScreen() {
@@ -19,6 +22,7 @@ export default function SignUpScreen() {
   const [confirmMasterPassword, setConfirmMasterPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [recoveryKey, setRecoveryKey] = useState<string | null>(null);
 
   async function handleSubmit() {
     setError(null);
@@ -33,8 +37,15 @@ export default function SignUpScreen() {
     }
     setSubmitting(true);
     try {
-      await signUp(parsed.data.email, parsed.data.masterPassword);
-      router.replace("/");
+      const result = await signUp(
+        parsed.data.email,
+        parsed.data.masterPassword,
+      );
+      // Show the Emergency Kit before leaving — docs/RECOVERY.md §2: it's
+      // shown exactly once, here.
+      setMasterPassword("");
+      setConfirmMasterPassword("");
+      setRecoveryKey(result.recoveryKey);
     } catch (err) {
       secureLogger.error("Sign-up failed", { email: parsed.data.email });
       setError(
@@ -47,12 +58,24 @@ export default function SignUpScreen() {
     }
   }
 
+  if (recoveryKey) {
+    return (
+      <ScrollView contentContainerStyle={styles.kitContainer}>
+        <EmergencyKit
+          recoveryKey={recoveryKey}
+          onContinue={() => router.replace("/")}
+        />
+      </ScrollView>
+    );
+  }
+
   return (
     <View style={styles.container}>
+      <BrandLogo size={52} style={styles.brand} />
       <Text style={styles.title}>Create your Kryvex vault</Text>
       <Text style={styles.hint}>
-        Your master password protects your vault. Kryvex cannot simply send it
-        to the server and recover your vault for you.
+        Your master password protects your vault. After sign-up you&apos;ll get
+        a one-time Recovery Key — the only way back in if you forget it.
       </Text>
 
       <TextInput
@@ -102,6 +125,8 @@ export default function SignUpScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, justifyContent: "center", padding: 24, gap: 12 },
+  kitContainer: { flexGrow: 1, justifyContent: "center", padding: 24 },
+  brand: { alignSelf: "center", marginBottom: 12 },
   title: { fontSize: 20, fontWeight: "600" },
   hint: { fontSize: 13, color: "#6b7280" },
   input: {

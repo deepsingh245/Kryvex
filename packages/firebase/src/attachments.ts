@@ -78,8 +78,15 @@ export async function softDeleteAttachmentDocument(
   attachmentId: string,
   attachment: Record<string, unknown>,
 ): Promise<void> {
+  // firestore.rules requires every update to bump revision by exactly one —
+  // writing the fetched doc back unchanged is always rejected.
+  const { revision } = attachment;
+  if (typeof revision !== "number" || !Number.isInteger(revision)) {
+    throw new Error("Attachment document has no valid revision.");
+  }
   await setDoc(attachmentDoc(firestore, uid, attachmentId), {
     ...attachment,
+    revision: revision + 1,
     deleted: true,
     updatedAt: serverTimestamp(),
   });

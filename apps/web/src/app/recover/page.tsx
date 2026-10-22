@@ -11,6 +11,7 @@ import {
 import { secureLogger } from "@kryvex/security";
 import { Button, Input, Label } from "@kryvex/ui";
 import { AuthCard } from "@/components/auth/AuthCard";
+import { AuthPageShell } from "@/components/auth/AuthPageShell";
 import {
   webFirebaseAppCheckOptions,
   webFirebaseConfig,
@@ -60,7 +61,7 @@ export default function RecoverPage() {
 
   if (sent) {
     return (
-      <main className="flex min-h-screen flex-1 flex-col items-center justify-center p-6 sm:p-8">
+      <AuthPageShell context="recover">
         <AuthCard icon={MailCheck} title="Check your email">
           <p className="text-sm text-text-secondary">
             If an account exists for {email}, we&apos;ve sent a link to continue
@@ -74,12 +75,12 @@ export default function RecoverPage() {
             Back to sign in
           </Link>
         </AuthCard>
-      </main>
+      </AuthPageShell>
     );
   }
 
   return (
-    <main className="flex min-h-screen flex-1 flex-col items-center justify-center p-6 sm:p-8">
+    <AuthPageShell context="recover">
       <AuthCard
         icon={KeyRound}
         title="Recover your vault"
@@ -116,6 +117,6 @@ export default function RecoverPage() {
           </Link>
         </form>
       </AuthCard>
-    </main>
+    </AuthPageShell>
   );
 }

@@ -45,6 +45,11 @@ describe("SignUpPage", () => {
     expect(screen.getByLabelText("Email")).toBeInTheDocument();
     expect(screen.getByLabelText("Master password")).toBeInTheDocument();
     expect(screen.getByLabelText("Confirm password")).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", {
+        name: "One secure home for the details that run your digital life.",
+      }),
+    ).toBeInTheDocument();
   });
 
   it("updates the requirements checklist as the password is typed", () => {

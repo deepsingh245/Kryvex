@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
-import { Toaster } from "sonner";
+import { ThemedToaster } from "@/components/layout/ThemedToaster";
+import { THEME_INIT_SCRIPT } from "@/config/theme.config";
+import { ThemeProvider } from "@/providers/ThemeProvider";
 import { VaultProvider } from "@/providers/VaultProvider";
 import "./globals.css";
 
@@ -25,10 +27,16 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html
       lang="en"
       className={`${inter.variable} ${jetbrainsMono.variable} h-full antialiased`}
+      suppressHydrationWarning
     >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+      </head>
       <body className="min-h-full flex flex-col bg-background text-foreground">
-        <VaultProvider>{children}</VaultProvider>
-        <Toaster theme="system" richColors closeButton />
+        <ThemeProvider>
+          <VaultProvider>{children}</VaultProvider>
+          <ThemedToaster />
+        </ThemeProvider>
       </body>
     </html>
   );

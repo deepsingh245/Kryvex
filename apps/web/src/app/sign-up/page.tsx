@@ -10,6 +10,7 @@ import { signUpFormSchema, type SignUpFormInput } from "@kryvex/validation";
 import { secureLogger } from "@kryvex/security";
 import { Button, EmergencyKit, Input, Label } from "@kryvex/ui";
 import { AuthCard } from "@/components/auth/AuthCard";
+import { AuthPageShell } from "@/components/auth/AuthPageShell";
 import { PasswordInput } from "@/components/auth/PasswordInput";
 import { PasswordRequirementsList } from "@/components/auth/PasswordRequirementsList";
 import { PasswordStrengthMeter } from "@/components/auth/PasswordStrengthMeter";
@@ -68,19 +69,19 @@ export default function SignUpPage() {
 
   if (recoveryKey) {
     return (
-      <main className="flex min-h-screen flex-1 flex-col items-center justify-center p-6 sm:p-8">
-        <div className="w-full max-w-sm">
+      <AuthPageShell context="sign-up" contentClassName="max-w-xl">
+        <div className="w-full">
           <EmergencyKit
             recoveryKey={recoveryKey}
             onContinue={() => router.push("/")}
           />
         </div>
-      </main>
+      </AuthPageShell>
     );
   }
 
   return (
-    <main className="flex min-h-screen flex-1 flex-col items-center justify-center p-6 sm:p-8">
+    <AuthPageShell context="sign-up">
       <AuthCard
         icon={ShieldCheck}
         title="Create Master Password"
@@ -154,6 +155,6 @@ export default function SignUpPage() {
           </Link>
         </form>
       </AuthCard>
-    </main>
+    </AuthPageShell>
   );
 }

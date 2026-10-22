@@ -7,6 +7,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { secureLogger } from "@kryvex/security";
 import { Button } from "@kryvex/ui";
 import { AuthCard } from "@/components/auth/AuthCard";
+import { AuthPageShell } from "@/components/auth/AuthPageShell";
 import { BiometricUnlockButton } from "@/components/auth/BiometricUnlockButton";
 import { PasswordInput } from "@/components/auth/PasswordInput";
 import { hasBiometricEnrollment } from "@/lib/biometric";
@@ -81,7 +82,7 @@ export default function UnlockPage() {
       : null;
 
   return (
-    <main className="flex min-h-screen flex-1 flex-col items-center justify-center p-6 sm:p-8">
+    <AuthPageShell context="unlock">
       <AuthCard
         icon={Lock}
         title="Unlock Your Vault"
@@ -129,6 +130,6 @@ export default function UnlockPage() {
           )}
         </form>
       </AuthCard>
-    </main>
+    </AuthPageShell>
   );
 }
