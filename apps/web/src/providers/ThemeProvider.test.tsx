@@ -1,7 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it } from "vitest";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
-import { THEME_STORAGE_KEY } from "@/lib/theme";
+import { THEME_CONFIG } from "@/config/theme.config";
 import { ThemeProvider } from "./ThemeProvider";
 
 describe("ThemeProvider + ThemeToggle", () => {
@@ -22,14 +22,14 @@ describe("ThemeProvider + ThemeToggle", () => {
     );
 
     expect(document.documentElement.getAttribute("data-theme")).toBe("light");
-    expect(localStorage.getItem(THEME_STORAGE_KEY)).toBe("light");
+    expect(localStorage.getItem(THEME_CONFIG.storageKey)).toBe("light");
     expect(
       screen.getByRole("button", { name: "Switch to dark theme" }),
     ).toBeInTheDocument();
   });
 
   it("restores a stored preference", () => {
-    localStorage.setItem(THEME_STORAGE_KEY, "light");
+    localStorage.setItem(THEME_CONFIG.storageKey, "light");
     render(
       <ThemeProvider>
         <ThemeToggle />

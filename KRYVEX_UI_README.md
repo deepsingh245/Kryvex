@@ -83,7 +83,7 @@ wordmark.
 - Angular but not aggressive
 - Recognizable from favicon size through launch-screen size
 - Includes a monochrome Android adaptive-icon variant
-- Uses a light neutral plate when the navy facets need contrast on dark UI
+- Uses the transparent symbol directly; never add a white plate or tile behind it
 - Can be used independently from the wordmark
 
 ### Logo usage
@@ -107,9 +107,10 @@ Never:
 - use multiple competing gradients
 - place the logo inside a generic shield unless specifically required
 
-Canonical assets live in `apps/web/public/brand/kryvex-mark.png` and
-`apps/mobile/assets/images/`. Web metadata and Expo icon, adaptive-icon,
-favicon, and splash configurations all derive from the same approved mark.
+The canonical transparent mark lives at
+`apps/web/public/brand/kryvex-mark.png` and is mirrored into the web metadata
+icons and Expo web favicon. App-store/adaptive icons and splash assets remain
+platform-specific exports of the same approved identity.
 
 ---
 
@@ -1119,7 +1120,7 @@ Claude must:
 
 ## Theming and responsive web layouts
 
-- **Theme:** dark is the default palette; `data-theme="light"` on `<html>` swaps in the light palette, and with no explicit choice `prefers-color-scheme` decides. `ThemeToggle` (top bar, sidebar, marketing header, auth cards) flips light/dark; Settings → Appearance offers light / dark / system.
+- **Theme:** behavior, storage, labels, and defaults are centralized in `apps/web/src/config/theme.config.ts`; palette roles are declared once in `app/globals.css` with `light-dark()` semantic tokens. `data-theme="light|dark"` selects an explicit scheme, while no attribute follows the OS. Every quick switch uses the shared `ThemeToggle`; full-page shells use `PageThemeToggle`; Settings → Appearance uses the companion `ThemeSelector` for light / dark / system.
 - **Responsive auth shell:** sign-in, sign-up, recovery request, and recovery confirmation keep a focused single-column card below 1024px. At 1024px and above they use a split-screen web layout: product/security context on the left and a wider form workspace on the right. Authentication and recovery behavior is unchanged.
 - **Vault home breakpoints:** below 768px the original single-column list; 768px and up the dashboard (summary chips, credential table, quick copy actions). From 1024px an inline detail pane shows the selected item; at tablet width the same detail opens in a right-hand sheet.
 - **Security:** the table never renders passwords. Copy actions use the auto-clearing clipboard path and reveal stays behind `SecretField`.

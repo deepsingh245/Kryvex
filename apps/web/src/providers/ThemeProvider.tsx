@@ -7,7 +7,11 @@ import {
   useMemo,
   useSyncExternalStore,
 } from "react";
-import { THEME_STORAGE_KEY, type ThemePreference } from "@/lib/theme";
+import {
+  isResolvedTheme,
+  THEME_CONFIG,
+  type ThemePreference,
+} from "@/config/theme.config";
 
 export type { ThemePreference };
 
@@ -19,8 +23,8 @@ interface ThemeContextValue {
 }
 
 const ThemeContext = createContext<ThemeContextValue>({
-  preference: "system",
-  resolved: "dark",
+  preference: THEME_CONFIG.defaultPreference,
+  resolved: THEME_CONFIG.defaultResolvedTheme,
   setPreference: () => {},
 });
 
@@ -28,12 +32,12 @@ const listeners = new Set<() => void>();
 
 function readStoredPreference(): ThemePreference {
   try {
-    const stored = localStorage.getItem(THEME_STORAGE_KEY);
-    if (stored === "light" || stored === "dark") return stored;
+    const stored = localStorage.getItem(THEME_CONFIG.storageKey);
+    if (isResolvedTheme(stored)) return stored;
   } catch {
     // Storage unavailable (private mode, blocked) — fall back to system.
   }
-  return "system";
+  return THEME_CONFIG.defaultPreference;
 }
 
 function subscribePreference(onChange: () => void) {
@@ -70,19 +74,19 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const preference = useSyncExternalStore<ThemePreference>(
     subscribePreference,
     readStoredPreference,
-    () => "system",
+    () => THEME_CONFIG.defaultPreference,
   );
   const systemLight = useSyncExternalStore(
     subscribeSystem,
     systemPrefersLight,
-    () => false,
+    () => THEME_CONFIG.defaultResolvedTheme === "light",
   );
 
   const setPreference = useCallback((next: ThemePreference) => {
     applyToDocument(next);
     try {
-      if (next === "system") localStorage.removeItem(THEME_STORAGE_KEY);
-      else localStorage.setItem(THEME_STORAGE_KEY, next);
+      if (next === "system") localStorage.removeItem(THEME_CONFIG.storageKey);
+      else localStorage.setItem(THEME_CONFIG.storageKey, next);
     } catch {
       // Preference just won't persist.
     }

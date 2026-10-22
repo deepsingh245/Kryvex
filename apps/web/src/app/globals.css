@@ -9,34 +9,31 @@
 
 /*
  * Kryvex design tokens — see KRYVEX_UI_README.md §4/§5/§9/§10/§25.
- * Dark is the primary identity (bare :root); the light palette is applied via
- * data-theme="light" or, with no explicit choice, prefers-color-scheme. Same semantic token names in both themes so
- * components never hard-code a color.
+ * Every palette role is declared once with light-dark(light, dark). Explicit
+ * data-theme choices only select a color scheme; one media query selects dark
+ * for an unset/system preference. Components consume semantic tokens and never
+ * need theme-specific CSS.
  */
 :root {
-  /* Without this, native form controls (select's dropdown popup,
-   * checkboxes, scrollbars) render with the browser's light default
-   * chrome regardless of our own dark tokens above — this is what makes
-   * them look "out of theme" even though the trigger itself is styled. */
-  color-scheme: dark;
+  color-scheme: light;
 
-  --background: #080b14;
-  --surface: #111827;
-  --surface-2: #151c2b;
-  --card: #1a2332;
-  --card-foreground: #f8fafc;
+  --background: light-dark(#f8fafc, #080b14);
+  --surface: light-dark(#ffffff, #111827);
+  --surface-2: light-dark(#f1f5f9, #151c2b);
+  --card: light-dark(#ffffff, #1a2332);
+  --card-foreground: light-dark(#0f172a, #f8fafc);
 
-  --foreground: #f8fafc;
-  --text-secondary: #94a3b8;
+  --foreground: light-dark(#0f172a, #f8fafc);
+  --text-secondary: light-dark(#475569, #94a3b8);
   --text-muted: #64748b;
 
-  --border: #1f2937;
-  --border-strong: #334155;
-  --ring: #6366f1;
+  --border: light-dark(#e2e8f0, #1f2937);
+  --border-strong: light-dark(#cbd5e1, #334155);
+  --ring: light-dark(#4f46e5, #6366f1);
 
-  --primary: #6366f1;
-  --primary-hover: #4f46e5;
-  --primary-soft: #818cf8;
+  --primary: light-dark(#4f46e5, #6366f1);
+  --primary-hover: light-dark(#4338ca, #4f46e5);
+  --primary-soft: light-dark(#6366f1, #818cf8);
   --primary-foreground: #ffffff;
 
   --secondary: var(--surface);
@@ -53,67 +50,31 @@
 
   --radius: 1rem;
 
-  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.18);
-  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.24);
-  --shadow-lg: 0 20px 50px rgba(0, 0, 0, 0.3);
+  --shadow-sm: light-dark(
+    0 2px 8px rgba(15, 23, 42, 0.08),
+    0 2px 8px rgba(0, 0, 0, 0.18)
+  );
+  --shadow-md: light-dark(
+    0 8px 24px rgba(15, 23, 42, 0.1),
+    0 8px 24px rgba(0, 0, 0, 0.24)
+  );
+  --shadow-lg: light-dark(
+    0 20px 50px rgba(15, 23, 42, 0.14),
+    0 20px 50px rgba(0, 0, 0, 0.3)
+  );
 }
 
-/* Theme selection: <html data-theme="light|dark"> is set by ThemeProvider (and
- * the pre-hydration script in layout.tsx). With no attribute ("system"), the
- * OS preference decides. */
 :root[data-theme="light"] {
   color-scheme: light;
-
-  --background: #f8fafc;
-  --surface: #ffffff;
-  --surface-2: #f1f5f9;
-  --card: #ffffff;
-  --card-foreground: #0f172a;
-
-  --foreground: #0f172a;
-  --text-secondary: #475569;
-  --text-muted: #64748b;
-
-  --border: #e2e8f0;
-  --border-strong: #cbd5e1;
-  --ring: #4f46e5;
-
-  --primary: #4f46e5;
-  --primary-hover: #4338ca;
-  --primary-soft: #6366f1;
-  --primary-foreground: #ffffff;
-
-  --shadow-sm: 0 2px 8px rgba(15, 23, 42, 0.08);
-  --shadow-md: 0 8px 24px rgba(15, 23, 42, 0.1);
-  --shadow-lg: 0 20px 50px rgba(15, 23, 42, 0.14);
 }
 
-@media (prefers-color-scheme: light) {
-  :root:not([data-theme="dark"]):not([data-theme="light"]) {
-    color-scheme: light;
+:root[data-theme="dark"] {
+  color-scheme: dark;
+}
 
-    --background: #f8fafc;
-    --surface: #ffffff;
-    --surface-2: #f1f5f9;
-    --card: #ffffff;
-    --card-foreground: #0f172a;
-
-    --foreground: #0f172a;
-    --text-secondary: #475569;
-    --text-muted: #64748b;
-
-    --border: #e2e8f0;
-    --border-strong: #cbd5e1;
-    --ring: #4f46e5;
-
-    --primary: #4f46e5;
-    --primary-hover: #4338ca;
-    --primary-soft: #6366f1;
-    --primary-foreground: #ffffff;
-
-    --shadow-sm: 0 2px 8px rgba(15, 23, 42, 0.08);
-    --shadow-md: 0 8px 24px rgba(15, 23, 42, 0.1);
-    --shadow-lg: 0 20px 50px rgba(15, 23, 42, 0.14);
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    color-scheme: dark;
   }
 }
 

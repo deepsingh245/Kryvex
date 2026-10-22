@@ -14,7 +14,7 @@ export function MobileTopBar() {
     <header className="flex items-center justify-between border-b border-border bg-surface px-4 py-3 md:hidden">
       <Logo markSize={24} />
       <div className="flex items-center gap-1">
-        <ThemeToggle className="h-11 w-11" />
+        <ThemeToggle size="touch" />
         <button
           type="button"
           onClick={() => setOpen(true)}

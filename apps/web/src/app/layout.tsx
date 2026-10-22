@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import { ThemedToaster } from "@/components/layout/ThemedToaster";
-import { THEME_INIT_SCRIPT } from "@/lib/theme";
+import { THEME_INIT_SCRIPT } from "@/config/theme.config";
 import { ThemeProvider } from "@/providers/ThemeProvider";
 import { VaultProvider } from "@/providers/VaultProvider";
 import "./globals.css";

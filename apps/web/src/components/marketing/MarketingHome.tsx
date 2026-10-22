@@ -104,13 +104,22 @@ function MarketingHeader() {
           aria-label="Primary navigation"
           className="hidden items-center gap-8 text-sm font-medium text-text-secondary md:flex"
         >
-          <a className="transition-colors hover:text-foreground" href="#product">
+          <a
+            className="transition-colors hover:text-foreground"
+            href="#product"
+          >
             Product
           </a>
-          <a className="transition-colors hover:text-foreground" href="#security">
+          <a
+            className="transition-colors hover:text-foreground"
+            href="#security"
+          >
             Security
           </a>
-          <a className="transition-colors hover:text-foreground" href="#workflow">
+          <a
+            className="transition-colors hover:text-foreground"
+            href="#workflow"
+          >
             How it works
           </a>
           <a className="transition-colors hover:text-foreground" href="#faq">
@@ -144,8 +153,8 @@ function MarketingHeader() {
 
 function MiniVaultList() {
   return (
-    <div className="overflow-hidden rounded-xl border border-[#263247] bg-[#0b1120] p-4 text-white shadow-md">
-      <div className="mb-3 flex items-center gap-2 rounded-lg border border-[#334155] bg-[#111827] px-3 py-2 text-xs text-[#94a3b8]">
+    <div className="overflow-hidden rounded-xl border border-border bg-surface-2 p-4 text-foreground shadow-md">
+      <div className="mb-3 flex items-center gap-2 rounded-lg border border-border-strong bg-surface px-3 py-2 text-xs text-text-secondary">
         <Search className="h-3.5 w-3.5" aria-hidden="true" />
         Search your vault…
       </div>
@@ -155,16 +164,23 @@ function MiniVaultList() {
             key={name}
             className={cn(
               "flex items-center justify-between gap-3 rounded-lg px-3 py-2",
-              index === 1 ? "bg-[#4f46e5]" : "bg-[#111827]",
+              index === 1 ? "bg-primary text-primary-foreground" : "bg-surface",
             )}
           >
             <div className="min-w-0">
               <p className="truncate text-xs font-semibold">{name}</p>
-              <p className="truncate font-mono text-[10px] text-[#cbd5e1]">
+              <p
+                className={cn(
+                  "truncate font-mono text-[10px]",
+                  index === 1
+                    ? "text-primary-foreground/80"
+                    : "text-text-secondary",
+                )}
+              >
                 {detail}
               </p>
             </div>
-            <span className="shrink-0 rounded-md bg-white/10 px-2 py-1 text-[9px] text-[#e2e8f0]">
+            <span className="shrink-0 rounded-md bg-background/20 px-2 py-1 text-[9px]">
               {type}
             </span>
           </div>
@@ -187,8 +203,8 @@ export function MarketingHome() {
                 The secure home for everything you need to remember.
               </h1>
               <p className="mt-6 max-w-xl text-lg leading-8 text-text-secondary">
-                Keep passwords, private notes and files together—easy to find and
-                encrypted on your device.
+                Keep passwords, private notes and files together—easy to find
+                and encrypted on your device.
               </p>
               <div className="mt-8 flex items-center">
                 <Link
@@ -234,7 +250,8 @@ export function MarketingHome() {
               </h2>
               <p className="mt-4 text-lg leading-8 text-text-secondary">
                 Stop juggling browser passwords, scattered notes, files and
-                recovery codes. Find everything in one searchable, private vault.
+                recovery codes. Find everything in one searchable, private
+                vault.
               </p>
             </div>
 
@@ -251,7 +268,11 @@ export function MarketingHome() {
                       className="flex items-start gap-3 rounded-xl border border-border bg-card p-4"
                     >
                       <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                        <Icon className="h-5 w-5" strokeWidth={1.75} aria-hidden="true" />
+                        <Icon
+                          className="h-5 w-5"
+                          strokeWidth={1.75}
+                          aria-hidden="true"
+                        />
                       </div>
                       <div>
                         <p className="text-sm font-semibold">{title}</p>
@@ -281,7 +302,9 @@ export function MarketingHome() {
                         className="flex items-center justify-between gap-4 py-3 first:pt-0 last:pb-0"
                       >
                         <div className="min-w-0">
-                          <p className="truncate text-sm font-semibold">{name}</p>
+                          <p className="truncate text-sm font-semibold">
+                            {name}
+                          </p>
                           <p className="truncate font-mono text-xs text-text-secondary">
                             {detail}
                           </p>
@@ -303,8 +326,8 @@ export function MarketingHome() {
                   Instant search, real productivity.
                 </h3>
                 <p className="mt-3 leading-7 text-text-secondary">
-                  Quickly find any item and filter by type or tags—without digging
-                  through folders.
+                  Quickly find any item and filter by type or tags—without
+                  digging through folders.
                 </p>
                 <div className="mt-6">
                   <MiniVaultList />
@@ -359,24 +382,24 @@ export function MarketingHome() {
 
         <section
           id="security"
-          className="scroll-mt-20 border-y border-border-strong bg-[#080b14] py-20 text-[#f8fafc] sm:py-24"
+          className="scroll-mt-20 border-y border-border-strong bg-surface-2 py-20 text-foreground sm:py-24"
         >
           <div className="mx-auto grid w-full max-w-7xl gap-12 px-5 sm:px-8 lg:grid-cols-[0.9fr_1.1fr] lg:px-12">
             <div className="max-w-xl">
-              <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.18em] text-[#818cf8]">
+              <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.18em] text-primary-soft">
                 Zero-knowledge encryption
               </p>
               <h2 className="mt-4 text-balance text-4xl font-bold tracking-[-0.04em] sm:text-5xl">
                 Privacy is the architecture, not a setting.
               </h2>
-              <p className="mt-5 text-lg leading-8 text-[#94a3b8]">
+              <p className="mt-5 text-lg leading-8 text-text-secondary">
                 Your vault contents are encrypted on your device before being
                 stored. Firebase receives only unreadable encrypted data, while
                 signing in and unlocking your vault remain separate actions.
               </p>
               <Link
                 href="/sign-up"
-                className="mt-8 inline-flex min-h-11 items-center gap-2 rounded-lg border border-[#334155] px-4 py-2.5 text-sm font-semibold transition-colors hover:border-[#818cf8] hover:bg-[#111827] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#818cf8]"
+                className="mt-8 inline-flex min-h-11 items-center gap-2 rounded-lg border border-border-strong px-4 py-2.5 text-sm font-semibold transition-colors hover:border-primary-soft hover:bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 Create a free vault
                 <ArrowRight className="h-4 w-4" aria-hidden="true" />
@@ -384,18 +407,43 @@ export function MarketingHome() {
             </div>
 
             <ol className="grid gap-5 sm:grid-cols-3">
-              {([
-                ["Encrypted on your device", "Vault content is encrypted locally before it leaves your device.", Laptop],
-                ["Stored as encrypted data", "The server stores encrypted records and never needs readable vault contents.", ShieldCheck],
-                ["Only you can unlock it", "Your master password derives the key that unlocks your vault.", UserRound],
-              ] as const).map(([title, description, Icon], index) => (
-                <li key={title as string} className="relative rounded-2xl border border-[#273449] bg-[#111827] p-6">
-                  <span className="font-mono text-xs text-[#818cf8]">0{index + 1}</span>
-                  <div className="mt-5 flex h-12 w-12 items-center justify-center rounded-xl bg-[#1e293b] text-[#818cf8]">
-                    <Icon className="h-6 w-6" strokeWidth={1.7} aria-hidden="true" />
+              {(
+                [
+                  [
+                    "Encrypted on your device",
+                    "Vault content is encrypted locally before it leaves your device.",
+                    Laptop,
+                  ],
+                  [
+                    "Stored as encrypted data",
+                    "The server stores encrypted records and never needs readable vault contents.",
+                    ShieldCheck,
+                  ],
+                  [
+                    "Only you can unlock it",
+                    "Your master password derives the key that unlocks your vault.",
+                    UserRound,
+                  ],
+                ] as const
+              ).map(([title, description, Icon], index) => (
+                <li
+                  key={title as string}
+                  className="relative rounded-2xl border border-border bg-card p-6"
+                >
+                  <span className="font-mono text-xs text-primary-soft">
+                    0{index + 1}
+                  </span>
+                  <div className="mt-5 flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary-soft">
+                    <Icon
+                      className="h-6 w-6"
+                      strokeWidth={1.7}
+                      aria-hidden="true"
+                    />
                   </div>
-                  <h3 className="mt-5 text-lg font-semibold">{title as string}</h3>
-                  <p className="mt-3 text-sm leading-6 text-[#94a3b8]">
+                  <h3 className="mt-5 text-lg font-semibold">
+                    {title as string}
+                  </h3>
+                  <p className="mt-3 text-sm leading-6 text-text-secondary">
                     {description as string}
                   </p>
                 </li>
@@ -412,19 +460,42 @@ export function MarketingHome() {
             </h2>
 
             <ol className="mt-12 grid gap-5 lg:grid-cols-3">
-              {([
-                ["Unlock", "Sign in, then unlock your vault locally with your master password.", LockKeyhole],
-                ["Find", "Search or browse the item you need in your organized vault.", FolderSearch2],
-                ["Reveal or copy", "View details only when needed, then copy with one clear action.", Copy],
-              ] as const).map(([title, description, Icon], index) => (
-                <li key={title as string} className="rounded-2xl border border-border bg-card p-6 shadow-sm sm:p-8">
+              {(
+                [
+                  [
+                    "Unlock",
+                    "Sign in, then unlock your vault locally with your master password.",
+                    LockKeyhole,
+                  ],
+                  [
+                    "Find",
+                    "Search or browse the item you need in your organized vault.",
+                    FolderSearch2,
+                  ],
+                  [
+                    "Reveal or copy",
+                    "View details only when needed, then copy with one clear action.",
+                    Copy,
+                  ],
+                ] as const
+              ).map(([title, description, Icon], index) => (
+                <li
+                  key={title as string}
+                  className="rounded-2xl border border-border bg-card p-6 shadow-sm sm:p-8"
+                >
                   <div className="flex items-center justify-between">
                     <span className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground">
                       {index + 1}
                     </span>
-                    <Icon className="h-6 w-6 text-primary" strokeWidth={1.75} aria-hidden="true" />
+                    <Icon
+                      className="h-6 w-6 text-primary"
+                      strokeWidth={1.75}
+                      aria-hidden="true"
+                    />
                   </div>
-                  <h3 className="mt-7 text-xl font-semibold">{title as string}</h3>
+                  <h3 className="mt-7 text-xl font-semibold">
+                    {title as string}
+                  </h3>
                   <p className="mt-2 leading-7 text-text-secondary">
                     {description as string}
                   </p>
@@ -445,7 +516,11 @@ export function MarketingHome() {
                 {ITEM_TYPES.map(([label, Icon]) => (
                   <div key={label} className="flex items-center gap-3">
                     <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-border bg-card text-primary shadow-sm">
-                      <Icon className="h-5 w-5" strokeWidth={1.75} aria-hidden="true" />
+                      <Icon
+                        className="h-5 w-5"
+                        strokeWidth={1.75}
+                        aria-hidden="true"
+                      />
                     </div>
                     <span className="text-sm font-medium">{label}</span>
                   </div>
@@ -457,16 +532,24 @@ export function MarketingHome() {
               <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
                 <Smartphone className="h-6 w-6" aria-hidden="true" />
               </div>
-              <h3 className="mt-6 text-2xl font-bold">Designed to travel with you.</h3>
+              <h3 className="mt-6 text-2xl font-bold">
+                Designed to travel with you.
+              </h3>
               <p className="mt-3 leading-7 text-text-secondary">
                 The shared encryption and vault foundations already support web
                 and mobile development. Web release comes first; the native apps
                 follow after mobile-specific security hardening.
               </p>
               <div className="mt-6 flex flex-wrap gap-2 text-xs font-medium text-text-secondary">
-                <span className="rounded-md border border-border px-3 py-2">Web · current focus</span>
-                <span className="rounded-md border border-border px-3 py-2">iOS · in progress</span>
-                <span className="rounded-md border border-border px-3 py-2">Android · in progress</span>
+                <span className="rounded-md border border-border px-3 py-2">
+                  Web · current focus
+                </span>
+                <span className="rounded-md border border-border px-3 py-2">
+                  iOS · in progress
+                </span>
+                <span className="rounded-md border border-border px-3 py-2">
+                  Android · in progress
+                </span>
               </div>
             </div>
           </div>
@@ -543,25 +626,43 @@ export function MarketingHome() {
           <div>
             <p className="text-sm font-semibold">Product</p>
             <div className="mt-4 flex flex-col gap-3 text-sm text-text-secondary">
-              <a href="#product" className="hover:text-foreground">Overview</a>
-              <a href="#workflow" className="hover:text-foreground">How it works</a>
-              <a href="#security" className="hover:text-foreground">Security</a>
+              <a href="#product" className="hover:text-foreground">
+                Overview
+              </a>
+              <a href="#workflow" className="hover:text-foreground">
+                How it works
+              </a>
+              <a href="#security" className="hover:text-foreground">
+                Security
+              </a>
             </div>
           </div>
           <div>
             <p className="text-sm font-semibold">Learn</p>
             <div className="mt-4 flex flex-col gap-3 text-sm text-text-secondary">
-              <a href="#faq" className="hover:text-foreground">FAQ</a>
-              <a href="#product" className="hover:text-foreground">What you can store</a>
-              <a href="#security" className="hover:text-foreground">Privacy model</a>
+              <a href="#faq" className="hover:text-foreground">
+                FAQ
+              </a>
+              <a href="#product" className="hover:text-foreground">
+                What you can store
+              </a>
+              <a href="#security" className="hover:text-foreground">
+                Privacy model
+              </a>
             </div>
           </div>
           <div>
             <p className="text-sm font-semibold">Account</p>
             <div className="mt-4 flex flex-col gap-3 text-sm text-text-secondary">
-              <Link href="/sign-up" className="hover:text-foreground">Create a free vault</Link>
-              <Link href="/sign-in" className="hover:text-foreground">Sign in</Link>
-              <Link href="/recover" className="hover:text-foreground">Recover access</Link>
+              <Link href="/sign-up" className="hover:text-foreground">
+                Create a free vault
+              </Link>
+              <Link href="/sign-in" className="hover:text-foreground">
+                Sign in
+              </Link>
+              <Link href="/recover" className="hover:text-foreground">
+                Recover access
+              </Link>
             </div>
           </div>
         </div>
