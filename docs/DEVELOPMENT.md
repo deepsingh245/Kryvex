@@ -38,7 +38,7 @@ pnpm typecheck          # tsc --noEmit across workspaces (apps/web also runs `ne
 pnpm test               # unit tests (Vitest for packages/apps/web, Jest for apps/mobile)
 pnpm test:security      # Firestore/Storage rules tests, run only via `firebase emulators:exec`
 pnpm test:auth          # Auth/prelogin flow tests, run only via `firebase emulators:exec` (rebuilds firebase/functions first)
-pnpm test:e2e           # reserved — no-op until Phase 8 (no Playwright wired yet)
+pnpm test:e2e           # Playwright suites, including the Chromium extension fixture
 ```
 
 Known TypeScript-6.0.3-under-pnpm quirks worked around in the shared config
@@ -210,6 +210,15 @@ EXPO_PUBLIC_FIREBASE_APP_ID=
 EXPO_PUBLIC_USE_FIREBASE_EMULATOR=true
 EXPO_PUBLIC_FIREBASE_EMULATOR_HOST=localhost
 
+WXT_FIREBASE_API_KEY=
+WXT_FIREBASE_AUTH_DOMAIN=
+WXT_FIREBASE_PROJECT_ID=demo-kryvex
+WXT_FIREBASE_STORAGE_BUCKET=
+WXT_FIREBASE_APP_ID=
+WXT_USE_FIREBASE_EMULATOR=true
+WXT_FIREBASE_EMULATOR_HOST=localhost
+WXT_KRYVEX_WEB_ORIGIN=http://localhost:3000
+
 # SECRET CONFIG (server-only; never referenced from client bundles)
 FIREBASE_SERVICE_ACCOUNT_JSON=   # used only by Cloud Functions / CI, never shipped to apps/web or apps/mobile
 ```
@@ -250,3 +259,15 @@ Phase 1 onward:
    Firebase rules/functions changed) before considering a change done.
 5. Update the relevant `docs/*.md` and `KRYVEX_SOURCE_OF_TRUTH.md` if the
    change affects architecture or behavior described there.
+
+## 9. Chrome extension
+
+`apps/extension` is a WXT/React/TypeScript Manifest V3 workspace. Use
+`pnpm --filter @kryvex/extension dev` for the unpacked development build,
+`build` for `.output/chrome-mv3`, and `zip` for the Web Store archive. The E2E
+script first builds in development mode, starts the local hostile-form fixture,
+and loads the unpacked extension in a fresh persistent Chromium context.
+
+Production builds inject only on HTTPS. The development build adds localhost
+so emulator and form-fixture flows can be tested. See
+`apps/extension/README.md` and its release checklist before packaging.

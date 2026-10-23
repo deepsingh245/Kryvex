@@ -1,6 +1,7 @@
 # Kryvex — Build Plan
 
-Status: **Phase 9w (security hardening, web + shared packages) complete.**
+Status: **Chrome extension implementation complete in code; release verification
+and store submission remain.**
 `apps/web` is being taken to full completion before any `apps/mobile` work
 resumes (this session's strategy change — see §4's Track A/Track B split).
 Between Phase 9w and Phase 10w, a scoped UX/ergonomics fix (not its own
@@ -209,6 +210,13 @@ port after every web phase as before. Phases already done on both platforms
 | 8m    | UX polish (mobile)                                                                                                                                                                                                                                                                                                           |
 | 9m    | Security hardening (mobile-specific — native module review, on top of Track A's shared-package hardening)                                                                                                                                                                                                                    |
 | 10m   | Release (mobile) — EAS builds, App Store/Play Store submission                                                                                                                                                                                                                                                               |
+
+### Track C - Chrome extension
+
+| Phase | Focus                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| ----- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 11x   | **Implemented, pending live Firebase/staging verification and store submission.** WXT/React/TypeScript Chrome MV3 client in `apps/extension`: independent Firebase Auth plus master-password unlock, trusted-session VEK custody, exact-host click-to-fill, encrypted save/update drafts, encrypted offline cache/pending writes, revision conflicts, and ciphertext-only handoff to the web resolver. No Chrome Password Manager import, auto-fill, auto-submit, TOTP, passkeys, or cross-frame filling. |
+| 12x   | Release: real-project emulator/staging matrix, sanitized screenshots, final privacy/support URLs, Web Store review, and signed publication.                                                                                                                                                                                                                                                                                                                                                               |
 
 Each phase ends with: tests run, security implications reviewed, docs updated,
 and a short "Changed / Tests / Security considerations / Files / Next step" report.

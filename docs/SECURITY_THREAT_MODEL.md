@@ -1,6 +1,6 @@
 # Kryvex — Security Threat Model
 
-Status: Phase 0 draft. Governs all subsequent design/implementation decisions.
+Status: Living security baseline, updated for the Chrome MV3 extension.
 See also: [CRYPTOGRAPHIC_ARCHITECTURE.md](./CRYPTOGRAPHIC_ARCHITECTURE.md),
 [FIREBASE_SECURITY.md](./FIREBASE_SECURITY.md).
 
@@ -110,3 +110,42 @@ hard-code keys; commit secrets to git; store plaintext secrets in `localStorage`
 build an admin endpoint that can decrypt user vaults; treat Firebase
 Authentication as equivalent to vault decryption; trust frontend-only
 authorization; silently overwrite sync conflicts.
+
+## 8. Chrome extension security decisions
+
+- **Broad page access is bounded.** The production content script runs only in
+  the top frame of HTTPS pages. Development additionally permits localhost.
+  It cannot run on Chrome-internal pages, production HTTP, incognito, or
+  cross-origin frames. Permissions are only `storage` and `alarms`.
+- **Page code is untrusted.** Every content request is schema-bounded and the
+  worker revalidates extension ID, top frame, sender URL, claimed URL, exact
+  origin, tab, expiry, item membership, and a one-time random fill grant. Page
+  code never receives the VEK or a list of passwords.
+- **Filling requires intent.** Only an explicit click on the closed-Shadow-DOM
+  Kryvex UI returns one credential. Native setters dispatch input/change but
+  never submit. Synthetic prompt clicks are ignored.
+- **Capture is interaction-scoped.** Values are read on trusted submit, Enter,
+  or submit-button interaction, not on every keystroke. If locked, values are
+  not read or retained. If unlocked, the candidate is encrypted immediately
+  and only the encrypted five-minute draft is retained.
+- **Key custody is separate from Auth.** Firebase persistence provides only
+  `AUTHENTICATED_LOCKED`. The raw VEK is kept in `chrome.storage.session` with
+  `TRUSTED_CONTEXTS`; alarms enforce the inactivity deadline across worker
+  suspension. Lock, sign-out, invalid session, restart/update, and timeout
+  clear key custody. JavaScript buffer wiping is best effort, not guaranteed
+  physical erasure.
+- **Persistent extension state is ciphertext only.** IndexedDB contains
+  `VaultItemDocument` envelopes and sync bookkeeping. A runtime guard refuses
+  plaintext credential/key-shaped fields. The extension has no analytics,
+  crash reporting, external messaging, or secret-bearing URLs.
+- **Conflict handoff is ciphertext-only and tab-bound.** The extension opens
+  the configured web origin itself and transfers both encrypted envelopes only
+  from that exact tab/origin into the existing resolver. The expiring routing
+  record is stored in trusted `chrome.storage.session` so MV3 worker suspension
+  does not weaken or lose the binding. The acknowledgment removes a conflict
+  only after the web write succeeds.
+- **Residual risk.** A malicious page can imitate Kryvex visually or inspect a
+  credential after the user deliberately fills it into that page. A malicious
+  co-installed extension with equivalent site access can also observe page DOM.
+  Exact-host matching, click-only fill, isolated UI, and explicit disclosure
+  reduce risk but cannot make an already compromised browser trustworthy.

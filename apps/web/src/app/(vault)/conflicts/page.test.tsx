@@ -7,6 +7,17 @@ vi.mock("@/hooks/useVaultItems", () => ({
   useVaultItems: vi.fn(),
 }));
 
+vi.mock("@/providers/VaultProvider", () => ({
+  useVault: () => ({
+    state: {
+      status: "UNLOCKED",
+      user: { uid: "1", email: "a@b.com" },
+      stretchedMasterKey: new Uint8Array(),
+      vaultEncryptionKey: new Uint8Array(),
+    },
+  }),
+}));
+
 const mockedUseVaultItems = vi.mocked(useVaultItems);
 
 describe("ConflictsPage", () => {
@@ -22,6 +33,7 @@ describe("ConflictsPage", () => {
       toggleFavorite: vi.fn(),
       softDeleteItem: vi.fn(),
       resolveConflict: vi.fn(),
+      importExternalConflict: vi.fn(),
     });
     render(<ConflictsPage />);
     expect(screen.getByText("No conflicts to review.")).toBeInTheDocument();
@@ -62,6 +74,7 @@ describe("ConflictsPage", () => {
       toggleFavorite: vi.fn(),
       softDeleteItem: vi.fn(),
       resolveConflict,
+      importExternalConflict: vi.fn(),
     });
     render(<ConflictsPage />);
 
@@ -113,6 +126,7 @@ describe("ConflictsPage", () => {
       toggleFavorite: vi.fn(),
       softDeleteItem: vi.fn(),
       resolveConflict,
+      importExternalConflict: vi.fn(),
     });
     render(<ConflictsPage />);
 

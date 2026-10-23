@@ -1,79 +1,130 @@
-# Kryvex — Future Autofill Architecture
+# Kryvex - Autofill Architecture
 
-Status: Phase 0 draft. Not implemented in V1 (see build spec §28, §74). This
-document exists so the V1 data model and vault APIs don't have to be reshaped
-later. See also: [DATA_MODEL.md](./DATA_MODEL.md).
+Status: Chrome Manifest V3 extension implemented in `apps/extension` for the
+first-release scope. Android Autofill and the iOS Credential Provider remain
+future work. See also [DATA_MODEL.md](./DATA_MODEL.md),
+[SYNC_ENGINE.md](./SYNC_ENGINE.md), and
+[SECURITY_THREAT_MODEL.md](./SECURITY_THREAT_MODEL.md).
 
-## 1. Why this is written now, built later
+## 1. Shared vault contract
 
-Autofill integrations (Android Autofill Framework, iOS Credential Provider
-Extension, a browser extension) all need the same three things from the core
-vault: a way to match a request context (a domain or app package) to
-candidate items, a way to hand back credentials without the host app/OS ever
-seeing the master password, and a way to trigger password generation
-in-context. Designing the data model with these needs in mind now avoids a
-breaking schema migration later.
+The extension is an independent Kryvex client, not a password relay from the
+web app. It reuses `LoginContent`, `VaultItemDocument`, the Argon2id -> HKDF ->
+wrapped VEK hierarchy, per-item DEKs, validation, Firestore paths, revision
+compare-and-swap rules, and the shared sync state machine. The server receives
+only the existing ciphertext envelope.
 
-## 2. What the V1 data model already provides
+`LoginContent.websites` stores a normalized origin. Matching is by exact
+normalized hostname: sibling subdomains do not share credentials. Production
+accepts HTTPS only. Development additionally accepts HTTP on `localhost`,
+`127.0.0.1`, and `[::1]`. Paths, queries, fragments, and default ports are
+removed; Unicode hostnames use the URL parser's ASCII/punycode representation.
 
-- `LoginContent.websites: string[]` (see DATA_MODEL.md) — a login item can be
-  associated with multiple URLs/domains, which is the minimum needed for
-  domain-based matching later.
-- Stable, client-generated item `id`s that autofill providers can reference.
-- A clean separation between "vault is unlocked" and "vault is locked" (the
-  lock state machine) that any future extension process must also respect —
-  an autofill request must never be servable while the vault is locked without
-  going through the same unlock flow (master password or biometric-gated
-  local key) as the main app.
+## 2. Chrome extension runtime
 
-## 3. Android Autofill Framework (future)
+`apps/extension` uses WXT, React, TypeScript, and Manifest V3:
 
-- Kryvex would implement an `AutofillService` that, when the vault is
-  **unlocked** (sharing unlock state with the main app via the same secure
-  local storage described in CRYPTOGRAPHIC_ARCHITECTURE.md §7), matches the
-  requesting app's package name / associated web domain against
-  `LoginContent.websites` and offers matching items in the system autofill UI.
-- If the vault is locked, the service prompts for biometric/master-password
-  unlock through the same code path as opening the app directly — never a
-  separate, weaker unlock mechanism.
-- Package-name-to-domain association will need a mapping strategy (e.g.
-  Google's Digital Asset Links `assetlinks.json` verification) to avoid
-  offering credentials to a spoofing app claiming a domain it doesn't own.
+- The service worker owns Firebase, cryptography, decrypted credential access,
+  encrypted IndexedDB cache, pending writes, and conflict bookkeeping.
+- The action popup owns sign-in, unlock, lock, manual sync, sign-out, theme,
+  and conflict navigation.
+- A top-frame content script runs on HTTPS pages. Development builds also run
+  on localhost. It detects eligible password forms and renders field icons and
+  prompts inside closed Shadow DOM.
+- Permissions are limited to `storage` and `alarms`. Site access is supplied by
+  the HTTPS content-script match. There is no tabs, cookies, history,
+  webRequest, clipboard, notification, native messaging, or external messaging
+  permission.
+- Incognito, browser-internal pages, production HTTP, and cross-origin iframe
+  filling are unsupported.
 
-## 4. iOS Credential Provider Extension (future)
+## 3. Authentication and key custody
 
-- A `ASCredentialProviderViewController` extension, sharing the Keychain
-  access group with the main app so it can reach the same locally-protected
-  key material described in CRYPTOGRAPHIC_ARCHITECTURE.md §7 without
-  duplicating secure storage.
-- Domain matching uses the same `LoginContent.websites` field; associated
-  domains are declared via Apple's `apple-app-site-association` mechanism for
-  the equivalent of Android's asset-links verification.
-- Extension processes are memory-constrained and short-lived — decrypted key
-  material must be scoped tightly to the single autofill request and cleared
-  immediately after, not cached across invocations.
+Firebase Auth uses `firebase/auth/web-extension`. Its persisted session means
+only `AUTHENTICATED_LOCKED`; it never grants vault access by itself. Sign-in or
+unlock derives the existing keys from the master password and unwraps the VEK
+locally.
 
-## 5. Browser extension (future)
+The raw VEK is stored only in `chrome.storage.session`, after that storage area
+is restricted to `TRUSTED_CONTEXTS`. Content scripts never receive the VEK.
+An alarm records the configured inactivity deadline so service-worker
+suspension cannot defeat auto-lock. Lock, sign-out, install/update, browser or
+extension restart, an invalid auth/session pairing, and timeout clear the VEK,
+fill grants, conflict handoff, and encrypted drafts. Key buffers are wiped on a
+best-effort basis after each worker operation; JavaScript and browser-managed
+storage cannot offer guaranteed physical memory erasure.
 
-- A separate, minimal-permission browser extension that:
-  1. Detects login forms on the active page.
-  2. Matches the page's origin against `LoginContent.websites`.
-  3. Requests the matching item's credentials from the already-unlocked main
-     Kryvex session (e.g. via native messaging to a companion app, or a
-     dedicated unlock flow inside the extension's own isolated storage) —
-     never by re-implementing its own copy of the vault key hierarchy.
-  4. Fills the form and can invoke the password generator in-context.
-- The extension is treated as an additional untrusted surface in the threat
-  model (build spec §3 lists "malicious browser extension" as an in-scope
-  threat for _other_ extensions attacking Kryvex — Kryvex's own extension must
-  hold itself to the same minimal-permission, minimal-DOM-exposure standard).
-- Not built until a dedicated security review of the extension's permission
-  footprint and messaging channel is done.
+IndexedDB contains only encrypted vault documents and serializable sync state.
+An explicit persistence guard rejects plaintext credential/key field names.
+Five-minute capture drafts are ciphertext plus routing metadata in trusted
+session storage, never plaintext.
 
-## 6. Explicit non-goals for V1
+## 4. Click-to-fill
 
-- No autofill service, credential provider extension, or browser extension
-  ships in V1. This document defines the target shape only.
-- TOTP-based autofill (filling a 2FA code) depends on the TOTP fields already
-  reserved in `LoginContent.totp` (DATA_MODEL.md) but is itself a v1.5+
-  feature (build spec §29).
+The content script detects username/email, `current-password`, and
+`new-password` fields, including fields inserted by an SPA. It ignores OTP,
+PIN, payment, passkey, and general-form fields.
+
+Nothing fills automatically. Clicking the Kryvex field icon requests matches.
+The worker returns labels and usernames only, plus a short-lived random grant
+bound to the tab, exact origin, and permitted item IDs. A selection consumes
+that one-time grant; the worker revalidates tab, top frame, origin, grant,
+expiry, and item membership before returning one credential. The content
+script uses native input setters and dispatches `input`/`change`; it never
+submits the form.
+
+## 5. Save and update capture
+
+The extension reacts to trusted submit, Enter, and submit-button interactions.
+It does not stream keystrokes or retain values while locked. When locked it
+shows an unlock affordance and the user must unlock and submit again.
+
+While unlocked, unambiguous candidates are immediately encrypted into a
+five-minute draft:
+
+- Sign-in: username/email plus current password.
+- Sign-up: username/email plus matching new and confirmation passwords.
+- Password change: the new password when current/new roles are explicit.
+- Ambiguous multi-password forms: no capture and no prompt.
+
+The item remains the shared `login` type. Its default title is the normalized
+hostname and `websites` receives only the normalized origin. The decision is:
+
+- no exact-hostname/account match: Save;
+- one match with a changed password: Update or Save as new;
+- same password: suppress;
+- several matches: select one explicitly or Save as new.
+
+Prompts never display the password and reject synthetic clicks. Drafts are
+discarded on dismissal, expiry, origin mismatch, lock, or sign-out.
+
+## 6. Offline sync and conflicts
+
+The extension hydrates an encrypted IndexedDB cache, performs a fresh server
+reconciliation on worker startup when unlocked, and can fill from the cache
+offline. Saves and updates are encrypted before entering the pending queue and
+retry later. Revision failures preserve both ciphertext envelopes as a
+conflict; they never silently overwrite.
+
+`@kryvex/sync` exposes `importConflict` for the existing web resolver. Resolve
+in Kryvex opens the configured web `/conflicts?source=extension` page and
+creates a short-lived handoff bound to that newly opened tab and exact Kryvex
+origin. Its routing record is kept in trusted `chrome.storage.session`, so a
+service-worker restart cannot silently break the extension-opened handoff. A
+content-script bridge transfers only the two ciphertext envelopes.
+After keep-mine, keep-server, or keep-both succeeds, the web page acknowledges
+the conflict ID and the extension removes that record. No plaintext or key is
+crossed through `window.postMessage`.
+
+## 7. First-release boundaries
+
+Chrome MV3 only. No Chrome Password Manager import, website password
+generation, TOTP fill, passkeys, cards, addresses, automatic fill, automatic
+submission, extension biometrics, Firefox/Safari packaging, or mobile OS
+autofill. Firebase App Check must not be enforced for extension-required
+endpoints until the extension has a supported attestation strategy or a
+documented and reviewed exception.
+
+Android Autofill and the iOS Credential Provider must reuse the same item
+schema and key hierarchy. Their app/domain association and platform key
+custody require separate platform security reviews before implementation.

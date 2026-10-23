@@ -59,6 +59,7 @@ function mockVaultItems(
     toggleFavorite: vi.fn(),
     softDeleteItem: vi.fn(),
     resolveConflict: vi.fn(),
+    importExternalConflict: vi.fn(),
     ...overrides,
   });
 }

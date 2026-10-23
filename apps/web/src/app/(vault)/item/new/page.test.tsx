@@ -49,6 +49,7 @@ function mockVaultItems(createItem = vi.fn()) {
     isOnline: true,
     conflicts: [],
     resolveConflict: vi.fn(),
+    importExternalConflict: vi.fn(),
   });
 }
 

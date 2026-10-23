@@ -1,0 +1,44 @@
+{
+  "name": "@kryvex/extension",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wxt -b chrome",
+    "build": "wxt build -b chrome",
+    "zip": "wxt zip -b chrome",
+    "typecheck": "wxt prepare && tsc --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "test:e2e": "wxt build -b chrome --mode development && playwright test",
+    "screenshots": "wxt build -b chrome --mode development && playwright test -c playwright.store.config.ts"
+  },
+  "dependencies": {
+    "@kryvex/crypto": "workspace:*",
+    "@kryvex/firebase": "workspace:*",
+    "@kryvex/storage": "workspace:*",
+    "@kryvex/sync": "workspace:*",
+    "@kryvex/types": "workspace:*",
+    "@kryvex/validation": "workspace:*",
+    "@kryvex/vault": "workspace:*",
+    "idb": "^8.0.3",
+    "lucide-react": "^0.545.0",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@kryvex/eslint-config": "workspace:*",
+    "@playwright/test": "1.64.1",
+    "@types/chrome": "0.3.6",
+    "@types/node": "^22",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "@wxt-dev/module-react": "1.2.2",
+    "eslint": "catalog:",
+    "fake-indexeddb": "^6.2.5",
+    "typescript": "catalog:",
+    "vitest": "catalog:",
+    "wxt": "0.21.4"
+  }
+}
