@@ -60,7 +60,7 @@ export function PwaInstallPrompt() {
     return (
       <Button
         type="button"
-        variant="outline"
+        variant="secondary"
         onClick={async () => {
           await installEvent.prompt();
           await installEvent.userChoice;
@@ -81,7 +81,7 @@ export function PwaInstallPrompt() {
       <div className="text-center">
         <Button
           type="button"
-          variant="outline"
+          variant="secondary"
           onClick={() => setIosInstructions((shown) => !shown)}
         >
           <Download className="mr-2 h-4 w-4" />
