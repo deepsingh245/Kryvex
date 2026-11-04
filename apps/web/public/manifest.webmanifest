@@ -1,0 +1,12 @@
+{
+  "id": "/",
+  "name": "Kryvex — Private Vault",
+  "short_name": "Kryvex",
+  "description": "Your private encrypted vault.",
+  "start_url": "/welcome",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#ffffff",
+  "icons": [{ "src": "/brand/kryvex-mark.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }]
+}

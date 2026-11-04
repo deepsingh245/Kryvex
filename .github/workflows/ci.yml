@@ -34,5 +34,7 @@ jobs:
           node-version: 24
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - name: Install Firebase CLI
+        run: npm install --global firebase-tools@15.25.1
       - run: pnpm test:security
       - run: pnpm test:auth

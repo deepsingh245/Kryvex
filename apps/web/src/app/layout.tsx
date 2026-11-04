@@ -20,6 +20,8 @@ export const metadata: Metadata = {
   title: "Kryvex",
   description:
     "Your private vault for passwords, credentials, and sensitive information.",
+  manifest: "/manifest.webmanifest",
+  appleWebApp: { capable: true, title: "Kryvex", statusBarStyle: "default" },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
