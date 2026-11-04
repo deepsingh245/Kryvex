@@ -10,6 +10,9 @@ export {
   getOrCreateFirebaseApp,
   initializeKryvexFirebase,
 } from "./app";
+
+export { initializeKryvexFirebaseExtension } from "./appExtension";
+export type { KryvexFirebaseExtensionServices } from "./appExtension";
 export type {
   KryvexAppCheckOptions,
   KryvexFirebaseConfig,
@@ -29,6 +32,12 @@ export {
   signUpWithAuthSecret,
   verifyRecoveryCode,
 } from "./auth";
+
+export {
+  observeExtensionAuthState,
+  signInWithAuthSecretExtension,
+  signOutKryvexExtension,
+} from "./authExtension";
 
 export {
   createUserProfileDocument,

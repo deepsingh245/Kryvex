@@ -22,6 +22,7 @@ export {
   type CustomField,
   type CustomFieldType,
   type CustomItemContent,
+  type EmailContent,
   type IdentityContent,
   type ItemContent,
   type ItemContentBase,

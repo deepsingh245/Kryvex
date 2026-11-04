@@ -5,6 +5,7 @@ import {
   beginLocalWrite,
   confirmLocalWrite,
   dismissConflict,
+  importConflict,
   initialSyncState,
   rejectLocalWrite,
 } from "./syncState";
@@ -100,6 +101,23 @@ describe("applyRemoteDoc", () => {
     expect(state.status.item2).toBe("synced");
     expect(state.status.item1).toBe("pending");
   });
+
+  it("preserves an unresolved conflict while refreshing its server side", () => {
+    const local = envelope({ revision: 1 });
+    const firstServer = envelope({ revision: 2 });
+    let state = beginLocalWrite(initialSyncState, "item1", 0, local, "update");
+    state = rejectLocalWrite(state, "item1", firstServer);
+
+    const newerServer = envelope({ revision: 3 });
+    state = applyRemoteDoc(state, newerServer);
+
+    expect(state.status.item1).toBe("conflict");
+    expect(state.conflicts.item1).toEqual({
+      itemId: "item1",
+      localDoc: local,
+      serverDoc: newerServer,
+    });
+  });
 });
 
 describe("dismissConflict", () => {
@@ -112,5 +130,33 @@ describe("dismissConflict", () => {
 
     expect(state.status.item1).toBe("synced");
     expect(state.conflicts.item1).toBeUndefined();
+  });
+});
+
+describe("importConflict", () => {
+  it("records both encrypted sides and clears a same-item pending write", () => {
+    const local = envelope({ revision: 2 });
+    const server = envelope({ revision: 3 });
+    const pending = beginLocalWrite(
+      initialSyncState,
+      "item1",
+      1,
+      local,
+      "update",
+    );
+
+    const state = importConflict(pending, {
+      itemId: "item1",
+      localDoc: local,
+      serverDoc: server,
+    });
+
+    expect(state.status.item1).toBe("conflict");
+    expect(state.pendingWrites.item1).toBeUndefined();
+    expect(state.conflicts.item1).toEqual({
+      itemId: "item1",
+      localDoc: local,
+      serverDoc: server,
+    });
   });
 });

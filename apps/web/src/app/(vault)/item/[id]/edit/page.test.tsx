@@ -84,6 +84,7 @@ describe("EditItemPage", () => {
       isOnline: true,
       conflicts: [],
       resolveConflict: vi.fn(),
+      importExternalConflict: vi.fn(),
     });
 
     render(<EditItemPage />);
@@ -153,6 +154,7 @@ describe("EditItemPage", () => {
       isOnline: true,
       conflicts: [],
       resolveConflict: vi.fn(),
+      importExternalConflict: vi.fn(),
     });
 
     render(<EditItemPage />);
@@ -201,6 +203,7 @@ describe("EditItemPage", () => {
       isOnline: true,
       conflicts: [],
       resolveConflict: vi.fn(),
+      importExternalConflict: vi.fn(),
     });
     render(<EditItemPage />);
     expect(screen.getByText("Item not found.")).toBeInTheDocument();

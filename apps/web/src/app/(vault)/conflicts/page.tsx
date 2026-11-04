@@ -1,11 +1,14 @@
 "use client";
 
 import { AlertTriangle } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { secureLogger } from "@kryvex/security";
+import type { SyncConflict } from "@kryvex/sync";
 import { Button, Card } from "@kryvex/ui";
+import { vaultItemDocumentSchema } from "@kryvex/validation";
 import { BackLink } from "@/components/layout/BackLink";
 import { useVaultItems, type ConflictResolution } from "@/hooks/useVaultItems";
+import { useVault } from "@/providers/VaultProvider";
 
 /**
  * Sync conflict resolution — see docs/SYNC_ENGINE.md §7. Lists every
@@ -16,13 +19,104 @@ import { useVaultItems, type ConflictResolution } from "@/hooks/useVaultItems";
  * ../layout.tsx, shared by every route in this group.
  */
 export default function ConflictsPage() {
-  const { conflicts, resolveConflict } = useVaultItems();
+  const { state } = useVault();
+  const { conflicts, importExternalConflict, resolveConflict } =
+    useVaultItems();
   const [error, setError] = useState<string | null>(null);
+  const importedFromExtension = useRef(new Set<string>());
+  const importExternalConflictRef = useRef(importExternalConflict);
+
+  useEffect(() => {
+    importExternalConflictRef.current = importExternalConflict;
+  }, [importExternalConflict]);
+
+  useEffect(() => {
+    if (
+      new URLSearchParams(window.location.search).get("source") !== "extension"
+    ) {
+      return;
+    }
+
+    const requestId = crypto.randomUUID();
+    function handleMessage(event: MessageEvent) {
+      if (event.source !== window || event.origin !== window.location.origin) {
+        return;
+      }
+      const message = event.data as
+        | {
+            type?: string;
+            requestId?: string;
+            response?: {
+              ok?: boolean;
+              data?: unknown;
+              error?: string;
+            };
+          }
+        | undefined;
+      if (
+        message?.type !== "KRYVEX_EXTENSION_CONFLICT" ||
+        message.requestId !== requestId
+      ) {
+        return;
+      }
+      const raw = message.response?.data as
+        | { itemId?: unknown; localDoc?: unknown; serverDoc?: unknown }
+        | null
+        | undefined;
+      if (!message.response?.ok || !raw) {
+        setError(
+          message.response?.error ??
+            "The extension conflict could not be transferred.",
+        );
+        return;
+      }
+      const local = vaultItemDocumentSchema.safeParse(raw.localDoc);
+      const server = vaultItemDocumentSchema.safeParse(raw.serverDoc);
+      if (
+        typeof raw.itemId !== "string" ||
+        !local.success ||
+        !server.success ||
+        local.data.id !== raw.itemId ||
+        server.data.id !== raw.itemId ||
+        local.data.ownerId !== server.data.ownerId ||
+        state.status !== "UNLOCKED" ||
+        local.data.ownerId !== state.user.uid
+      ) {
+        setError("The extension returned an invalid conflict envelope.");
+        return;
+      }
+      const conflict: SyncConflict = {
+        itemId: raw.itemId,
+        localDoc: local.data,
+        serverDoc: server.data,
+      };
+      importedFromExtension.current.add(conflict.itemId);
+      importExternalConflictRef.current(conflict);
+    }
+
+    window.addEventListener("message", handleMessage);
+    window.postMessage(
+      { type: "KRYVEX_EXTENSION_PULL_CONFLICT", requestId },
+      window.location.origin,
+    );
+    return () => window.removeEventListener("message", handleMessage);
+  }, [state]);
 
   async function handleResolve(itemId: string, resolution: ConflictResolution) {
     setError(null);
     try {
       await resolveConflict(itemId, resolution);
+      if (importedFromExtension.current.has(itemId)) {
+        window.postMessage(
+          {
+            type: "KRYVEX_EXTENSION_CONFLICT_RESOLVED",
+            requestId: crypto.randomUUID(),
+            conflictId: itemId,
+          },
+          window.location.origin,
+        );
+        importedFromExtension.current.delete(itemId);
+      }
     } catch {
       secureLogger.error("Failed to resolve conflict", { itemId });
       setError("Unable to resolve that conflict. Please try again.");
