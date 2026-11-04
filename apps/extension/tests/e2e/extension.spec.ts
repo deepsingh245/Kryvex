@@ -34,8 +34,7 @@ test("injects into the top frame, detects SPA fields, and stays out of iframes",
   await expect
     .poll(() =>
       page.evaluate(
-        () =>
-          document.querySelectorAll("[data-kryvex-field-control]").length,
+        () => document.querySelectorAll("[data-kryvex-field-control]").length,
       ),
     )
     .toBe(1);
@@ -49,8 +48,7 @@ test("injects into the top frame, detects SPA fields, and stays out of iframes",
   await expect
     .poll(() =>
       page.evaluate(
-        () =>
-          document.querySelectorAll("[data-kryvex-field-control]").length,
+        () => document.querySelectorAll("[data-kryvex-field-control]").length,
       ),
     )
     .toBe(1);
@@ -92,8 +90,7 @@ test("injects into the top frame, detects SPA fields, and stays out of iframes",
   await expect
     .poll(() =>
       page.evaluate(
-        () =>
-          document.querySelectorAll("[data-kryvex-field-control]").length,
+        () => document.querySelectorAll("[data-kryvex-field-control]").length,
       ),
     )
     .toBe(beforeSpa + 1);

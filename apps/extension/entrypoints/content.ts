@@ -263,10 +263,7 @@ function hasMountedFieldIcon(token: string): boolean {
 
 function clearStaleInjectedUi(): void {
   for (const element of Array.from(document.documentElement.children)) {
-    if (
-      element instanceof HTMLElement &&
-      element.dataset.kryvexUi === "true"
-    ) {
+    if (element instanceof HTMLElement && element.dataset.kryvexUi === "true") {
       element.remove();
     }
   }
