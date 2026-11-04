@@ -34,10 +34,42 @@ test("injects into the top frame, detects SPA fields, and stays out of iframes",
   await expect
     .poll(() =>
       page.evaluate(
-        () => document.querySelectorAll("[data-kryvex-ui='true']").length,
+        () =>
+          document.querySelectorAll("[data-kryvex-field-control]").length,
       ),
     )
-    .toBeGreaterThanOrEqual(1);
+    .toBe(1);
+
+  await page.evaluate(() => {
+    const input = document.querySelector<HTMLInputElement>(
+      'input[type="password"]',
+    );
+    input?.parentElement?.append(input);
+  });
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () =>
+          document.querySelectorAll("[data-kryvex-field-control]").length,
+      ),
+    )
+    .toBe(1);
+
+  await page.evaluate(() => {
+    const staleControl = document.createElement("div");
+    staleControl.dataset.kryvexUi = "true";
+    document.documentElement.append(staleControl);
+  });
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () =>
+          document.querySelectorAll(
+            "[data-kryvex-ui='true']:not([data-kryvex-layer-owner])",
+          ).length,
+      ),
+    )
+    .toBe(0);
 
   const frame = page
     .frames()
@@ -52,7 +84,7 @@ test("injects into the top frame, detects SPA fields, and stays out of iframes",
     .toBe(0);
 
   const beforeSpa = await page.evaluate(
-    () => document.querySelectorAll("[data-kryvex-ui='true']").length,
+    () => document.querySelectorAll("[data-kryvex-field-control]").length,
   );
   await page.evaluate(() => {
     document.querySelector<HTMLButtonElement>("#add-spa-field")?.click();
@@ -60,10 +92,11 @@ test("injects into the top frame, detects SPA fields, and stays out of iframes",
   await expect
     .poll(() =>
       page.evaluate(
-        () => document.querySelectorAll("[data-kryvex-ui='true']").length,
+        () =>
+          document.querySelectorAll("[data-kryvex-field-control]").length,
       ),
     )
-    .toBeGreaterThan(beforeSpa);
+    .toBe(beforeSpa + 1);
 });
 
 test("does not retain a submitted password while locked", async ({

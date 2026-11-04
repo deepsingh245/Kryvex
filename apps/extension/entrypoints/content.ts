@@ -12,9 +12,11 @@ import {
 } from "../src/messages";
 import { normalizeLoginOrigin } from "@kryvex/vault";
 
-const detectedPasswordInputs = new WeakSet<HTMLInputElement>();
 const lastCapture = new WeakMap<ParentNode, number>();
 const iconViews: { input: HTMLInputElement; host: HTMLElement }[] = [];
+const fieldTokenAttribute = "data-kryvex-field-token";
+const fieldHostAttribute = "data-kryvex-field-control";
+const layerOwnerAttribute = "data-kryvex-layer-owner";
 let vaultUnlocked = false;
 let activePanel: HTMLElement | null = null;
 
@@ -60,6 +62,7 @@ function createLayerHost(zIndex: number): {
 } {
   const host = document.createElement("div");
   host.dataset.kryvexUi = "true";
+  host.setAttribute(layerOwnerAttribute, chrome.runtime.id);
   host.style.position = "fixed";
   host.style.zIndex = String(zIndex);
   const root = host.attachShadow({ mode: "closed" });
@@ -250,20 +253,57 @@ async function showMatches(input: HTMLInputElement): Promise<void> {
   root.append(style, panel);
 }
 
-function positionIcon(input: HTMLInputElement, host: HTMLElement): void {
-  if (!input.isConnected) {
+function hasMountedFieldIcon(token: string): boolean {
+  return Array.from(document.documentElement.children).some(
+    (element) =>
+      element instanceof HTMLElement &&
+      element.getAttribute(fieldHostAttribute) === token,
+  );
+}
+
+function clearStaleInjectedUi(): void {
+  for (const element of Array.from(document.documentElement.children)) {
+    if (
+      element instanceof HTMLElement &&
+      element.dataset.kryvexUi === "true"
+    ) {
+      element.remove();
+    }
+  }
+
+  for (const input of document.querySelectorAll<HTMLInputElement>(
+    `input[${fieldTokenAttribute}]`,
+  )) {
+    input.removeAttribute(fieldTokenAttribute);
+  }
+}
+
+function positionIcon(input: HTMLInputElement, host: HTMLElement): boolean {
+  if (!input.isConnected || !host.isConnected) {
+    if (
+      input.getAttribute(fieldTokenAttribute) ===
+      host.getAttribute(fieldHostAttribute)
+    ) {
+      input.removeAttribute(fieldTokenAttribute);
+    }
     host.remove();
-    return;
+    return false;
   }
   const rect = input.getBoundingClientRect();
   host.style.left = `${Math.max(4, rect.right - 35)}px`;
   host.style.top = `${rect.top + Math.max(4, (rect.height - 28) / 2)}px`;
+  return true;
 }
 
 function addIcon(input: HTMLInputElement): void {
-  if (detectedPasswordInputs.has(input)) return;
-  detectedPasswordInputs.add(input);
+  const mountedToken = input.getAttribute(fieldTokenAttribute);
+  if (mountedToken && hasMountedFieldIcon(mountedToken)) return;
+
+  input.removeAttribute(fieldTokenAttribute);
+  const fieldToken = crypto.randomUUID();
+  input.setAttribute(fieldTokenAttribute, fieldToken);
   const { host, root } = createLayerHost(2147483646);
+  host.setAttribute(fieldHostAttribute, fieldToken);
   const button = document.createElement("button");
   button.type = "button";
   button.setAttribute("aria-label", "Fill with Kryvex");
@@ -300,7 +340,12 @@ function scanPasswordFields(root: ParentNode = document): void {
 }
 
 function repositionIcons(): void {
-  for (const view of iconViews) positionIcon(view.input, view.host);
+  for (let index = iconViews.length - 1; index >= 0; index -= 1) {
+    const view = iconViews[index];
+    if (view && !positionIcon(view.input, view.host)) {
+      iconViews.splice(index, 1);
+    }
+  }
 }
 
 async function maybeCapture(scope: ParentNode): Promise<void> {
@@ -544,12 +589,22 @@ export default defineContentScript({
     if (!normalized) return;
 
     setupConflictBridge();
+    clearStaleInjectedUi();
     scanPasswordFields();
 
     const observer = new MutationObserver((mutations) => {
       for (const mutation of mutations) {
         for (const node of mutation.addedNodes) {
-          if (node instanceof HTMLElement) scanPasswordFields(node);
+          if (!(node instanceof HTMLElement)) continue;
+          if (
+            node.parentElement === document.documentElement &&
+            node.dataset.kryvexUi === "true" &&
+            !node.hasAttribute(layerOwnerAttribute)
+          ) {
+            node.remove();
+            continue;
+          }
+          scanPasswordFields(node);
         }
       }
     });
