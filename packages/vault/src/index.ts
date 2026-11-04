@@ -22,6 +22,12 @@ export {
 
 export { formatRecoveryKey, parseRecoveryKey } from "./recoveryKey";
 
+export { loginWebsiteMatchesOrigin, normalizeLoginOrigin } from "./loginOrigin";
+export type {
+  NormalizedLoginOrigin,
+  NormalizeLoginOriginOptions,
+} from "./loginOrigin";
+
 export {
   initialItemCacheState,
   itemCacheReducer,

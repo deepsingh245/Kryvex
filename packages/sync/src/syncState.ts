@@ -122,6 +122,18 @@ export function applyRemoteDoc(
   state: SyncState,
   incoming: VaultItemDocument,
 ): SyncState {
+  const existingConflict = state.conflicts[incoming.id];
+  if (existingConflict) {
+    if (incoming.revision <= existingConflict.serverDoc.revision) return state;
+    return {
+      ...state,
+      status: { ...state.status, [incoming.id]: "conflict" },
+      conflicts: {
+        ...state.conflicts,
+        [incoming.id]: { ...existingConflict, serverDoc: incoming },
+      },
+    };
+  }
   const pending = state.pendingWrites[incoming.id];
   if (pending) {
     if (incoming.revision > pending.baseRevision) {
@@ -153,5 +165,18 @@ export function dismissConflict(state: SyncState, itemId: string): SyncState {
     ...state,
     status: { ...state.status, [itemId]: "synced" },
     conflicts: omit(state.conflicts, itemId),
+  };
+}
+
+/** Imports an encrypted conflict detected by another trusted Kryvex client. */
+export function importConflict(
+  state: SyncState,
+  conflict: SyncConflict,
+): SyncState {
+  return {
+    ...state,
+    status: { ...state.status, [conflict.itemId]: "conflict" },
+    pendingWrites: omit(state.pendingWrites, conflict.itemId),
+    conflicts: { ...state.conflicts, [conflict.itemId]: conflict },
   };
 }

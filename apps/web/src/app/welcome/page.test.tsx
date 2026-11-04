@@ -10,7 +10,9 @@ describe("WelcomePage", () => {
         name: "The secure home for everything you need to remember.",
       }),
     ).toBeInTheDocument();
-    expect(screen.getByText("Privacy is the architecture, not a setting.")).toBeInTheDocument();
+    expect(
+      screen.getByText("Privacy is the architecture, not a setting."),
+    ).toBeInTheDocument();
   });
 
   it("links every primary conversion action to /sign-up", () => {

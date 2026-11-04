@@ -138,6 +138,7 @@ function setup(
     isOnline: true,
     conflicts: [],
     resolveConflict: vi.fn(),
+    importExternalConflict: vi.fn(),
     ...overrides,
   });
 }

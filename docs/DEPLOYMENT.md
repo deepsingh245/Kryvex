@@ -353,3 +353,23 @@ Firestore+Functions+Storage release.
       zero-knowledge model and its limits (SECURITY_THREAT_MODEL.md §5) —
       no "unhackable"/"military-grade" language anywhere.
 - [ ] `KRYVEX_SOURCE_OF_TRUTH.md` reflects the as-shipped architecture.
+
+## 13. Chrome Web Store release
+
+Build the unpacked directory with `pnpm --filter @kryvex/extension build` and
+the submission archive with `pnpm --filter @kryvex/extension zip`. Inspect the
+generated production manifest: it must inject only on HTTPS, request only
+`storage` and `alarms`, disable incognito, and contain no localhost Firebase or
+web origin.
+
+Broad HTTPS access creates a prominent user warning and additional Web Store
+review obligations. Publish the accurate permission rationale and privacy copy
+from `apps/extension/STORE_LISTING.md` and `PRIVACY.md`; sanitize screenshots
+and never use real vault data. Complete `RELEASE_CHECKLIST.md` manually for the
+exact ZIP being uploaded.
+
+Firebase App Check enforcement must remain off for any sign-in/prelogin/sync
+path the extension requires until Chrome extension attestation is supported or
+an explicit exception has been threat-modeled and reviewed. Enabling existing
+web-only reCAPTCHA enforcement would break the extension and is not a security
+upgrade if users are simply locked out.

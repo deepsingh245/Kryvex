@@ -167,3 +167,20 @@ data. Define a deterministic conflict-resolution strategy."
   after revision 5 already exists) is rejected by the same compare-and-swap
   rule that handles ordinary conflicts — replay and conflict are the same
   mechanism at the protocol level.
+
+## 11. Chrome extension persistence and handoff
+
+`apps/extension` serializes the shared `SyncState` beside its encrypted item
+cache in IndexedDB because an MV3 service worker may terminate at any time.
+Pending writes contain only `VaultItemDocument` ciphertext envelopes and
+revision metadata. Worker startup performs a fresh server reconciliation when
+an unlocked session exists; an active worker also uses the Firestore listener.
+
+The shared `importConflict(state, conflict)` action lets an external ciphertext
+pair enter the normal conflict resolver without changing the Firestore schema.
+The extension keeps both envelopes until the user resolves them. Its trusted
+web handoff is limited to the exact configured Kryvex origin and the tab the
+extension opened. Its expiring routing record survives worker suspension in
+trusted `chrome.storage.session`; it transfers no plaintext or keys. The web
+resolver sends an acknowledgment only after keep-mine, keep-server, or
+keep-both succeeds, after which the extension deletes that conflict record.

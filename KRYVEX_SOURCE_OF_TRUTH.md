@@ -1,7 +1,7 @@
 # Kryvex — Source of Truth
 
-Status: **Web v1 complete (Track A). Track B (mobile): security parity and
-Phase 6b (attachments) complete; Phase 8m (mobile UX polish) is next.**
+Status: **Web v1 complete. Mobile security parity and attachments complete.
+Chrome MV3 extension implemented; live staging and store release remain.**
 This is the primary project reference. Read this before any other file
 when picking up work on Kryvex.
 Detailed reasoning for each section lives in the linked `docs/*.md` file —
@@ -176,6 +176,12 @@ build spec §18.
 | `softDeleteAttachmentDocument` now bumps `revision` by one (Track B pass 1, shared fix)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               | It wrote the fetched doc back with the same revision, which `firestore.rules` always rejects. Web's item-delete cascade swallowed the error, so attachments were never tombstoned and `attachmentGc` never reclaimed them. Blobs orphaned before this fix still need a one-off cleanup (not built)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             | packages/firebase/src/attachments.ts (+ test)                                                                                                                           |
 | `getKdfParams`/`getRecoveryEnvelope` now pass `invoker: "public"` in their `onCall` options, instead of `{}` (post-9w, discovered live once the web app was deployed and hit a CORS error calling `getKdfParams`)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     | Both are deliberately unauthenticated (called before the user has any credential), but v2 `onCall` still needs this set explicitly — Cloud Run's default IAM invoker policy otherwise rejects the request, including the client SDK's CORS preflight, before the function's own code (and its automatic CORS handling) ever runs. Browsers surface that IAM-layer rejection as a missing `Access-Control-Allow-Origin` header, not as a 403, which is why it read as a CORS bug rather than a permissions one                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  | firebase/functions/src/getKdfParams.ts, getRecoveryEnvelope.ts                                                                                                          |
 
+| Chrome extension is an independent MV3 client with extension-safe Firebase Auth; Firebase Auth persistence is only `AUTHENTICATED_LOCKED`, and the VEK is held only in trusted `chrome.storage.session` behind alarm-based inactivity expiry | A web-tab relay would couple autofill availability and security to an open page. Independent unlock preserves the existing sign-in/unlock separation. Session storage survives MV3 worker suspension but clears on browser/extension lifecycle boundaries; content scripts cannot access it | apps/extension, packages/firebase/src/appExtension.ts, docs/AUTOFILL_ARCHITECTURE.md |
+| Browser matching is exact normalized hostname and filling is click-only; one-time grants bind tab, top frame, origin, expiry and item IDs | Avoids sibling-subdomain credential disclosure, stale navigation requests, and automatic secret injection into a page. Production is HTTPS-only; localhost HTTP exists only in development | packages/vault/src/loginOrigin.ts, apps/extension/src/senderValidation.ts, apps/extension/entrypoints/content.ts |
+| Extension offline state and capture drafts are ciphertext-only; persistent writes are guarded against plaintext credential/key fields | MV3 workers are ephemeral, so durable encrypted cache/sync bookkeeping is required. Plaintext credentials and raw keys must never enter IndexedDB, local/sync storage, logs, URLs, or analytics | apps/extension/src/localStore.ts, apps/extension/src/persistenceGuard.ts, apps/extension/src/session.ts |
+| Extension conflict resolution uses a short-lived, extension-opened-tab bridge to the exact configured web origin and transfers ciphertext envelopes only | Reuses the existing resolver without duplicating decryption UI in the extension. Binding the handoff to one tab/origin prevents arbitrary pages from pulling local conflicts; storing only its expiring routing metadata in trusted session storage preserves that binding across MV3 worker suspension | packages/sync/src/syncState.ts, apps/extension/src/session.ts, apps/extension/src/vaultClient.ts, apps/web/src/app/(vault)/conflicts/page.tsx |
+| App Check enforcement stays off for extension-required flows until Chrome extensions have a supported attestation strategy or explicit reviewed exception | The existing reCAPTCHA design is web-page-specific; blindly enforcing it would break the extension without proving the extension client is genuine | docs/DEPLOYMENT.md, apps/extension/PRIVACY.md |
+
 ## 13. Known limitations
 
 Kryvex cannot protect against: a fully compromised device while unlocked,
@@ -216,9 +222,10 @@ storage, sync, key management, or attachments: build spec §41–§43,
   support, biometric unlock, auto-lock, clipboard protection.
 - **V1.5**: TOTP generation, improved recovery options, encrypted
   export/import, improved search, device management UI.
-- **V2**: Android Autofill, iOS Credential Provider, browser extension
-  (architecture pre-designed in [docs/AUTOFILL_ARCHITECTURE.md](./docs/AUTOFILL_ARCHITECTURE.md)),
-  passkeys, secure sharing, emergency access, team/family vaults.
+- **V2**: Chrome extension release (implemented, awaiting live verification),
+  Android Autofill, iOS Credential Provider, passkeys, secure sharing,
+  emergency access, and team/family vaults. See
+  [docs/AUTOFILL_ARCHITECTURE.md](./docs/AUTOFILL_ARCHITECTURE.md).
 
 ---
 
@@ -978,7 +985,9 @@ unrecoverable on both platforms.
 
 Tests: new mobile tests for `useAutoLock`, clipboard, `recoveryLink`, `EmergencyKit`, `recover-confirm` and settings, plus a `packages/firebase` unit test for the soft-delete revision. Results: mobile 67/67, all packages + web green, `test:security` 37/37.
 
-**Pre-existing, not from this pass:** `@kryvex/vault`'s `itemCrypto.test.ts` imports `EmailContent`, which `@kryvex/types` doesn't export, so `pnpm typecheck` fails in that package. Also, `pnpm lint`'s Prettier check flags several web files and docs from earlier work.
+**Pre-existing note:** `pnpm lint`'s Prettier check had flagged several web
+files and docs from earlier work. The missing `EmailContent` type export that
+previously broke `@kryvex/vault` typecheck is now fixed.
 
 **Not yet done:**
 
@@ -1012,3 +1021,21 @@ Tests: new `attachmentFiles`, `AttachmentSection` and ItemForm edit cases, casca
 
 - If the item write fails after an upload, the attachment is orphaned (no rollback).
 - An attachment can't be replaced on an existing item.
+
+Chrome extension Track C implementation is complete in code. `apps/extension`
+adds the WXT MV3 worker, React popup, HTTPS top-frame content script, closed
+Shadow DOM field/prompt UI, extension-safe Firebase initialization, independent
+master-password unlock, alarm-backed `chrome.storage.session` VEK custody,
+encrypted IndexedDB cache, offline encrypted pending writes, exact-hostname
+click-to-fill, encrypted five-minute save/update drafts, and ciphertext-only
+conflict handoff to the existing web resolver. Shared additions are origin
+normalization in `@kryvex/vault`, extension Firebase entrypoints, and
+`importConflict` in `@kryvex/sync`; vault document/encryption/Firestore schemas
+are unchanged.
+
+Release remains incomplete until the Firebase emulator/staging integration
+matrix and persistent-Chromium E2E pass with a real test account, sanitized
+store screenshots are captured, operator privacy/support details replace the
+placeholders, and the reviewed production ZIP is submitted. Firebase App Check
+must not be enforced for extension-required calls before a supported extension
+attestation strategy or reviewed exception exists.

@@ -10,6 +10,7 @@ import { Button, Input, Label } from "@kryvex/ui";
 import { AuthCard } from "@/components/auth/AuthCard";
 import { AuthPageShell } from "@/components/auth/AuthPageShell";
 import { PasswordInput } from "@/components/auth/PasswordInput";
+import { PwaInstallPrompt } from "@/components/auth/PwaInstallPrompt";
 import { useVault } from "@/providers/VaultProvider";
 
 // Deliberately generic — never reveal whether the email or the password was
@@ -91,6 +92,7 @@ export default function SignInPage() {
           </Button>
 
           <div className="flex flex-col items-center gap-2">
+            <PwaInstallPrompt />
             <Link
               href="/sign-up"
               className="text-sm text-text-secondary underline-offset-4 hover:text-foreground hover:underline"

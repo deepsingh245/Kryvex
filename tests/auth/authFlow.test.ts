@@ -6,9 +6,11 @@
  * `pnpm test:auth` (firebase emulators:exec), never plain `pnpm test`.
  */
 
+import "fake-indexeddb/auto";
 import { randomUUID } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
+  DEFAULT_KDF_PARAMS,
   bytesToHex,
   decryptBytes,
   deriveAuthAndStretchedKey,
@@ -20,7 +22,9 @@ import {
 } from "@kryvex/crypto";
 import {
   confirmVaultRecovery,
+  createVaultItem,
   createUserProfileDocument,
+  fetchVaultItem,
   fetchUserProfileDocument,
   initializeKryvexFirebase,
   resolveKdfParamsForEmail,
@@ -28,19 +32,31 @@ import {
   sendVaultRecoveryEmail,
   signInWithAuthSecret,
   signUpWithAuthSecret,
+  updateVaultItem,
   updateUserProfileDocument,
   verifyRecoveryCode,
   type KryvexFirebaseServices,
 } from "@kryvex/firebase";
-import type { EncryptedEnvelope } from "@kryvex/types";
+import {
+  initializeKryvexFirebaseExtension,
+  signInWithAuthSecretExtension,
+  signOutKryvexExtension,
+} from "@kryvex/firebase/extension";
+import type {
+  EncryptedEnvelope,
+  LoginContent,
+  VaultItemDocument,
+} from "@kryvex/types";
+import {
+  decryptItemContent,
+  encryptItemContent,
+  reencryptItemContent,
+} from "@kryvex/vault";
 
-// Low-cost params — never used outside tests.
-const FAST_PARAMS = {
-  memoryKiB: 8,
-  iterations: 1,
-  parallelism: 1,
-  version: 0x13,
-};
+// The real Firestore rules deliberately reject weakened KDF parameters, so
+// emulator integration tests use the same minimum-strength profile as the
+// clients. Unit tests cover low-cost KDF fixtures separately.
+const TEST_PARAMS = DEFAULT_KDF_PARAMS;
 
 let services: KryvexFirebaseServices;
 
@@ -87,7 +103,7 @@ async function signUpFixture(email: string, masterPassword: string) {
   const { masterKey } = await deriveKdfMaterial(
     masterPassword,
     salt,
-    FAST_PARAMS,
+    TEST_PARAMS,
   );
   const { authSecret, stretchedMasterKey } =
     deriveAuthAndStretchedKey(masterKey);
@@ -96,7 +112,7 @@ async function signUpFixture(email: string, masterPassword: string) {
   await createUserProfileDocument(services.firestore, user.uid, {
     email,
     kdfSalt: bytesToHex(salt),
-    kdfParams: FAST_PARAMS,
+    kdfParams: TEST_PARAMS,
     settings: {
       autoLockMinutes: 5,
       clipboardClearSeconds: 30,
@@ -115,7 +131,7 @@ async function signUpFixtureWithVek(email: string, masterPassword: string) {
   const { masterKey } = await deriveKdfMaterial(
     masterPassword,
     salt,
-    FAST_PARAMS,
+    TEST_PARAMS,
   );
   const { authSecret, stretchedMasterKey } =
     deriveAuthAndStretchedKey(masterKey);
@@ -129,7 +145,7 @@ async function signUpFixtureWithVek(email: string, masterPassword: string) {
   await createUserProfileDocument(services.firestore, user.uid, {
     email,
     kdfSalt: bytesToHex(salt),
-    kdfParams: FAST_PARAMS,
+    kdfParams: TEST_PARAMS,
     protectedVaultKey,
     settings: {
       autoLockMinutes: 5,
@@ -157,11 +173,11 @@ describe("sign up", () => {
     )) as {
       email: string;
       kdfSalt: string;
-      kdfParams: typeof FAST_PARAMS;
+      kdfParams: typeof TEST_PARAMS;
     };
     expect(profile.email).toBe(email);
     expect(profile.kdfSalt).toBe(bytesToHex(salt));
-    expect(profile.kdfParams).toEqual(FAST_PARAMS);
+    expect(profile.kdfParams).toEqual(TEST_PARAMS);
 
     await services.auth.signOut();
   });
@@ -178,11 +194,11 @@ describe("getKdfParams (prelogin)", () => {
       email,
     )) as {
       kdfSalt: string;
-      kdfParams: typeof FAST_PARAMS;
+      kdfParams: typeof TEST_PARAMS;
     };
     expect(result.kdfSalt).toBe(bytesToHex(salt));
-    expect(result.kdfParams).toEqual(FAST_PARAMS);
-  });
+    expect(result.kdfParams).toEqual(TEST_PARAMS);
+  }, 60_000);
 
   it("returns null for a non-existent account", async () => {
     const result = await resolveKdfParamsForEmail(
@@ -205,7 +221,7 @@ describe("sign in", () => {
       email,
     )) as {
       kdfSalt: string;
-      kdfParams: typeof FAST_PARAMS;
+      kdfParams: typeof TEST_PARAMS;
     };
     const { masterKey } = await deriveKdfMaterial(
       masterPassword,
@@ -228,7 +244,7 @@ describe("sign in", () => {
       email,
     )) as {
       kdfSalt: string;
-      kdfParams: typeof FAST_PARAMS;
+      kdfParams: typeof TEST_PARAMS;
     };
     const { masterKey } = await deriveKdfMaterial(
       "a completely different password",
@@ -271,7 +287,7 @@ describe("Vault Encryption Key wrapping (Phase 3)", () => {
     const params = (await resolveKdfParamsForEmail(
       services.functions,
       email,
-    )) as { kdfSalt: string; kdfParams: typeof FAST_PARAMS };
+    )) as { kdfSalt: string; kdfParams: typeof TEST_PARAMS };
     const { masterKey } = await deriveKdfMaterial(
       masterPassword,
       hexToBytes(params.kdfSalt),
@@ -305,7 +321,7 @@ describe("Vault Encryption Key wrapping (Phase 3)", () => {
     const params = (await resolveKdfParamsForEmail(
       services.functions,
       email,
-    )) as { kdfSalt: string; kdfParams: typeof FAST_PARAMS };
+    )) as { kdfSalt: string; kdfParams: typeof TEST_PARAMS };
     const { masterKey } = await deriveKdfMaterial(
       "a completely different password",
       hexToBytes(params.kdfSalt),
@@ -321,6 +337,132 @@ describe("Vault Encryption Key wrapping (Phase 3)", () => {
       decryptBytes(wrongStretchedMasterKey, profile.protectedVaultKey),
     ).toThrow("Unable to decrypt vault item.");
   });
+});
+
+describe("Chrome extension interoperability", () => {
+  it("signs in with extension Auth and syncs ciphertext that the web client can decrypt", async () => {
+    const email = uniqueEmail();
+    const masterPassword = "correct horse battery staple";
+    const { vaultEncryptionKey } = await signUpFixtureWithVek(
+      email,
+      masterPassword,
+    );
+    await services.auth.signOut();
+
+    const extensionServices = initializeKryvexFirebaseExtension(
+      {
+        apiKey: "demo-api-key",
+        authDomain: "demo-kryvex.firebaseapp.com",
+        projectId: "demo-kryvex",
+        storageBucket: "demo-kryvex.appspot.com",
+        appId: "demo-extension-app-id",
+      },
+      { useEmulator: "true", host: "localhost" },
+    );
+
+    const prelogin = (await resolveKdfParamsForEmail(
+      extensionServices.functions,
+      email,
+    )) as { kdfSalt: string; kdfParams: typeof TEST_PARAMS };
+    const { masterKey } = await deriveKdfMaterial(
+      masterPassword,
+      hexToBytes(prelogin.kdfSalt),
+      prelogin.kdfParams,
+    );
+    const { authSecret, stretchedMasterKey } =
+      deriveAuthAndStretchedKey(masterKey);
+    const extensionUser = await signInWithAuthSecretExtension(
+      extensionServices.auth,
+      email,
+      authSecret,
+    );
+    const extensionProfile = (await fetchUserProfileDocument(
+      extensionServices.firestore,
+      extensionUser.uid,
+    )) as { protectedVaultKey: EncryptedEnvelope };
+    const extensionVek = decryptBytes(
+      stretchedMasterKey,
+      extensionProfile.protectedVaultKey,
+    );
+    expect(extensionVek).toEqual(vaultEncryptionKey);
+
+    const itemId = randomUUID();
+    const content: LoginContent = {
+      type: "login",
+      title: "example.test",
+      tags: [],
+      customFields: [],
+      username: "extension-user@example.test",
+      password: "synthetic-extension-secret",
+      websites: ["https://example.test"],
+    };
+    const encrypted = encryptItemContent(extensionVek, content);
+    const created: VaultItemDocument = {
+      id: itemId,
+      ownerId: extensionUser.uid,
+      type: "login",
+      revision: 0,
+      createdAt: null,
+      updatedAt: null,
+      deleted: false,
+      favorite: false,
+      wrappedItemKey: encrypted.wrappedItemKey,
+      encryptedData: encrypted.encryptedData,
+      attachmentRefs: [],
+    };
+    await createVaultItem(
+      extensionServices.firestore,
+      extensionUser.uid,
+      itemId,
+      created as unknown as Record<string, unknown>,
+    );
+
+    const rawCreated = (await fetchVaultItem(
+      extensionServices.firestore,
+      extensionUser.uid,
+      itemId,
+    )) as unknown as VaultItemDocument;
+    const serializedCreated = JSON.stringify(rawCreated);
+    expect(serializedCreated).not.toContain(content.username);
+    expect(serializedCreated).not.toContain(content.password);
+
+    const updatedContent: LoginContent = {
+      ...content,
+      password: "synthetic-extension-updated-secret",
+    };
+    const updatedEncryption = reencryptItemContent(
+      extensionVek,
+      rawCreated.wrappedItemKey,
+      updatedContent,
+    );
+    await updateVaultItem(
+      extensionServices.firestore,
+      extensionUser.uid,
+      itemId,
+      {
+        ...rawCreated,
+        revision: 1,
+        encryptedData: updatedEncryption.encryptedData,
+      } as unknown as Record<string, unknown>,
+    );
+    await signOutKryvexExtension(extensionServices.auth);
+
+    await signInWithAuthSecret(services.auth, email, authSecret);
+    const webRaw = (await fetchVaultItem(
+      services.firestore,
+      extensionUser.uid,
+      itemId,
+    )) as unknown as VaultItemDocument;
+    expect(webRaw.revision).toBe(1);
+    expect(
+      decryptItemContent(
+        vaultEncryptionKey,
+        webRaw.wrappedItemKey,
+        webRaw.encryptedData,
+      ),
+    ).toEqual(updatedContent);
+    expect(JSON.stringify(webRaw)).not.toContain(updatedContent.password);
+  }, 60_000);
 });
 
 describe("vault recovery (Recovery Key + Emergency Kit, Phase 7w)", () => {
@@ -375,7 +517,7 @@ describe("vault recovery (Recovery Key + Emergency Kit, Phase 7w)", () => {
     const { masterKey } = await deriveKdfMaterial(
       newMasterPassword,
       newSalt,
-      FAST_PARAMS,
+      TEST_PARAMS,
     );
     const { authSecret: newAuthSecret, stretchedMasterKey } =
       deriveAuthAndStretchedKey(masterKey);
@@ -389,7 +531,7 @@ describe("vault recovery (Recovery Key + Emergency Kit, Phase 7w)", () => {
     );
     await updateUserProfileDocument(services.firestore, user.uid, {
       kdfSalt: bytesToHex(newSalt),
-      kdfParams: FAST_PARAMS,
+      kdfParams: TEST_PARAMS,
       protectedVaultKey: newProtectedVaultKey,
     });
     await services.auth.signOut();
@@ -398,7 +540,7 @@ describe("vault recovery (Recovery Key + Emergency Kit, Phase 7w)", () => {
     const { masterKey: oldMasterKey } = await deriveKdfMaterial(
       oldMasterPassword,
       newSalt,
-      FAST_PARAMS,
+      TEST_PARAMS,
     );
     const { authSecret: oldAuthSecret } =
       deriveAuthAndStretchedKey(oldMasterKey);
@@ -420,7 +562,7 @@ describe("vault recovery (Recovery Key + Emergency Kit, Phase 7w)", () => {
     expect(
       decryptBytes(stretchedMasterKey, finalProfile.protectedVaultKey),
     ).toEqual(vaultEncryptionKey);
-  });
+  }, 60_000);
 
   it("getRecoveryEnvelope returns null when no recovery key was ever set up", async () => {
     const email = uniqueEmail();

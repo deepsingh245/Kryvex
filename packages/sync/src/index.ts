@@ -3,6 +3,7 @@ export {
   beginLocalWrite,
   confirmLocalWrite,
   dismissConflict,
+  importConflict,
   initialSyncState,
   rejectLocalWrite,
 } from "./syncState";

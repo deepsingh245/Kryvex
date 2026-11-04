@@ -23,9 +23,11 @@ import {
   beginLocalWrite,
   confirmLocalWrite,
   dismissConflict,
+  importConflict as importSyncConflict,
   initialSyncState,
   rejectLocalWrite,
   type PendingWrite,
+  type SyncConflict,
   type SyncState,
 } from "@kryvex/sync";
 import type { ItemContent, ItemType, VaultItemDocument } from "@kryvex/types";
@@ -107,6 +109,7 @@ type SyncAction =
   | { type: "CONFIRM_WRITE"; itemId: string }
   | { type: "REJECT_WRITE"; itemId: string; serverDoc: VaultItemDocument }
   | { type: "APPLY_REMOTE"; doc: VaultItemDocument }
+  | { type: "IMPORT_CONFLICT"; conflict: SyncConflict }
   | { type: "DISMISS_CONFLICT"; itemId: string };
 
 function syncReducer(state: SyncState, action: SyncAction): SyncState {
@@ -125,6 +128,8 @@ function syncReducer(state: SyncState, action: SyncAction): SyncState {
       return rejectLocalWrite(state, action.itemId, action.serverDoc);
     case "APPLY_REMOTE":
       return applyRemoteDoc(state, action.doc);
+    case "IMPORT_CONFLICT":
+      return importSyncConflict(state, action.conflict);
     case "DISMISS_CONFLICT":
       return dismissConflict(state, action.itemId);
     default: {
@@ -163,6 +168,7 @@ export interface UseVaultItemsResult {
     itemId: string,
     resolution: ConflictResolution,
   ) => Promise<void>;
+  importExternalConflict: (conflict: SyncConflict) => void;
 }
 
 /**
@@ -431,6 +437,10 @@ export function useVaultItems(): UseVaultItemsResult {
     loadError,
     isOnline,
     conflicts,
+
+    importExternalConflict(conflict) {
+      dispatchSync({ type: "IMPORT_CONFLICT", conflict });
+    },
 
     async createItem(type, content, attachmentRefs = [], id = newItemId()) {
       const { uid, vaultEncryptionKey } = requireUnlocked();
