@@ -6,6 +6,7 @@ import { secureLogger } from "@kryvex/security";
 import { Button, Dialog, Label, Select } from "@kryvex/ui";
 import { PasswordInput } from "@/components/auth/PasswordInput";
 import { BackLink } from "@/components/layout/BackLink";
+import { ThemeSelector } from "@/components/layout/ThemeToggle";
 import { hasBiometricEnrollment, isBiometricSupported } from "@/lib/biometric";
 import { useVault } from "@/providers/VaultProvider";
 
@@ -115,9 +116,13 @@ export default function SettingsPage() {
   }
 
   return (
-    <main className="mx-auto flex w-full max-w-sm flex-1 flex-col gap-6 px-4 py-10 sm:px-8">
+    <main className="mx-auto flex w-full max-w-sm flex-1 flex-col gap-6 px-4 py-10 sm:px-8 md:max-w-xl">
       <BackLink href="/" label="Back to vault" />
       <h1 className="text-2xl font-semibold text-foreground">Settings</h1>
+      <div className="flex flex-col gap-1.5">
+        <Label>Appearance</Label>
+        <ThemeSelector />
+      </div>
       <form onSubmit={handleSubmit} className="flex flex-col gap-5">
         <div className="flex flex-col gap-1.5">
           <Label htmlFor={autoLockId}>Lock after inactivity</Label>

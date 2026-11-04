@@ -9,6 +9,7 @@ import {
 } from "react-native";
 import { signInFormSchema } from "@kryvex/validation";
 import { secureLogger } from "@kryvex/security";
+import { BrandLogo } from "@/components/BrandLogo";
 import { useVault } from "@/providers/VaultProvider";
 
 // Deliberately generic — never reveal whether the email or the password was
@@ -44,6 +45,7 @@ export default function SignInScreen() {
 
   return (
     <View style={styles.container}>
+      <BrandLogo size={52} style={styles.brand} />
       <Text style={styles.title}>Sign in to Kryvex</Text>
 
       <TextInput
@@ -79,12 +81,16 @@ export default function SignInScreen() {
       <Link href="/sign-up" style={styles.link}>
         Need a vault? Create one
       </Link>
+      <Link href="/recover" style={styles.link}>
+        Forgot master password?
+      </Link>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, justifyContent: "center", padding: 24, gap: 12 },
+  brand: { alignSelf: "center", marginBottom: 12 },
   title: { fontSize: 20, fontWeight: "600" },
   input: {
     borderWidth: 1,

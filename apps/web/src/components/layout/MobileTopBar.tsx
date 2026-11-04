@@ -5,6 +5,7 @@ import { useState } from "react";
 import { Sheet } from "@kryvex/ui";
 import { Logo } from "@/components/brand/Logo";
 import { SidebarNav } from "./Sidebar";
+import { ThemeToggle } from "./ThemeToggle";
 
 export function MobileTopBar() {
   const [open, setOpen] = useState(false);
@@ -12,14 +13,17 @@ export function MobileTopBar() {
   return (
     <header className="flex items-center justify-between border-b border-border bg-surface px-4 py-3 md:hidden">
       <Logo markSize={24} />
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        aria-label="Open menu"
-        className="flex h-11 w-11 items-center justify-center rounded-md text-text-secondary transition-colors hover:bg-surface-2 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-      >
-        <Menu className="h-5 w-5" strokeWidth={1.75} />
-      </button>
+      <div className="flex items-center gap-1">
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          aria-label="Open menu"
+          className="flex h-11 w-11 items-center justify-center rounded-md text-text-secondary transition-colors hover:bg-surface-2 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <Menu className="h-5 w-5" strokeWidth={1.75} />
+        </button>
+        <ThemeToggle size="touch" />
+      </div>
 
       <Sheet open={open} onOpenChange={setOpen} title="Menu">
         <nav

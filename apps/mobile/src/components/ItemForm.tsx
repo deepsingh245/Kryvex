@@ -88,7 +88,12 @@ export function ItemForm({
   function handleSubmit() {
     setError(null);
 
+    // Spread initialContent FIRST, same as packages/ui's ItemForm: it carries
+    // fields this form never edits (attachmentId, front/backAttachmentId).
+    // Without it, editing an attachment item fails validation or would drop
+    // its file reference. Everything the form edits is spread after and wins.
     const candidate = {
+      ...(initialContent ?? {}),
       type,
       title,
       tags,

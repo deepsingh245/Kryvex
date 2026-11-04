@@ -91,6 +91,12 @@ describe("HomeScreen", () => {
       disableBiometric: jest.fn(),
       lock: jest.fn(),
       signOut: jest.fn(),
+      settings: undefined,
+      reportActivity: jest.fn(),
+      updateSettings: jest.fn(),
+      regenerateRecoveryKey: jest.fn(),
+      sendRecoveryEmail: jest.fn(),
+      recoverVault: jest.fn(),
     });
     mockVaultItems();
     await render(<HomeScreen />);
@@ -109,6 +115,12 @@ describe("HomeScreen", () => {
       disableBiometric: jest.fn(),
       lock: jest.fn(),
       signOut: jest.fn(),
+      settings: undefined,
+      reportActivity: jest.fn(),
+      updateSettings: jest.fn(),
+      regenerateRecoveryKey: jest.fn(),
+      sendRecoveryEmail: jest.fn(),
+      recoverVault: jest.fn(),
     });
     mockVaultItems({ items: [loginItem()] });
     await render(<HomeScreen />);
@@ -127,6 +139,12 @@ describe("HomeScreen", () => {
       disableBiometric: jest.fn(),
       lock: jest.fn(),
       signOut: jest.fn(),
+      settings: undefined,
+      reportActivity: jest.fn(),
+      updateSettings: jest.fn(),
+      regenerateRecoveryKey: jest.fn(),
+      sendRecoveryEmail: jest.fn(),
+      recoverVault: jest.fn(),
     });
     mockVaultItems({ items: [loginItem()], toggleFavorite });
     await render(<HomeScreen />);
@@ -145,6 +163,12 @@ describe("HomeScreen", () => {
       disableBiometric: jest.fn(),
       lock: jest.fn(),
       signOut: jest.fn(),
+      settings: undefined,
+      reportActivity: jest.fn(),
+      updateSettings: jest.fn(),
+      regenerateRecoveryKey: jest.fn(),
+      sendRecoveryEmail: jest.fn(),
+      recoverVault: jest.fn(),
     });
     mockVaultItems({
       conflicts: [
@@ -169,6 +193,12 @@ describe("HomeScreen", () => {
       disableBiometric: jest.fn(),
       lock: jest.fn(),
       signOut: jest.fn(),
+      settings: undefined,
+      reportActivity: jest.fn(),
+      updateSettings: jest.fn(),
+      regenerateRecoveryKey: jest.fn(),
+      sendRecoveryEmail: jest.fn(),
+      recoverVault: jest.fn(),
     });
     mockVaultItems();
     await render(<HomeScreen />);
@@ -186,6 +216,12 @@ describe("HomeScreen", () => {
       disableBiometric: jest.fn(),
       lock: jest.fn(),
       signOut: jest.fn(),
+      settings: undefined,
+      reportActivity: jest.fn(),
+      updateSettings: jest.fn(),
+      regenerateRecoveryKey: jest.fn(),
+      sendRecoveryEmail: jest.fn(),
+      recoverVault: jest.fn(),
     });
     mockVaultItems();
     await render(<HomeScreen />);

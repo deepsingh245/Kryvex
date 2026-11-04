@@ -35,7 +35,12 @@ export function AuthCard({
   className,
 }: AuthCardProps) {
   return (
-    <Card className={cn("w-full max-w-sm p-6 sm:p-8", className)}>
+    <Card
+      className={cn(
+        "relative w-full max-w-lg rounded-2xl p-6 shadow-lg sm:p-8 lg:p-10",
+        className,
+      )}
+    >
       {onBack && (
         <button
           type="button"
@@ -46,7 +51,7 @@ export function AuthCard({
           <ArrowLeft className="h-5 w-5" strokeWidth={1.75} />
         </button>
       )}
-      <CardHeader className="mb-6">
+      <CardHeader className="mb-7 sm:items-start sm:text-left">
         {Icon && (
           <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10">
             <Icon className="h-7 w-7 text-primary" strokeWidth={1.75} />

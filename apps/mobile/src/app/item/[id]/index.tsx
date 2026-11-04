@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import { secureLogger } from "@kryvex/security";
 import { ITEM_TYPE_FIELD_CONFIG } from "@kryvex/ui";
+import { AttachmentSection } from "@/components/AttachmentSection";
 import { ItemTypeBadge } from "@/components/ItemTypeBadge";
 import { SecretField } from "@/components/SecretField";
 import { useVaultItems } from "@/hooks/useVaultItems";
@@ -110,6 +111,26 @@ export default function ItemDetailScreen() {
                 </View>
               ))}
             </View>
+          )}
+
+          {(item.content.type === "image" ||
+            item.content.type === "pdf" ||
+            item.content.type === "file") && (
+            <AttachmentSection attachmentId={item.content.attachmentId} />
+          )}
+          {item.content.type === "governmentId" && (
+            <>
+              <AttachmentSection
+                label="Front"
+                attachmentId={item.content.frontAttachmentId}
+              />
+              {item.content.backAttachmentId && (
+                <AttachmentSection
+                  label="Back"
+                  attachmentId={item.content.backAttachmentId}
+                />
+              )}
+            </>
           )}
 
           {ITEM_TYPE_FIELD_CONFIG[item.type].map((field) => {
