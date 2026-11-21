@@ -67,19 +67,30 @@ export default function ItemDetailPage() {
             {item.decryptFailed ? "Unable to decrypt" : item.content.title}
           </h1>
         </div>
-        <button
-          type="button"
-          onClick={() => void toggleFavorite(item.id)}
-          aria-label={item.favorite ? "Unfavorite" : "Favorite"}
-          aria-pressed={item.favorite}
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-text-muted transition-colors hover:bg-surface-2 hover:text-foreground"
-        >
-          <Star
-            className={cn("h-[18px] w-[18px]", item.favorite && "text-warning")}
-            strokeWidth={1.75}
-            fill={item.favorite ? "currentColor" : "none"}
-          />
-        </button>
+        <div className="flex shrink-0 items-center gap-1.5">
+          <button
+            type="button"
+            onClick={() => void toggleFavorite(item.id)}
+            aria-label={item.favorite ? "Unfavorite" : "Favorite"}
+            aria-pressed={item.favorite}
+            className="flex h-9 w-9 items-center justify-center rounded-md text-text-muted transition-[color,background-color,transform] duration-150 ease-out hover:bg-surface-2 hover:text-foreground active:scale-[0.94]"
+          >
+            <Star
+              className={cn("h-4.5 w-4.5", item.favorite && "text-warning")}
+              strokeWidth={1.75}
+              fill={item.favorite ? "currentColor" : "none"}
+            />
+          </button>
+          {!item.decryptFailed && (
+            <Link
+              href={`/item/${item.id}/edit`}
+              className={buttonVariants({ variant: "secondary", size: "sm" })}
+            >
+              <Pencil className="h-4 w-4" strokeWidth={1.75} />
+              Edit
+            </Link>
+          )}
+        </div>
       </div>
 
       <ItemDetailBody
@@ -93,18 +104,12 @@ export default function ItemDetailPage() {
         </p>
       )}
 
-      <div className="grid grid-cols-2 gap-3 border-t border-border pt-5 sm:flex sm:justify-end">
-        <Link
-          href={`/item/${item.id}/edit`}
-          className={buttonVariants({ variant: "secondary" })}
-        >
-          <Pencil className="h-4 w-4" strokeWidth={1.75} />
-          Edit
-        </Link>
+      <div className="flex justify-end border-t border-border pt-5">
         <Button
           type="button"
-          variant="secondary"
-          className="border-destructive/40 text-destructive hover:border-destructive hover:bg-destructive/10"
+          variant="ghost"
+          size="sm"
+          className="text-destructive hover:border-destructive/30 hover:bg-destructive/10"
           onClick={() => setConfirmOpen(true)}
         >
           <Trash2 className="h-4 w-4" strokeWidth={1.75} />
