@@ -1,0 +1,38 @@
+name: Branch flow
+
+# Enforces the promotion order feature/* -> dev -> main -> prod.
+# GitHub rulesets can't restrict a PR's source branch, so this check fails
+# when the source is wrong; mark "enforce-source-branch" as a required status
+# check on main and prod for it to actually block the merge.
+#
+# pull_request_target runs the workflow from the base branch, so a PR can't
+# edit this file to bypass the check. It never checks out PR code.
+
+on:
+  pull_request_target:
+    branches: [main, prod]
+    types: [opened, reopened, synchronize, edited]
+
+permissions: {}
+
+jobs:
+  enforce-source-branch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check source branch
+        env:
+          BASE: ${{ github.base_ref }}
+          HEAD: ${{ github.head_ref }}
+          HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
+          REPO: ${{ github.repository }}
+        run: |
+          case "$BASE" in
+            main) allowed="dev" ;;
+            prod) allowed="main" ;;
+            *) exit 0 ;;
+          esac
+          if [ "$HEAD" != "$allowed" ] || [ "$HEAD_REPO" != "$REPO" ]; then
+            echo "::error::PRs into '$BASE' must come from '$allowed' in this repo (got '$HEAD_REPO:$HEAD'). Flow is feature -> dev -> main -> prod."
+            exit 1
+          fi
+          echo "OK: $HEAD -> $BASE"
