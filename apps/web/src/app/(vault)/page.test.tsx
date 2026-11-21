@@ -199,11 +199,39 @@ describe("Home", () => {
     expect(screen.queryByLabelText("Username")).not.toBeInTheDocument();
   });
 
-  it("does not show the dense view toggle for other categories", () => {
+  it("shows the dense view for every non-file category (e.g. Secure Notes)", () => {
     searchParamsGet.mockImplementation((key) =>
       key === "type" ? "secureNote" : null,
     );
-    mockVaultItems({ items: [loginItem()] });
+    const noteItem = {
+      ...loginItem(),
+      id: "note1",
+      type: "secureNote",
+      decryptFailed: false,
+      content: {
+        type: "secureNote",
+        title: "Wifi",
+        tags: [],
+        customFields: [],
+        body: "the wifi password is hunter2",
+      },
+    } as DecryptedVaultItem;
+    mockVaultItems({ items: [noteItem] });
+    render(<Home />);
+    expect(
+      screen.getByRole("button", { name: "One by one" }),
+    ).toBeInTheDocument();
+    const note = screen.getByLabelText("Note");
+    expect(note).toHaveValue("the wifi password is hunter2");
+    // Masked until the user explicitly reveals it — every note is on screen.
+    expect(note).toHaveAttribute("type", "password");
+  });
+
+  it("does not show the dense view toggle for the Files category", () => {
+    searchParamsGet.mockImplementation((key) =>
+      key === "type" ? "files" : null,
+    );
+    mockVaultItems({ items: [] });
     render(<Home />);
     expect(
       screen.queryByRole("button", { name: "One by one" }),
