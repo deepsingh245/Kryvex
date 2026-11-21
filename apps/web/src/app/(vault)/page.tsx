@@ -14,9 +14,8 @@ import {
 import { selectVisibleItems } from "@kryvex/vault";
 import { VaultDashboard } from "@/components/vault/dashboard/VaultDashboard";
 import { useIsTabletUp } from "@/hooks/useMediaQuery";
-import { EmailDenseList } from "@/components/vault/EmailDenseList";
-import { LoginDenseList } from "@/components/vault/LoginDenseList";
 import { ItemCard } from "@/components/vault/ItemCard";
+import { TypeDenseList } from "@/components/vault/TypeDenseList";
 import { useVaultItems } from "@/hooks/useVaultItems";
 import { useVault } from "@/providers/VaultProvider";
 
@@ -52,10 +51,11 @@ export default function Home() {
 
   const [query, setQuery] = useState("");
   const [tagFilter, setTagFilter] = useState<string | undefined>(undefined);
-  // Only relevant for the Email and Login categories — defaults to the dense
-  // view so users can scan every credential without clicking into each item.
+  // Available for every category except the Files bucket (image/pdf/file
+  // have nothing copyable inline) — defaults to the dense view so users can
+  // scan every credential without clicking into each item.
   const [denseView, setDenseView] = useState<"dense" | "list">("dense");
-  const hasDenseView = typeFilter === "email" || typeFilter === "login";
+  const hasDenseView = typeFilter !== "files";
 
   const visible = useMemo(() => {
     const base = selectVisibleItems(
@@ -224,19 +224,11 @@ export default function Home() {
       )}
 
       {hasDenseView && denseView === "dense" ? (
-        typeFilter === "email" ? (
-          <EmailDenseList
-            items={visible}
-            onToggleFavorite={(id) => void toggleFavorite(id)}
-            clipboardClearSeconds={settings?.clipboardClearSeconds}
-          />
-        ) : (
-          <LoginDenseList
-            items={visible}
-            onToggleFavorite={(id) => void toggleFavorite(id)}
-            clipboardClearSeconds={settings?.clipboardClearSeconds}
-          />
-        )
+        <TypeDenseList
+          items={visible}
+          onToggleFavorite={(id) => void toggleFavorite(id)}
+          clipboardClearSeconds={settings?.clipboardClearSeconds}
+        />
       ) : (
         <ul className="flex flex-col gap-2">
           {visible.map((item) => (

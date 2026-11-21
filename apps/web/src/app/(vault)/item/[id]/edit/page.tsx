@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { secureLogger } from "@kryvex/security";
 import type { ItemContent } from "@kryvex/types";
-import { ITEM_TYPE_LABELS, ItemForm } from "@kryvex/ui";
+import { getItemTypeIcon, ITEM_TYPE_LABELS, ItemForm } from "@kryvex/ui";
 import { BackLink } from "@/components/layout/BackLink";
 import { useVaultItems } from "@/hooks/useVaultItems";
 import { useVault } from "@/providers/VaultProvider";
@@ -59,25 +59,35 @@ export default function EditItemPage() {
     }
   }
 
+  // getItemTypeIcon is a pure lookup over module-level Lucide components.
+  const Icon = getItemTypeIcon(item.type);
+
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-5 px-4 py-6 sm:px-8 sm:py-8">
       <BackLink href={`/item/${item.id}`} label="Back to item" />
-      <h1 className="text-xl font-semibold text-foreground">
-        Edit {ITEM_TYPE_LABELS[item.type]}
-      </h1>
+      <header className="flex items-center gap-3.5">
+        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+          {/* eslint-disable-next-line react-hooks/static-components */}
+          <Icon className="h-5 w-5" strokeWidth={1.75} />
+        </span>
+        <div className="min-w-0">
+          <p className="text-xs font-medium uppercase tracking-wide text-text-muted">
+            Edit {ITEM_TYPE_LABELS[item.type]}
+          </p>
+          <h1 className="truncate text-xl font-semibold text-foreground">
+            {item.content.title || "Untitled"}
+          </h1>
+        </div>
+      </header>
       <ItemForm
         type={item.type}
         initialContent={item.content}
         onSubmit={(content) => void handleSubmit(content)}
         onCancel={() => router.push(`/item/${item.id}`)}
         submitting={submitting}
+        submitError={error}
         clipboardClearSeconds={settings?.clipboardClearSeconds}
       />
-      {error && (
-        <p role="alert" className="text-sm text-destructive">
-          {error}
-        </p>
-      )}
     </main>
   );
 }

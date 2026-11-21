@@ -13,8 +13,10 @@ were added, web-only. A second UX pass followed the same day: the Add flow
 now skips the type picker when the URL already implies a category, Tags/
 Custom Fields collapse behind reveal buttons on the Add/Edit form, and the
 Email category gained a dense list view (Email/Password shown inline,
-defaulting on) toggled against the normal one-by-one list — see "Current
-status" in `KRYVEX_SOURCE_OF_TRUTH.md` for the full decisions log.
+defaulting on) toggled against the normal one-by-one list. A later pass
+extended that dense view to every category except Files (images/PDFs/files)
+and restyled the Add/Edit form (sections, sticky Save/Cancel bar) — see
+"Current status" in `KRYVEX_SOURCE_OF_TRUTH.md` for the full decisions log.
 Phase 9w ran a dedicated review pass across XSS/CSRF/rules/crypto/logging/
 deps and found the security posture fundamentally solid, closing the small
 number of real gaps found: Firebase App Check wired on `apps/web` (not yet

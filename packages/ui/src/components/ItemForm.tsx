@@ -1,7 +1,7 @@
 "use client";
 
 import { Plus, Sparkles, Trash2 } from "lucide-react";
-import { useState, type FormEvent } from "react";
+import { useId, useState, type FormEvent, type ReactNode } from "react";
 import type { CustomField, ItemContent, ItemType } from "@kryvex/types";
 import { itemContentSchema } from "@kryvex/validation";
 import { ITEM_TYPE_FIELD_CONFIG, type ItemFieldConfig } from "../fieldConfig";
@@ -24,6 +24,9 @@ export interface ItemFormProps {
   onCancel: () => void;
   submitting?: boolean;
   clipboardClearSeconds?: number | undefined;
+  /** Error from the caller's save attempt (e.g. a failed write), shown in
+   * the same spot as validation errors, right above the action bar. */
+  submitError?: string | null | undefined;
 }
 
 interface RecoveryCode {
@@ -73,6 +76,7 @@ export function ItemForm({
   onCancel,
   submitting,
   clipboardClearSeconds,
+  submitError,
 }: ItemFormProps) {
   const [title, setTitle] = useState(initialContent?.title ?? "");
   // Only rendered/submitted for type === "governmentId" — the one
@@ -97,6 +101,12 @@ export function ItemForm({
     () => (initialContent?.customFields?.length ?? 0) > 0,
   );
   const [error, setError] = useState<string | null>(null);
+
+  // In-memory only — drives the "Unsaved changes" hint; never persisted.
+  function snapshot() {
+    return JSON.stringify([title, notes, tags, customFields, fixedFields]);
+  }
+  const [initialSnapshot] = useState(snapshot);
 
   const config = ITEM_TYPE_FIELD_CONFIG[type];
 
@@ -317,81 +327,148 @@ export function ItemForm({
     }
   }
 
+  const dirty = snapshot() !== initialSnapshot;
+  const shownError = error ?? submitError ?? null;
+
   return (
     // noValidate: we show our own itemContentSchema-driven error message
     // (below) rather than the browser's native required-field tooltip —
     // without this, native constraint validation silently blocks the
     // submit event before handleSubmit (and our error message) ever runs.
-    <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-5">
-      <TextField label="Title" value={title} required onChange={setTitle} />
-      {type === "governmentId" && (
-        <MultilineField
-          label="Notes"
-          value={notes}
-          onChange={setNotes}
-          rows={3}
-        />
-      )}
-      {showTags ? (
-        <TagsInput
-          label="Tags"
-          values={tags}
-          onChange={setTags}
-          placeholder="Add a tag and press Enter"
-        />
-      ) : (
-        <Button
-          type="button"
-          variant="secondary"
-          size="sm"
-          className="self-start"
-          onClick={() => setShowTags(true)}
+    <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
+      <FormSection title="Details">
+        <TextField label="Title" value={title} required onChange={setTitle} />
+        {type === "governmentId" && (
+          <MultilineField
+            label="Notes"
+            value={notes}
+            onChange={setNotes}
+            rows={3}
+          />
+        )}
+        {config.map((field) => renderFixedField(field))}
+      </FormSection>
+
+      <FormSection
+        title="Organize"
+        description="Optional — tags and any extra fields you want to keep with this item."
+      >
+        {showTags && (
+          <TagsInput
+            label="Tags"
+            values={tags}
+            onChange={setTags}
+            placeholder="Add a tag and press Enter"
+          />
+        )}
+        {showCustomFields && (
+          <CustomFieldsEditor
+            fields={customFields}
+            onChange={setCustomFields}
+            clipboardClearSeconds={clipboardClearSeconds}
+          />
+        )}
+        {(!showTags || !showCustomFields) && (
+          <div className="flex flex-wrap gap-2">
+            {!showTags && (
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                onClick={() => setShowTags(true)}
+              >
+                <Plus className="h-4 w-4" strokeWidth={1.75} />
+                Add tags
+              </Button>
+            )}
+            {!showCustomFields && (
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                onClick={() => setShowCustomFields(true)}
+              >
+                <Plus className="h-4 w-4" strokeWidth={1.75} />
+                Add custom field
+              </Button>
+            )}
+          </div>
+        )}
+      </FormSection>
+
+      {shownError && (
+        <p
+          role="alert"
+          className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive"
         >
-          <Plus className="h-4 w-4" strokeWidth={1.75} />
-          Add tags
-        </Button>
-      )}
-
-      {config.map((field) => renderFixedField(field))}
-
-      {showCustomFields ? (
-        <CustomFieldsEditor
-          fields={customFields}
-          onChange={setCustomFields}
-          clipboardClearSeconds={clipboardClearSeconds}
-        />
-      ) : (
-        <Button
-          type="button"
-          variant="secondary"
-          size="sm"
-          className="self-start"
-          onClick={() => setShowCustomFields(true)}
-        >
-          <Plus className="h-4 w-4" strokeWidth={1.75} />
-          Add custom field
-        </Button>
-      )}
-
-      {error && (
-        <p role="alert" className="text-sm text-destructive">
-          {error}
+          {shownError}
         </p>
       )}
 
-      <div className="flex gap-2">
-        <Button type="submit" variant="primary" disabled={submitting}>
-          {submitting ? "Saving…" : "Save"}
-        </Button>
-        <Button
-          type="button"
-          variant="secondary"
-          onClick={onCancel}
-          disabled={submitting}
+      {/* Sticky so Save/Cancel stay reachable on long forms instead of
+          sitting below the fold. */}
+      <div className="sticky bottom-4 z-10 mt-2 flex items-center justify-between gap-3 rounded-lg border border-border bg-card/90 px-4 py-3 shadow-md backdrop-blur supports-[backdrop-filter]:bg-card/75">
+        <p
+          aria-live="polite"
+          className="flex min-w-0 items-center gap-2 truncate text-xs font-medium text-text-secondary"
         >
-          Cancel
-        </Button>
+          {dirty ? (
+            <>
+              <span
+                aria-hidden
+                className="h-1.5 w-1.5 shrink-0 rounded-full bg-warning"
+              />
+              Unsaved changes
+            </>
+          ) : initialContent ? (
+            "No changes yet"
+          ) : null}
+        </p>
+        <div className="flex shrink-0 gap-2">
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={onCancel}
+            disabled={submitting}
+          >
+            Cancel
+          </Button>
+          <Button type="submit" variant="primary" disabled={submitting}>
+            {submitting ? "Saving…" : "Save"}
+          </Button>
+        </div>
       </div>
     </form>
+  );
+}
+
+function FormSection({
+  title,
+  description,
+  children,
+}: {
+  title: string;
+  description?: string;
+  children: ReactNode;
+}) {
+  const headingId = useId();
+  return (
+    <section
+      aria-labelledby={headingId}
+      className="flex flex-col gap-4 rounded-lg border border-border bg-card p-4 shadow-sm sm:p-5"
+    >
+      <div className="flex flex-col gap-0.5">
+        <h2
+          id={headingId}
+          className="text-xs font-semibold uppercase tracking-wide text-text-muted"
+        >
+          {title}
+        </h2>
+        {description && (
+          <p className="text-xs text-text-secondary">{description}</p>
+        )}
+      </div>
+      {children}
+    </section>
   );
 }
