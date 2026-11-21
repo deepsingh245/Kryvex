@@ -181,6 +181,8 @@ build spec §18.
 | Extension offline state and capture drafts are ciphertext-only; persistent writes are guarded against plaintext credential/key fields | MV3 workers are ephemeral, so durable encrypted cache/sync bookkeeping is required. Plaintext credentials and raw keys must never enter IndexedDB, local/sync storage, logs, URLs, or analytics | apps/extension/src/localStore.ts, apps/extension/src/persistenceGuard.ts, apps/extension/src/session.ts |
 | Extension conflict resolution uses a short-lived, extension-opened-tab bridge to the exact configured web origin and transfers ciphertext envelopes only | Reuses the existing resolver without duplicating decryption UI in the extension. Binding the handoff to one tab/origin prevents arbitrary pages from pulling local conflicts; storing only its expiring routing metadata in trusted session storage preserves that binding across MV3 worker suspension | packages/sync/src/syncState.ts, apps/extension/src/session.ts, apps/extension/src/vaultClient.ts, apps/web/src/app/(vault)/conflicts/page.tsx |
 | App Check enforcement stays off for extension-required flows until Chrome extensions have a supported attestation strategy or explicit reviewed exception | The existing reCAPTCHA design is web-page-specific; blindly enforcing it would break the extension without proving the extension client is genuine | docs/DEPLOYMENT.md, apps/extension/PRIVACY.md |
+| Dense list view generalized from Email/Login to every category except the Files bucket (image/pdf/file), via one field-config-driven `TypeDenseList`; secret fields stay masked behind `SecretField` reveal and keep clipboard auto-clear | Same friction as the Email case applied to every type; driving it from `ITEM_TYPE_FIELD_CONFIG` avoids a bespoke list per type. Attachments have nothing copyable inline | apps/web/src/components/vault/TypeDenseList.tsx, (vault)/page.tsx |
+| Add/Edit form regrouped into "Details" and "Organize" sections with a sticky Save/Cancel bar and an in-memory "Unsaved changes" hint; Edit moved to the Item Detail header, Delete left alone at the bottom | Old form put Tags above the real fields and Save at the very end of long forms; Edit and Delete shared equal weight side by side | packages/ui/src/components/ItemForm.tsx, item/[id]/page.tsx, item/[id]/edit/page.tsx |
 
 ## 13. Known limitations
 
@@ -1039,3 +1041,9 @@ store screenshots are captured, operator privacy/support details replace the
 placeholders, and the reviewed production ZIP is submitted. Firebase App Check
 must not be enforced for extension-required calls before a supported extension
 attestation strategy or reviewed exception exists.
+
+Web UX pass (post-Track C): the dense "All at once" list view now covers every
+category except the Files bucket (images/PDFs/files), replacing the separate
+Login/Email dense lists with one `TypeDenseList`; the Add/Edit item form is
+sectioned with a sticky action bar; Item Detail's Edit action moved into the
+header. No data-model, crypto, sync, or Firestore change.
